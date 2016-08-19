@@ -1,0 +1,4 @@
+this is a test document
+
+试试看一些中文字符
+
