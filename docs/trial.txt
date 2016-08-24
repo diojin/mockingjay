@@ -1,9 +1,0 @@
-this is a test document
-
-试试看一些中文字符
-
-这是一些其他的消息.
-
-https://gist.github.com/nightire/5069597
-
-https://segmentfault.com/a/1190000000578037
