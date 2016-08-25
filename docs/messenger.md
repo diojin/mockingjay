@@ -43,3 +43,6 @@ Cay Horstmann
 “Currently the best compact introduction to Scala” —Martin Odersky
 
 “The book is a joy to read. Probably the most concise reference for Scala available on the market, this deserves to be on every programmers bookshelf”—James Sugrue
+
+scala book recommendation
+http://www.scala-lang.org/documentation/books.html
