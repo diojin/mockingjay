@@ -229,3 +229,95 @@ val b = ArrayBuffer[Int]()
 b += 1
 // ArrayBuffer(1)
 // Add an element at the end with +=
+
+b += (1, 2, 3, 5)
+// ArrayBuffer(1, 1, 2, 3, 5)
+// Add multiple elements at the end by enclosing them in parentheses
+b ++= Array(8, 13, 21)
+// ArrayBuffer(1, 1, 2, 3, 5, 8, 13, 21)
+// You can append any collection with the ++= operator
+b.trimEnd(5)
+// ArrayBuffer(1, 1, 2)
+// Removes the last five elements
+
+Sometimes, you want to build up an Array, but you don’t yet know how many elements you will need. In that case, first make an
+array buffer, then call
+b.toArray
+// Array(1, 1, 2)
+Conversely, call a.toBuffer to convert the array a to an array buffer.
+
+It is very easy to take an array (or array buffer) and transform it in some way. Such transformations don’t modify the original array, but they yield a new one.
+
+Oftentimes, when you traverse a collection, you only want to process the elements that match a particular condition. This is
+achieved with a guard: an if inside the for. Here we double every even element, dropping the odd ones:
+for (elem <- a if elem % 2 == 0) yield 2 * elem
+Alternatively, you could write
+a.filter(_ % 2 == 0).map(2 * _)
+or even
+Click here to view code image
+a filter { _ % 2 == 0 } map { 2 * _ }
+Some programmers with experience in functional programming prefer filter and map to guards and yield. That’s just a
+matter of style—the for loop does exactly the same work. Use whichever you find easier.
+Keep in mind that the result is a new collection—the original collection is not affected.
+
+var first = false
+val indexes = for (i <- 0 until a.length if first || a(i) >= 0) yield {
+	if (a(i) < 0) first = false; i
+}
+
+val b = ArrayBuffer(1, 7, 2, 9)
+val bDescending = b.sortWith(_ > _) // ArrayBuffer(9, 7, 2, 1)
+
+You can sort an array, but not an array buffer, in place:
+val a = Array(1, 7, 2, 9)
+scala.util.Sorting.quickSort(a)
+// a is now Array(1, 2, 7, 9)
+For the min, max, and quickSort methods, the element type must have a comparison operation. This is the case for numbers
+strings, and other types with the Ordered trait.
+
+Like in Java, multidimensional arrays are implemented as arrays of arrays. For example, a two-dimensional array of Double values has the type Array[Array[Double]]. To construct such an array, use the ofDim method:
+val matrix = Array.ofDim[Double](3, 4) // Three rows, four columns
+To access an element, use two pairs of parentheses:
+matrix(row)(column) = 42
+
+Interoperating with Java
+
+Since Scala arrays are implemented as Java arrays, you can pass them back and forth between Java and Scala.
+If you call a Java method that receives or returns a java.util.List, you could, of course, use a Java ArrayList in your Scala code— but that is unattractive. Instead, import the implicit conversion methods in scala.collection.JavaConversions. Then you can use Scala buffers in your code, and they automatically get wrapped into Java lists when calling a Java method.
+
+import scala.collection.JavaConversions.bufferAsJavaList 
+import scala.collection.mutable.ArrayBuffer
+val command = ArrayBuffer("ls", "-al", "/home/cay")
+val pb = new ProcessBuilder(command) // Scala to Java
+
+The Scala buffer is wrapped into an object of a Java class that implements the java.util.List interface.
+Conversely, when a Java method returns a java.util.List, you can have it automatically converted into a Buffer:
+import scala.collection.JavaConversions.asScalaBuffer 
+import scala.collection.mutable.Buffer
+val cmd : Buffer[String] = pb.command() // Java to Scala
+// You can't use ArrayBuffer—the wrapped object is only guaranteed to be a Buffer
+
+• Scala has a pleasant syntax for creating, querying, and traversing maps. 
+• You need to choose between mutable and immutable maps.
+• By default, you get a hash map, but you can also get a tree map.
+• You can easily convert between Scala and Java maps.
+• Tuples are useful for aggregating values.
+
+You can construct a map as
+val scores = Map("Alice" -> 10, "Bob" -> 3, "Cindy" -> 8)
+This constructs an immutable Map[String, Int] whose contents can’t be changed. If you want a mutable map, use
+
+val scores = scala.collection.mutable.Map("Alice" -> 10, "Bob" -> 3, "Cindy" -> 8)
+If you want to start out with a blank map, you have to supply type parameters:
+
+val scores = new scala.collection.mutable.HashMap[String, Int]
+In Scala, a map is a collection of pairs. A pair is simply a grouping of two values, not necessarily of the same type, such as ("Alice", 10).
+
+The -> operator makes a pair. 
+The value of "Alice" -> 10 is
+res16: (String, Int) = (Alice,10)
+PS: it is not a Range
+
+You could have equally well defined the map as
+val scores = Map(("Alice", 10), ("Bob", 3), ("Cindy", 8))
+
