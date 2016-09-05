@@ -321,3 +321,59 @@ PS: it is not a Range
 You could have equally well defined the map as
 val scores = Map(("Alice", 10), ("Bob", 3), ("Cindy", 8))
 
+In Scala, the analogy between functions and maps is particularly close because you use the () notation to look up key values.
+Click here to view code image
+val bobsScore = scores("Bob") // Like scores.get("Bob") in Java
+If the map doesn’t contain a value for the requested key, an exception is thrown.
+
+Since this call combination is so common, there is a shortcut:
+Click here to view code image
+val bobsScore = scores.getOrElse("Bob", 0)
+// If the map contains the key "Bob", return the value; otherwise, return 0.
+Finally, the call map.get(key) returns an Option object that is either Some(value for key) or None. 
+
+You can’t update an immutable map, but you can do something that’s just as useful—obtain a new map that has the desired
+update:
+val newScores = scores + ("Bob" -> 10, "Fred" -> 7) // New map with update
+The newScores map contains the same associations as scores, except that "Bob" has been updated and "Fred" added.
+Instead of saving the result as a new value, you can update a var:
+var scores = ...
+scores = scores + ("Bob" -> 10, "Fred" -> 7)
+Similarly, to remove a key from an immutable map, use the - operator to obtain a new map without the key:
+scores = scores - "Alice"
+You might think that it is inefficient to keep constructing new maps, but that is not the case. The old and new maps share most of their structure. (This is possible because they are immutable.)
+
+When working with a map, you need to choose an implementation—a hash table or a balanced tree. By default, Scala gives
+you a hash table. You might want a tree map if you don’t have a good hash function for the keys, or if you need to visit the keys
+in sorted order.
+
+Unfortunately, there is (as of Scala 2.9) no mutable tree map. Your best bet is to adapt a Java TreeMap,
+
+If you want to visit the keys in insertion order, use a LinkedHashMap.
+
+Interoperating with Java
+If you get a Java map from calling a Java method, you may want to convert it to a Scala map so that you can use the pleasant
+Scala map API. This is also useful if you want to work with a mutable tree map, which Scala doesn’t provide.
+
+For example, the code
+
+val symbols = Array("<", "-", ">") val counts = Array(2, 10, 2)
+val pairs = symbols.zip(counts)
+   yields an array of pairs
+   Array(("<", 2), ("-", 10), (">", 2))
+
+The toMap method turns a collection of pairs into a map.
+If you have a collection of keys and a parallel collection of values, then zip them up and turn them into a map like this:
+keys.zip(values).toMap
+
+
+• Fields in classes automatically come with getters and setters.
+• You can replace a field with a custom getter/setter without changing the client of a class—that is the “uniform access principle.”
+• Use the @BeanProperty annotation to generate the JavaBeans getXxx/setXxx methods.
+• Every class has a primary constructor that is “interwoven” with the class definition. Its parameters turn into the fields of
+the class. The primary constructor executes all statements in the body of the class.
+• Auxiliary constructors are optional. They are called this.
+
+It is considered good style to use () for a mutator method (a method that changes the object state),
+and to drop the () for an accessor method (a method that does not change the object state).
+
