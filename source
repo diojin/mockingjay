@@ -1,0 +1,13 @@
+
+		log.error("[other team] aaa bbb ccc {}",e.getMessage() );
+	log.error("   [other team] aaa bbb ccc");
+    log.error(e.getMessage(), e);
+	 log.error(" bb cc1 23 ddd", e );
+	 
+public Object newInstance(String className, Scope scope){
+		switch ( scope ){
+			case Singleton: return newSingletonInstance(className); 
+			case Prototype: return newPrototypeInstance(className);
+			default: throw new RuntimeException("wrong scope value");
+		}
+	}

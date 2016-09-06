@@ -20,5 +20,6 @@ geymotion      diojin premierme@sina.com                            ${new}
 
 1, install genymotion, install sasume s5 4.4.4
 					2, install charles
-					
-                    
+
+\[\033]0;$TITLEPREFIX:${PWD//[^[:ascii:]]/?}\007\]\n\[\033[32m\]\u@\h \[\033[35m\]$MSYSTEM \[\033[33m\]\w\[\033[36m\]`__git_ps1`\[\033[0m\]\n$
+          
