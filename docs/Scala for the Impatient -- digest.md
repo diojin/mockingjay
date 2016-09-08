@@ -377,3 +377,13 @@ the class. The primary constructor executes all statements in the body of the cl
 It is considered good style to use () for a mutator method (a method that changes the object state),
 and to drop the () for an accessor method (a method that does not change the object state).
 
+Scala provides getter and setter methods for every field. Here, we define a public field:
+class Person { 
+    var age=0
+}
+Scala generates a class for the JVM with a private age field and getter and setter methods. These methods are public because
+we did not declare age as private. (For a private field, the getter and setter methods are private.) 
+In Scala, the getter and setter methods are called age and age_=. 
+For example,
+println(fred.age) // Calls the method fred.age() 
+fred.age = 21 // Calls fred.age_=(21)
