@@ -387,3 +387,76 @@ In Scala, the getter and setter methods are called age and age_=.
 For example,
 println(fred.age) // Calls the method fred.age() 
 fred.age = 21 // Calls fred.age_=(21)
+
+
+Bertrand Meyer, the inventor of the influential Eiffel language, formulated the Uniform Access Principle that states: “All services offered by a module should be available through a uniform notation, which does not betray whether they are implemented through storage or through computation.” In Scala, the caller of fred.age doesn’t know whether age is implemented through a field or a method. (Of course, in the JVM, the service is always implemented through a method, either synthesized or programmer-supplied.)
+
+
+To summarize, you have four choices for implementing properties:
+1. var foo: Scala synthesizes a getter and a setter. 2. val foo: Scala synthesizes a getter.
+3. You define methods foo and foo_=.
+4. You define a method foo.
+
+In Scala, you cannot have a write-only property (that is, a property with a setter and no getter).
+
+Object-Private Fields
+Scala allows an even more severe access restriction, with the private[this] qualifier: Click here to view code image
+private[this] var value = 0 // Accessing someObject.value is not allowed
+
+With a class-private field, Scala generates private getter and setter methods. However, for an object-private field, no getters and setters are generated at all.
+
+
+The primary constructor executes all statements in the class definition
+
+class PrimaryConstructorTester(var name: String, var age: Int) {
+  println("about to start primary constuctor")
+  def description = name + "is\t" + age + " years old"
+  private val props = new Properties
+  props.load(new FileReader("myproperties.properties"))
+  
+}
+
+When you think of the primary constructor’s parameters as class parameters, parameters without val or var become easier to understand. The scope of such a parameter is the entire class. Therefore, you can use the parameter in methods. If you do, it is the compiler’s job to save it in a field.
+
+
+In scala, inner class belongs to instance of outer class, this is different from Java, where an inner class belongs to the outer class.
+Tow ways to resolve,
+1, move inner class to outer class's companion object
+2, to use a type projection OuterClass#InnerClass, which means “a InnerClass of any OuterClass.”
+
+In a nested class, you can access the this reference of the enclosing class as EnclosingClass.this, like in Java. If you like, you can establish an alias for that reference with the following syntax:
+
+class Network(val name: String) { outer => 
+    class Member(val name: String) {
+        ...
+        def description = name + " inside " + outer.name }
+}
+The class Network { outer => syntax makes the variable outer refer to Network.this. You can choose any name for this variable.
+The name self is common, but perhaps confusing when used with nested classes.
+
+
+In this short chapter, you will learn when to use the object construct in Scala. Use it when you need a class with a single instance, or when you want to find a home for miscellaneous values or functions.
+The key points of this chapter are:
+• Use objects for singletons and utility methods.
+• A class can have a companion object with the same name.
+• Objects can extend classes or traits.
+• The apply method of an object is usually used for constructing new instances of the companion class. • To avoid the main method, use an object that extends the App trait.
+• You can implement enumerations by extending the Enumeration object.
+
+Scala has no static methods or fields. Instead, you use the object construct. An object defines a single instance of a class with the features that you want.
+
+An object can have essentially all the features of a class—it can even extend other classes or traits (see Section 6.3, “Objects Extending a Class or Trait,” on page 67). There is just one exception: You cannot provide constructor parameters.
+You use an object in Scala whenever you would have used a singleton object in Java or C++:
+• As a home for utility functions or constants
+• When a single immutable instance can be shared efficiently
+• When a single instance is required to coordinate some service (the singleton design pattern)
+
+Companion Objects
+In Java or C++, you often have a class with both instance methods and static methods. In Scala, you achieve this by having a class and a “companion” object of the same name. 
+
+The class and its companion object can access each other’s private features. They must be located in the same source file.
+
+Objects Extending a Class or Trait
+An object can extend a class and/or one or more traits. The result is an object of a class that extends the given class and/or traits, and in addition has all of the features specified in the object definition.
+
+
