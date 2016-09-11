@@ -1,5 +1,6 @@
 ##Index
 * [Start](#Start)
+* [Someplace](#Someplace)
 
 Start
 -----------
@@ -89,6 +90,9 @@ if(x>0)1
 then it is possible that the if statement yields no value. However, in Scala, every expression is supposed to have some value. This is finessed by introducing a class Unit that has one value, written as (). The if statement without an else is equivalent to
 if(x>0)1else()
 Think of () as a placeholder for “no useful value,” and think of Unit as the analog of void in Java or C++.
+
+Someplace
+-------------------------
 
 In Scala, a { } block contains a sequence of expressions, and the result is also an expression. The value of the block is the value of the last expression.
 This feature can be useful if the initialization of a val takes more than one step. For example, Click here to view code image
