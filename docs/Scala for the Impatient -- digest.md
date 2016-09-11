@@ -92,7 +92,7 @@ if(x>0)1else()
 Think of () as a placeholder for “no useful value,” and think of Unit as the analog of void in Java or C++.
 
 Someplace
--------------------------
+-----------
 
 In Scala, a { } block contains a sequence of expressions, and the result is also an expression. The value of the block is the value of the last expression.
 This feature can be useful if the initialization of a val takes more than one step. For example, Click here to view code image
