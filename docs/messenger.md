@@ -20,4 +20,5 @@ geymotion      diojin premierme@sina.com                            ${new}
 
 1, install genymotion, install sasume s5 4.4.4
 					2, install charles
-          
+
+http://formac.informer.com/notepad

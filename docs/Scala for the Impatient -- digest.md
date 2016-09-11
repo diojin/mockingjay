@@ -1,3 +1,8 @@
+##Index
+* [Start](#Start)
+
+Start
+-----------
 As you can see, the Scala interpreter reads an expression, evaluates it, prints it, and reads the next expression. This is called
 the read-eval-print loop, or REPL.
 Technically speaking, the scala program is not an interpreter. Behind the scenes, your input is quickly compiled into bytecode,
