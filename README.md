@@ -32,9 +32,29 @@ ________
 ___adasdadfs
 
 
+```scala
+def count(p: (Char) => Boolean) : Int
+val s = "Hello"
+var sum = 0
+for (i <- 0 until s.length) // Last value for i is s.length - 1
+  sum += s(i)
+```
+
+
+
+
 StartMe
 -----------
 
+====================
+
+
+```
+steste
+asdasd
+```
+
+taetade `asdfad` afdfasd
 
 
 Note that you need not specify the type of a value or variable. It is inferred from the type of the expression with which you
