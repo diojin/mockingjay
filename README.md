@@ -10,6 +10,17 @@
 
 
 
+| col1 | col2 | col3|
+|---|---|---|
+| 1   | whatever| haha |
+| 2 | input | output|
+
+![testbaidu](http://www.baidu.com/img/bdlogo.gif "百度的图标")
+
+
+1. item1
+2. item2
+
 
 
 ---
@@ -45,7 +56,7 @@ for (i <- 0 until s.length) // Last value for i is s.length - 1
 
 
 
-start
+Start
 -----------
 
 ====================
@@ -145,7 +156,7 @@ ada
 
 
 
-somewhere
+Somewhere
 -----------
 
 
@@ -191,7 +202,7 @@ BigInt.probablePrime(100, scala.util.Random)
 Note that the call BigInt.probablePrime is similar to a static method call in Java
 
 
-##others
+##Others
 
 Here, Random is a singleton random number generator object, defined in the scala.util package. This is one of the few
 situations where a singleton object is better than a class. In Java, it is a common error to construct a new java.util.Random
