@@ -2,9 +2,11 @@
 
 ##目录
 
-*   [StartMe](#StartMe)
+*   [start](#start)
 
-*   [Somewhere](#Somewhere)
+*   [somewhere](#somewhere)
+
+*   [others](#others)
 
 
 
@@ -43,7 +45,7 @@ for (i <- 0 until s.length) // Last value for i is s.length - 1
 
 
 
-StartMe
+start
 -----------
 
 ====================
@@ -143,7 +145,7 @@ ada
 
 
 
-Somewhere
+somewhere
 -----------
 
 
@@ -187,6 +189,9 @@ BigInt companion object to the BigInt class has a method probablePrime that gene
 number of bits:
 BigInt.probablePrime(100, scala.util.Random)
 Note that the call BigInt.probablePrime is similar to a static method call in Java
+
+
+##others
 
 Here, Random is a singleton random number generator object, defined in the scala.util package. This is one of the few
 situations where a singleton object is better than a class. In Java, it is a common error to construct a new java.util.Random
