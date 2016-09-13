@@ -22,3 +22,6 @@ geymotion      diojin premierme@sina.com                            ${new}
 					2, install charles
 
 http://formac.informer.com/notepad
+
+Upsource
+djin@coupang.com/1qaz2wsx~~
