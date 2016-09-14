@@ -96,15 +96,15 @@ You supply a function, often in a very compact notation, when you call the metho
 Control Structures and Functions
 ---
 You will encounter a fundamental difference between Scala and other programming languages. In Java or C++, we differentiate between expressions (such as 3 + 4) and statements (for example, an if statement). `An expression has a value; a statement carries out an action. In Scala, almost all constructs have values.`
-Here are the highlights of this chapter:
-`• An if expression has a value.`
-`• A block has a value—the value of its last expression.`
-• The Scala for loop is like an “enhanced” Java for loop.
-• Semicolons are (mostly) optional.
-`• The void type is Unit.`
-• Avoid using return in a function.
-• Beware of missing = in a function definition.
-• Exceptions work just like in Java or C++, but you use a “pattern matching” syntax for catch.
+Here are the highlights of this chapter:  
+`• An if expression has a value.`  
+`• A block has a value—the value of its last expression.`  
+• The Scala for loop is like an “enhanced” Java for loop.  
+• Semicolons are (mostly) optional.  
+`• The void type is Unit.`  
+• Avoid using return in a function.  
+• Beware of missing = in a function definition.  
+• Exceptions work just like in Java or C++, but you use a “pattern matching” syntax for catch.  
 `• Scala has no checked exceptions.`
 
 If the else part is omitted, for example in
@@ -273,12 +273,12 @@ try { ... } catch { ... } finally { ... }
 
 Working with Arrays
 ---
-• Use an Array if the length is fixed, and an ArrayBuffer if the length can vary.
-• Don’t use new when supplying initial values.
-• Use () to access elements.
-• Use for (elem <- arr) to traverse the elements.
-• Use for (elem <- arr if . . . ) . . . yield . . . to transform into a new array.
-• Scala and Java arrays are interoperable; with ArrayBuffer, use scala.collection.JavaConversions.
+• Use an **Array** if the length is fixed, and an **ArrayBuffer** if the length can vary.  
+• Don’t use new when supplying initial values.  
+• Use () to access elements.  
+• Use for (elem <- arr) to traverse the elements.  
+`• Use for (elem <- arr if . . . ) . . . yield . . . to transform into a new array.`  
+• Scala and Java arrays are interoperable; with ArrayBuffer, use **scala.collection.JavaConversions**.
 
 // A string array with ten elements, all initialized with null
 val a = new Array[String](10)
