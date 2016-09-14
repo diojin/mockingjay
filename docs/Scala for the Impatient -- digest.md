@@ -25,6 +25,7 @@ ___
     * [Tuples](#tuples)
     * [Tuples to Map](#tuples-to-map)
 * [5. Classes](#classes)
+    * [Object-Private Fields](#object-private-fields)
 
 Basics
 ---
@@ -608,6 +609,7 @@ To summarize, you have four choices for implementing properties:
 In Scala, you cannot have a write-only property (that is, a property with a setter and no getter).
 
 Object-Private Fields
+---
 Scala allows an even more severe access restriction, with the private[this] qualifier: Click here to view code image
 private[this] var value = 0 // Accessing someObject.value is not allowed
 
