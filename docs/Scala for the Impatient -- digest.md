@@ -16,7 +16,11 @@ ___
     * [argument sequence](#argument-sequence)
     * [procedure](#procedure)
 * [3. Working with Arrays](#working-with-arrays)
-    * [for if yield](#for-if-yield)
+    * [for if yield or filter map](#for-if-yield-or-filter-map)
+    * [array sorting](#array-sorting)
+    * [multidimensional arrays](#multidimensional-arrays)
+    * [Interoperating with Java](#interoperating-with-java)
+* [4. Maps and Tuples](#maps-and-tuples)
 
 Basics
 ---
@@ -326,61 +330,125 @@ Conversely, call **a.toBuffer** to convert the array a to an array buffer.
 
 It is very easy to take an array (or array buffer) and transform it in some way. Such transformations don’t modify the original array, but they **yield a new one.**
 
-###for if yield
+###for if yield or filter map
 Oftentimes, when you traverse a collection, you only want to process the elements that match a particular condition. This is
 achieved with a guard: an if inside the for. Here we double every even element, dropping the odd ones:
+```scala
 for (elem <- a if elem % 2 == 0) yield 2 * elem
+```
 Alternatively, you could write
+```scala
 a.filter(_ % 2 == 0).map(2 * _)
-or even
-Click here to view code image
 a filter { _ % 2 == 0 } map { 2 * _ }
+b.filter { _ % 2 == 0 }.map { 2 * _ }
+```
 Some programmers with experience in functional programming prefer filter and map to guards and yield. That’s just a
 matter of style—the for loop does exactly the same work. Use whichever you find easier.
-Keep in mind that the result is a new collection—the original collection is not affected.
-
+Keep in mind that **the result is a new collection**—the original collection is not affected.
+```scala
 var first = false
+// notice: condition here must involve each element, such as a(i) >= 0
+// otherwise it will be applied once per entire input collection, but rather
+// many times per each element
 val indexes = for (i <- 0 until a.length if first || a(i) >= 0) yield {
 	if (a(i) < 0) first = false; i
 }
+```
 
-val b = ArrayBuffer(1, 7, 2, 9)
-val bDescending = b.sortWith(_ > _) // ArrayBuffer(9, 7, 2, 1)
+evidence is as below:
+```scala
+println("ignore the 1st element")
+val input = Array(1, 2, 3, 4, 5, 6)
+var first = true
+var res = for ( i <- 0 until input.length if !first || i % 2 == 1 ) yield {
+  if ( first ) {
+    first = false
+  }
+  input(i)
+}
+println(res)  // Vector(2, 3, 4, 5, 6)
 
-You can sort an array, but not an array buffer, in place:
+first = true
+res = for ( i <- 0 until input.length if !first ) yield {
+  if ( first ) {
+    first = false
+  }
+  input(i)
+}
+println(res)  // Vector()
+```
+
+###array sorting
+```scala
+var a1 = ArrayBuffer(1, 3,  1, 2, 8, 5)
+val aRes = a1.sortBy(x => -x)
+val aRes2 = a1.sortWith(_ > _)
+println(aRes)        // ArrayBuffer(8, 5, 3, 2, 1, 1)
+println(aRes2)       // ArrayBuffer(8, 5, 3, 2, 1, 1)
+```
+
+`You can sort an array, but not an array buffer, in place:`
+
+```scala
 val a = Array(1, 7, 2, 9)
 scala.util.Sorting.quickSort(a)
 // a is now Array(1, 2, 7, 9)
+```
 For the min, max, and quickSort methods, the element type must have a comparison operation. This is the case for numbers
 strings, and other types with the Ordered trait.
 
+###multidimensional arrays
 Like in Java, multidimensional arrays are implemented as arrays of arrays. For example, a two-dimensional array of Double values has the type Array[Array[Double]]. To construct such an array, use the ofDim method:
-val matrix = Array.ofDim[Double](3, 4) // Three rows, four columns
-To access an element, use two pairs of parentheses:
-matrix(row)(column) = 42
+```scala
+val matrix = Array.ofDim[Int](3,4) // Three rows, four columns
 
-Interoperating with Java
+val raggerArray = new Array[Array[Int]](5)
+for (i <- 0 until raggerArray.length ){
+  raggerArray(i) = new Array[Int](i+2)      
+}
+```
+
+To access an element, use two pairs of parentheses:
+`matrix(row)(column) = 42`
+
+###Interoperating with Java
 
 Since Scala arrays are implemented as Java arrays, you can pass them back and forth between Java and Scala.
 If you call a Java method that receives or returns a java.util.List, you could, of course, use a Java ArrayList in your Scala code— but that is unattractive. Instead, import the implicit conversion methods in scala.collection.JavaConversions. Then you can use Scala buffers in your code, and they automatically get wrapped into Java lists when calling a Java method.
 
+```scala
 import scala.collection.JavaConversions.bufferAsJavaList 
 import scala.collection.mutable.ArrayBuffer
 val command = ArrayBuffer("ls", "-al", "/home/cay")
 val pb = new ProcessBuilder(command) // Scala to Java
+                                     // java.lang.ProcessBuilder, plain java class, one of constructor takes java.util.List as parameter
+```
 
 The Scala buffer is wrapped into an object of a Java class that implements the java.util.List interface.
 Conversely, when a Java method returns a java.util.List, you can have it automatically converted into a Buffer:
+```scala
 import scala.collection.JavaConversions.asScalaBuffer 
 import scala.collection.mutable.Buffer
 val cmd : Buffer[String] = pb.command() // Java to Scala
 // You can't use ArrayBuffer—the wrapped object is only guaranteed to be a Buffer
+```
 
-• Scala has a pleasant syntax for creating, querying, and traversing maps. 
-• You need to choose between mutable and immutable maps.
-• By default, you get a hash map, but you can also get a tree map.
-• You can easily convert between Scala and Java maps.
-• Tuples are useful for aggregating values.
+
+```scala
+val command = ArrayBuffer("ls", "-al", "/home/cay")
+val pb = new ProcessBuilder(command)
+val cmd: Buffer[String] = pb.command()
+println(cmd)      // ArrayBuffer(ls, -al, /home/cay)
+```
+
+Maps and Tuples
+---
+
+• Scala has a pleasant syntax for creating, querying, and traversing maps.   
+• You need to choose between mutable and immutable maps.  
+`• By default, you get a hash map, but you can also get a tree map.`  
+`• You can easily convert between Scala and Java maps.`  
+• **Tuples** are useful for aggregating values.
 
 You can construct a map as
 val scores = Map("Alice" -> 10, "Bob" -> 3, "Cindy" -> 8)
