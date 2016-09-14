@@ -7,6 +7,7 @@
 ___
 
 ##Contents
+---
 * [1. The Basics](#basics)
   - [The apply Method](#the-apply-method)
 * [Someplace](#someplace)
@@ -63,7 +64,7 @@ The rule of thumb is that a parameterless method that doesn’t modify the objec
 ####The apply Method
 In Scala, it is common to use a syntax that looks like a function call. For example, if s is a string, then s(i) is the ith character of the string. (In C++, you would write s[i]; in Java, s.charAt(i).) Try it out in the REPL:
 "Hello"(4) // Yields 'o'
-You can think of this as an overloaded form of the () operator. It is implemented as a method with the name apply. For example,
+`You can think of this as an overloaded form of the () operator. It is implemented as a method with the name apply.` For example,
 in the documentation of the StringOps class, you will find a method
 def apply(n: Int): Char
 That is, "Hello"(4) is a shortcut for "Hello".apply(4)
@@ -72,14 +73,15 @@ numbers to BigInt objects. For example, the call
 BigInt("1234567890") is a shortcut for BigInt.apply("1234567890")
 It yields a new BigInt object, without having to use new
 
-Using the apply method of a companion object is a common Scala idiom for constructing objects. For example, Array(1, 4, 9, 16)
+`Using the apply method of a companion object is a common Scala idiom for constructing objects.` For example, Array(1, 4, 9, 16)
 returns an array, thanks to the apply method of the Array companion object.
 
-A method tagged as implicit is an automatic conversion. For example, the BigInt object has conversions from int and long to BigInt that are automatically called when needed. 
+`A method tagged as implicit is an automatic conversion.` For example, the BigInt object has conversions from int and long to BigInt that are automatically called when needed. 
 
-Methods can have functions as parameters. For example, the count method in StringOps requires a function that returns true or false for a Char, specifying which characters should be counted:
+`Methods can have functions as parameters.` For example, the count method in StringOps requires a function that returns true or false for a Char, specifying which characters should be counted:
+```scala
 def count(p: (Char) => Boolean) : Int
-
+```
 You supply a function, often in a very compact notation, when you call the method. As an example, the call s.count(_.isUpper) counts the number of uppercase characters. 
 
 You will encounter a fundamental difference between Scala and other programming languages. In Java or C++, we differentiate between expressions (such as 3 + 4) and statements (for example, an if statement). An expression has a value; a statement carries out an action. In Scala, almost all constructs have values.
