@@ -1,9 +1,17 @@
-##Index
-* [Content](#content)
+
+#                 Scala for the Impatient 
+###                   Cay S. Horstmann
+
+######                    Second printing, June 2013
+
+___
+
+##Contents
+* [1. The Basics](#basics)
 * [Someplace](#someplace)
 
 
-Content
+Basics
 ---
 As you can see, the Scala interpreter reads an expression, evaluates it, prints it, and reads the next expression. This is called
 the read-eval-print loop, or `**REPL**`.
@@ -15,8 +23,7 @@ Note that you need not specify the type of a value or variable. It is inferred f
 initialize it. (It is an error to declare a value or variable without initializing it.)
 However, you can specify the type if necessary.
 
-In Scala, you use methods, not casts, to convert between numeric types. For example, 99.44.toInt is 99, and 99.toChar is
-'c'.
+In Scala, you use methods, not casts, to convert between numeric types. For example, 99.44.toInt is 99, and 99.toChar is 'c'.
 
 The + - * / % operators do their usual job, as do the bit operators & | ^ >> <<. There is just one surprising aspect: These
 operators are actually methods. For example,
