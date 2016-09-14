@@ -26,6 +26,8 @@ ___
     * [Tuples to Map](#tuples-to-map)
 * [5. Classes](#classes)
     * [Object-Private Fields](#object-private-fields)
+    * [primary constructor](#primary-constructor)
+* [6. Objects](#objects)
 
 Basics
 ---
@@ -583,22 +585,41 @@ Classes
 • Every class has a primary constructor that is “interwoven” with the class definition. Its parameters turn into the fields of the class. The primary constructor executes all statements in the body of the class.  
 • Auxiliary constructors are optional. They are called this.
 
+`Methods are public by default`
+
+```scala
+class Counter {
+  private var value = 0 // You must initialize the field
+  def increment() { value += 1 } // Methods are public by default
+  def current() = value
+}
+```
+
 It is considered good style to use () for a mutator method (a method that changes the object state),
 and to drop the () for an accessor method (a method that does not change the object state).
 
 Scala provides getter and setter methods for every field. Here, we define a public field:
+
 class Person { 
     var age=0
 }
-Scala generates a class for the JVM with a private age field and getter and setter methods. These methods are public because
-we did not declare age as private. (For a private field, the getter and setter methods are private.) 
+
+Scala generates a class for the JVM with a private age field and getter and setter methods. These methods are **public** because
+we did not declare age as private. (`For a private field, the getter and setter methods are private.`) 
 In Scala, the getter and setter methods are called `age` and `age_=`. 
 For example,
 println(fred.age) // Calls the method fred.age() 
 fred.age = 21 // Calls fred.age_=(21)
 
-Bertrand Meyer, the inventor of the influential Eiffel language, formulated the Uniform Access Principle that states: “All services offered by a module should be available through a uniform notation, which does not betray whether they are implemented through storage or through computation.” In Scala, the caller of fred.age doesn’t know whether age is implemented through a field or a method. (Of course, in the JVM, the service is always implemented through a method, either synthesized or programmer-supplied.)
-
+Sometimes you want a read-only property with a getter but no setter. If the value of the property never changes after the object
+has been constructed, use a val field:
+```scala
+class Message {
+  val timeStamp = new java.util.Date
+  ...
+}
+```
+Scala makes `a private final field` and a getter method, but no setter.
 
 To summarize, you have four choices for implementing properties:
 1. var foo: Scala synthesizes a getter and a setter. 
@@ -608,43 +629,79 @@ To summarize, you have four choices for implementing properties:
 
 In Scala, you cannot have a write-only property (that is, a property with a setter and no getter).
 
-Object-Private Fields
----
-Scala allows an even more severe access restriction, with the private[this] qualifier: Click here to view code image
-private[this] var value = 0 // Accessing someObject.value is not allowed
+It may sound scary that Scala generates getter and setter methods for every field. But you have some control over this process.  
+• If the field is private, the getter and setter are private.  
+• If the field is a val, only a getter is generated.  
+• If you don’t want any getter or setter, declare the field as **private[this]**
 
-With a class-private field, Scala generates private getter and setter methods. However, for an object-private field, no getters and setters are generated at all.
+###Object-Private Fields
+Scala allows an even more severe access restriction, with the private[this] qualifier: 
+**private[this]** var value = 0 // Accessing someObject.value is not allowed
 
+With a **class-private field**, Scala generates private getter and setter methods. However, `for an object-private field, no getters and setters are generated at all.`
 
-The primary constructor executes all statements in the class definition
+```scala
+class Counter {
+  private var count = 0
+  def increment() {
+    count += 1
+  }
+  def current = count
+  def isLess( other : Counter ) = {
+    this.count < other.count           // Can access private field of other object
+  }  
+}
 
+class Counter1 {
+  private[this] var count = 0
+  def isLess( other : Counter ) = {
+    this.count < other.count           // Can't access private field of other object
+  }  
+}
+```
+
+###primary constructor
+`The primary constructor executes all statements in the class definition`
+
+```scala
 class PrimaryConstructorTester(var name: String, var age: Int) {
   println("about to start primary constuctor")
   def description = name + "is\t" + age + " years old"
   private val props = new Properties
-  props.load(new FileReader("myproperties.properties"))
-  
+  props.load(new FileReader("myproperties.properties"))  
 }
+```
 
-When you think of the primary constructor’s parameters as class parameters, parameters without val or var become easier to understand. The scope of such a parameter is the entire class. Therefore, you can use the parameter in methods. If you do, it is the compiler’s job to save it in a field.
+When you think of the primary constructor’s parameters as class parameters, parameters without val or var become easier to understand. The scope of such a parameter is the entire class. `Therefore, you can use the parameter in methods. If you do, it is the compiler’s job to save it in a field.`
 
+You can often eliminate auxiliary constructors by using default arguments in the primary constructor. For example:
+```scala
+class Person(val name: String = "", val age: Int = 0)
+```
 
-In scala, inner class belongs to instance of outer class, this is different from Java, where an inner class belongs to the outer class.
-Tow ways to resolve,
-1, move inner class to outer class's companion object
-2, to use a type projection OuterClass#InnerClass, which means “a InnerClass of any OuterClass.”
+`In scala, inner class belongs to instance of outer class, this is different from Java, where an inner class belongs to the outer class.`
 
-In a nested class, you can access the this reference of the enclosing class as EnclosingClass.this, like in Java. If you like, you can establish an alias for that reference with the following syntax:
+`The Scala approach is more regular. For example, to make a new inner object, you simply use new with the type name:
+new chatter.Member. In Java, you need to use a special syntax, chatter.new Member().`
 
+`Tow ways to resolve,  
+1, move inner class to outer class's companion object  
+2, to use a type projection OuterClass#InnerClass, which means “a InnerClass of any OuterClass.”`
+
+In a nested class, you can access the this reference of the enclosing class as **EnclosingClass.this**, like in Java. If you like, you can establish an alias for that reference with the following syntax:
+
+```scala
 class Network(val name: String) { outer => 
     class Member(val name: String) {
         ...
         def description = name + " inside " + outer.name }
 }
+```
 The class Network { outer => syntax makes the variable outer refer to Network.this. You can choose any name for this variable.
 The name self is common, but perhaps confusing when used with nested classes.
 
-
+Objects
+---
 In this short chapter, you will learn when to use the object construct in Scala. Use it when you need a class with a single instance, or when you want to find a home for miscellaneous values or functions.
 The key points of this chapter are:
 • Use objects for singletons and utility methods.
