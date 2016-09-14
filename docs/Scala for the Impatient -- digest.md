@@ -9,7 +9,8 @@ ___
 ##Contents
 ---
 * [1. The Basics](#basics)
-  - [The apply Method](#the-apply-method)
+    * [The apply Method](#the-apply-method)
+* [2. Control Structures and Functions](#control-structures-and-functions)
 * [Someplace](#someplace)
 
 
@@ -82,7 +83,10 @@ returns an array, thanks to the apply method of the Array companion object.
 ```scala
 def count(p: (Char) => Boolean) : Int
 ```
-You supply a function, often in a very compact notation, when you call the method. As an example, the call s.count(_.isUpper) counts the number of uppercase characters. 
+You supply a function, often in a very compact notation, when you call the method. As an example, the call **s.count(_.isUpper)** counts the number of uppercase characters. 
+
+Control Structures and Functions
+---
 
 You will encounter a fundamental difference between Scala and other programming languages. In Java or C++, we differentiate between expressions (such as 3 + 4) and statements (for example, an if statement). An expression has a value; a statement carries out an action. In Scala, almost all constructs have values.
 Here are the highlights of this chapter:
