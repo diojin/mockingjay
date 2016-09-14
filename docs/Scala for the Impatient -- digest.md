@@ -227,19 +227,22 @@ omit the = in a function definition. You then get an error message at the point 
 told that Unit is not acceptable at that location.
 
 When a val is declared as lazy, its initialization is deferred until it is accessed for the first time. For example,
+```scala
 lazy val words = scala.io.Source.fromFile("/usr/share/dict/words").mkString
+```
 
-Laziness is not cost-free. Every time a lazy value is accessed, a method is called that checks, in a threadsafe manner,
-whether the value has already been initialized.
+`Laziness is not cost-free. Every time a lazy value is accessed, a method is called that checks, in a threadsafe manner,
+whether the value has already been initialized.`
 
 Scala exceptions work the same way as in Java or C++.
-However, unlike Java, Scala has no “checked” exceptions—you never have to declare that a function or method might throw an exception.
+However, unlike Java, Scala has `no “checked” exceptions`—you never have to declare that a function or method might throw an exception.
 
-Scala exceptions work the same way as in Java or C++. However, unlike Java, Scala has no “checked” exceptions—you never have to declare that a function or method might throw an exception.
-
-A throw expression has the special type Nothing. That is useful in if/else expressions. If one branch has type Nothing, the type of the if/else expression is the type of the other branch. For example, consider
-if (x >= 0) { sqrt(x)
+`A throw expression has the special type Nothing. That is useful in if/else expressions. If one branch has type Nothing, the type of the if/else expression is the type of the other branch.` For example, consider
+```scala
+if (x >= 0) {
+      sqrt(x)
 } else throw new IllegalArgumentException("x should not be negative")
+```
 The first branch has type Double, the second has type Nothing. Therefore, the if/else expression also has type Double.
 
 The first branch has type Double, the second has type Nothing. Therefore, the if/else expression also has type Double.
