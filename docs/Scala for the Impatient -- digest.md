@@ -12,6 +12,7 @@ ___
     * [The apply Method](#the-apply-method)
 * [2. Control Structures and Functions](#control-structures-and-functions)
     * [for comprehension](#for-comprehension)
+    * [argument sequence](#argument-sequence)
 
 
 Basics
@@ -164,24 +165,36 @@ When the body of the for loop starts with yield, then the loop constructs a coll
 for(i<-1 to 10) yield i%3
     // Yields Vector(1, 2, 0, 1, 2, 0, 1, 2, 0, 1)
 ```
-This type of loop is called a for comprehension.
-The generated collection is compatible with the first generator.
+This type of loop is called a **for comprehension**.
+`The generated collection is compatible with the first generator.`
+
+```scala
 for (c <- "Hello"; i <- 0 to 1) yield (c + i).toChar 
     // Yields "HIeflmlmop"
+
 for (i <- 0 to 1; c <- "Hello") yield (c + i).toChar
     // Yields Vector('H', 'e', 'l', 'l', 'o', 'I', 'f', 'm', 'm', 'p')
-
+```
 Scala has functions in addition to methods. A method operates on an object, but a function doesn’t. C++ has functions as well, but in Java, you have to imitate them with static methods.
 
-While there is nothing wrong with using return in a named function (except the waste of seven keystrokes), it is a good idea to get used to life without return. Pretty soon, you will be using lots of anonymous functions, and there, return doesn’t return a value to the caller. It breaks out to the enclosing named function. Think of return as a kind of break statement for functions, and only use it when you want that breakout functionality.
+While there is nothing wrong with using return in a named function (except the waste of seven keystrokes), it is a good idea to get used to life without return. Pretty soon, you will be using lots of anonymous functions, and there, return doesn’t return a value to the caller. It breaks out to the enclosing named function. **Think of return as a kind of break statement for functions, and only use it when you want that breakout functionality.**
 
+###argument sequence
 
-def recursiveSum(args: Int*): Int = {
-  if (args.length == 0) 0
-  else args.head + recursiveSum(args.tail: _*)
+```scala
+println( recursiveSum(1, 2, 3, 4, 5) )
+    
+println( recursiveSum(1 to 5:_*))
+
+def recursiveSum(args: Int*) : Int = {
+  if ( args.length== 0 ) 
+    0
+  else
+    args.head + recursiveSum(args.tail:_*)
 }
+```
 
-Here, the head of a sequence is its initial element, and tail is a sequence of all other elements. That’s again a Seq, and we have to use : _* to convert it to an argument sequence.
+Here, the head of a sequence is its initial element, and tail is a sequence of all other elements. **That’s again a Seq, and we have to use : _* to convert it to an argument sequence.**
 	
 When you call a Java method with variable (number of )arguments of type Object, such as PrintStream.printf or MessageFormat.format, you need to convert any primitive types by hand. For example,
 val str = MessageFormat.format("The answer to {0} is {1}", "everything", 42.asInstanceOf[AnyRef])
