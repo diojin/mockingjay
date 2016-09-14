@@ -1,0 +1,109 @@
+#! /bin/bash 
+
+cur_branch() {
+    echo $(git branch | sed -n '/\*/p' | awk '{print $2}')
+}
+
+# example:
+# confirm && hg push ssh://..
+# confirm "Would you really like to do a push?" && hg push ssh://..
+confirm () {
+    # call with a prompt string or use a default
+    read -r -p "${1:-Are you sure? [y/N]} " response
+    case $response in
+        [yY][eE][sS]|[yY]) 
+            true
+            ;;
+        *)
+            false
+            ;;
+    esac
+}
+
+help() {
+    echo -e "example: gitutils [-s] [-a] [-l] [-h] [-c] [-b branch] [-r repository] [-m commit message]"
+    echo -e "           \t\t -s  git push current branch"
+    echo -e "           \t\t -l  git pull current branch"
+    echo -e "           \t\t -a  git add -A | git commit | git push, for current branch to all repositories"
+    echo -e "           \t\t -c  only operate on current branch, as of now, only affect -a option"
+    echo -e "           \t\t -r repository, not mandatory, provides repository"
+    echo -e "           \t\t -b branch, not mandatory, provides branch"
+    echo -e "           \t\t -r repository, not mandatory, provides repository"
+    echo -e "           \t\t -h  command help"
+}
+
+## $1: repository, default to origin
+## $2: branch,  default to current branch
+push_yeah() {
+    local rep=${1:-origin}
+    local branch=${2:-$(cur_branch)}
+    cmd="git push $rep $branch"
+    confirm "about to run [$cmd]" && eval "$cmd"
+}
+
+## $1: repository, default to origin
+## $2: branch,  default to current branch
+pull_yeah() {
+    local rep=${1:-origin}
+    local branch=${2:-$(cur_branch)}
+    cmd="git pull $rep $branch"
+    confirm "about to run [$cmd]" && eval "$cmd"
+}
+
+all_yeah() {
+    local cmd="git add -A"
+    echo "about to run [$cmd]"
+    eval "$cmd"
+    cmd="git commit -m '$boilerplate'"
+    echo "about to run [$cmd]"
+    eval "$cmd"
+    local branch=$(cur_branch)
+    if [[ -z $cur_flag  ]]; then
+        echo -e "$(git remote)" | while read rep 
+        do
+            cmd="git push $rep $branch"
+            echo "about to run [$cmd]"
+            eval "$cmd"
+        done
+    else
+        rep='origin'
+        cmd="git push $rep $branch"
+        echo "about to run [$cmd]"
+        eval "$cmd"
+    fi
+}
+
+# set -x
+
+while getopts ":sSlLaAcChHr:R:b:B:" opt
+   do
+     case $opt in
+        [sS] ) push_flag='Y'
+            ;;
+        [lL] ) pull_flag='Y' 
+            ;;
+        [aA] ) all_flag='Y';;
+        [cC] ) cur_flag='Y';;
+        [hH] ) help;;
+        [bB] ) branch=$OPTARG;;
+        [rR] ) repo=$OPTARG;;
+        * ) help;;
+     esac
+done
+
+repo=${repo:-origin}
+branch=${branch:-$(cur_branch)}
+boilerplate='progressing'
+
+if [[ -n $pull_flag ]]; then
+    pull_yeah $repo $branch
+fi
+
+if [[ -n $push_flag ]]; then
+    push_yeah $repo $branch
+fi
+
+if [[ -n $all_flag ]]; then
+    all_yeah
+fi
+

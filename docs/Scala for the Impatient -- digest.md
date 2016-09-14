@@ -8,7 +8,7 @@ ___
 
 ##Contents
 * [1. The Basics](#basics)
-  - [The apply Method](#the apply Method)
+  - [The apply Method](#the-apply-Method)
 * [Someplace](#someplace)
 
 
