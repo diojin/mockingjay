@@ -11,11 +11,11 @@ ___
 * [1. The Basics](#basics)
     * [The apply Method](#the-apply-method)
 * [2. Control Structures and Functions](#control-structures-and-functions)
+    * [for comprehension](#for-comprehension)
 
 
 Basics
 ---
-[Back](#contents)
 As you can see, the Scala interpreter reads an expression, evaluates it, prints it, and reads the next expression. This is called
 the read-eval-print loop, or **REPL**.
 Technically speaking, the scala program is not an interpreter. Behind the scenes, your input is quickly compiled into bytecode,
@@ -107,53 +107,63 @@ if (x>0) 1 else ()
 `Think of () as a placeholder for “no useful value,” and think of Unit as the analog of void in Java or C++.`
 
 In Scala, a { } block contains a sequence of expressions, and the result is also an expression. The value of the block is the value of the last expression.
-This feature can be useful if the initialization of a val takes more than one step. For example, Click here to view code image
-valdistance={valdx=x-x0;valdy=y-y0; sqrt(dx * dx + dy * dy) }
+This feature can be useful if the initialization of a val takes more than one step. For example,
+```scala
+val distance = { val dx = x - x0; val dy = y - y0; sqrt(dx * dx + dy * dy) }
+```
 
+`In Scala, assignments have no value—or, strictly speaking, they have a value of type Unit.`
 
-In Scala, assignments have no value—or, strictly speaking, they have a value of type Unit.
-
-A block that ends with an assignment statement, such as {r=r*n;n-=1}has a Unit value.
-
+A block that ends with an assignment statement, such as {r=r*n; n-=1}has a Unit value.
+```scala
 for(i <- 1 to n) 
     r=r*i
+```
 The call 1 to n returns a Range of the numbers from 1 to n (inclusive). 
-The construct for (i <- expr)
+The construct for **(i <- expr)**
 makes the variable i traverse all values of the expression to the right of the <-. Exactly how that traversal works depends on the type of the expression. For a Scala collection, such as a Range, the loop makes i assume each value in turn.
 There is no val or var before the variable in the for loop. The type of the variable is the element type of the collection. The scope of the loop variable extends until the end of the loop.
 
-
 When traversing a string or array, you often need a range from 0 to n – 1. In that case, use the until method instead of the to method. It returns a range that doesn’t include the upper bound.
+```scala
 val s = "Hello"
 var sum = 0
 for (i <- 0 until s.length) // Last value for i is s.length - 1
   sum += s(i)
-  
+```
+
 In this example, there is actually no need to use indexes. You can directly loop over the characters:
+```scala
 var sum = 0
 for (ch <- "Hello") 
     sum += ch
 println(sum)
+```
 
 In Scala, loops are not used as often as in other languages. As you will see in Chapter 12, you can often process the values in a sequence by applying a function to all of them, which can be done with a single method call.
 
-Scala has no break or continue statements to break out of a loop. What to do if you need a break? Here are a few options: 
+`Scala has no break or continue statements to break out of a loop`. What to do if you need a break? Here are a few options: 
     1. Use a Boolean control variable instead.
     2. Use nested functions—you can return from the middle of a function.
     3. Use the break method in the Breaks object:
 
+```scala
 import scala.util.control.Breaks._
 breakable {
   for (...) {
     if (...) break; // Exits the breakable block ...
    } 
 }
-Here, the control transfer is done by throwing and catching an exception, so you should avoid this mechanism when time is of the essence.
+```
 
-for comprehension
+`Here, the control transfer is done by throwing and catching an exception, so you should avoid this mechanism when time is of the essence.`
+
+###for comprehension
 When the body of the for loop starts with yield, then the loop constructs a collection of values, one for each iteration: 
+```scala
 for(i<-1 to 10) yield i%3
     // Yields Vector(1, 2, 0, 1, 2, 0, 1, 2, 0, 1)
+```
 This type of loop is called a for comprehension.
 The generated collection is compatible with the first generator.
 for (c <- "Hello"; i <- 0 to 1) yield (c + i).toChar 
