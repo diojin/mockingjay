@@ -16,6 +16,7 @@ ___
 
 Basics
 ---
+[Back](#contents)
 As you can see, the Scala interpreter reads an expression, evaluates it, prints it, and reads the next expression. This is called
 the read-eval-print loop, or **REPL**.
 Technically speaking, the scala program is not an interpreter. Behind the scenes, your input is quickly compiled into bytecode,
@@ -87,7 +88,7 @@ You supply a function, often in a very compact notation, when you call the metho
 
 Control Structures and Functions
 ---
-
+                                                [back](#contents)
 You will encounter a fundamental difference between Scala and other programming languages. In Java or C++, we differentiate between expressions (such as 3 + 4) and statements (for example, an if statement). An expression has a value; a statement carries out an action. In Scala, almost all constructs have values.
 Here are the highlights of this chapter:
 • An if expression has a value.
