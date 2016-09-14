@@ -12,7 +12,9 @@ ___
     * [The apply Method](#the-apply-method)
 * [2. Control Structures and Functions](#control-structures-and-functions)
     * [for comprehension](#for-comprehension)
+    * [function](#function)
     * [argument sequence](#argument-sequence)
+    * [procedure](#procedure)
 
 
 Basics
@@ -180,6 +182,8 @@ for (c <- "Hello"; i <- 0 to 1) yield (c + i).toChar
 for (i <- 0 to 1; c <- "Hello") yield (c + i).toChar
     // Yields Vector('H', 'e', 'l', 'l', 'o', 'I', 'f', 'm', 'm', 'p')
 ```
+
+###function
 Scala has functions in addition to methods. A method operates on an object, but a function doesn’t. C++ has functions as well, but in Java, you have to imitate them with static methods.
 
 While there is nothing wrong with using return in a named function (except the waste of seven keystrokes), it is a good idea to get used to life without return. Pretty soon, you will be using lots of anonymous functions, and there, return doesn’t return a value to the caller. It breaks out to the enclosing named function. **Think of return as a kind of break statement for functions, and only use it when you want that breakout functionality.**
@@ -200,7 +204,7 @@ def recursiveSum(args: Int*) : Int = {
 ```
 
 Here, the head of a sequence is its initial element, and tail is a sequence of all other elements. **That’s again a Seq, and we have to use : _* to convert it to an argument sequence.**
-	
+
 `When you call a Java method with variable (number of )arguments of type Object, such as PrintStream.printf or MessageFormat.format, you need to convert any primitive types by hand.` For example,
 
 ```scala
@@ -208,8 +212,9 @@ val str = MessageFormat.format("The answer to {0} is {1}", "everything", 42.asIn
 ```
 This is the case for any Object parameter, but I mention it here because it is most common with **varargs** methods.
 
-Scala has a special notation for a function that returns no value. If the function body is enclosed in braces without a preceding =
-symbol, then the return type is Unit. Such a function is called a procedure. A procedure returns no value, and you only call it for
+###procedure
+Scala has a special notation for a function that returns no value. If the function body is enclosed in braces `without a preceding =
+symbol, then the return type is Unit.` Such a function is called a procedure. A procedure returns no value, and you only call it for
 its side effect.
 
 Some people (not me) dislike this concise syntax for procedures and suggest that you always use an explicit return type of Unit:
