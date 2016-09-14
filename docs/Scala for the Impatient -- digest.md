@@ -11,7 +11,6 @@ ___
 * [1. The Basics](#basics)
     * [The apply Method](#the-apply-method)
 * [2. Control Structures and Functions](#control-structures-and-functions)
-* [Someplace](#someplace)
 
 
 Basics
@@ -88,27 +87,24 @@ You supply a function, often in a very compact notation, when you call the metho
 
 Control Structures and Functions
 ---
-[back](#contents)
-You will encounter a fundamental difference between Scala and other programming languages. In Java or C++, we differentiate between expressions (such as 3 + 4) and statements (for example, an if statement). An expression has a value; a statement carries out an action. In Scala, almost all constructs have values.
+You will encounter a fundamental difference between Scala and other programming languages. In Java or C++, we differentiate between expressions (such as 3 + 4) and statements (for example, an if statement). `An expression has a value; a statement carries out an action. In Scala, almost all constructs have values.`
 Here are the highlights of this chapter:
-• An if expression has a value.
-• A block has a value—the value of its last expression.
+`• An if expression has a value.`
+`• A block has a value—the value of its last expression.`
 • The Scala for loop is like an “enhanced” Java for loop.
 • Semicolons are (mostly) optional.
-• The void type is Unit.
+`• The void type is Unit.`
 • Avoid using return in a function.
 • Beware of missing = in a function definition.
 • Exceptions work just like in Java or C++, but you use a “pattern matching” syntax for catch.
-• Scala has no checked exceptions.
+`• Scala has no checked exceptions.`
 
 If the else part is omitted, for example in
-if(x>0)1
-then it is possible that the if statement yields no value. However, in Scala, every expression is supposed to have some value. This is finessed by introducing a class Unit that has one value, written as (). The if statement without an else is equivalent to
-if(x>0)1else()
-Think of () as a placeholder for “no useful value,” and think of Unit as the analog of void in Java or C++.
+if(x>0) 1
+then it is possible that the if statement yields no value. However, in Scala, every expression is supposed to have some value. `This is finessed by introducing a class Unit that has one value, written as ().` The if statement without an else is equivalent to
 
-Someplace
------------
+if (x>0) 1 else ()
+`Think of () as a placeholder for “no useful value,” and think of Unit as the analog of void in Java or C++.`
 
 In Scala, a { } block contains a sequence of expressions, and the result is also an expression. The value of the block is the value of the last expression.
 This feature can be useful if the initialization of a val takes more than one step. For example, Click here to view code image
