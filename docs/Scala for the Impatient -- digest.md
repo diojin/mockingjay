@@ -8,6 +8,7 @@ ___
 
 ##Contents
 * [1. The Basics](#basics)
+  - [The apply Method](#the apply Method)
 * [Someplace](#someplace)
 
 
@@ -59,7 +60,7 @@ Scala methods without parameters often don’t use parentheses. For example, the
 distinct, without (), to get the distinct letters in a string. You call it as "Hello".distinct
 The rule of thumb is that a parameterless method that doesn’t modify the object has no parentheses.
 
-#####The apply Method
+####The apply Method
 In Scala, it is common to use a syntax that looks like a function call. For example, if s is a string, then s(i) is the ith character of the string. (In C++, you would write s[i]; in Java, s.charAt(i).) Try it out in the REPL:
 "Hello"(4) // Yields 'o'
 You can think of this as an overloaded form of the () operator. It is implemented as a method with the name apply. For example,
