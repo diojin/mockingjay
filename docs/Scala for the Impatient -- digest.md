@@ -460,7 +460,9 @@ If you want to start out with a blank map, you have to supply type parameters:
 val scores = new scala.collection.mutable.HashMap[String, Int]
 In Scala, a map is a collection of pairs. A pair is simply a grouping of two values, not necessarily of the same type, such as ("Alice", 10).
 
-The -> operator makes a pair. 
+-> operator
+--
+The **-> operator** makes a pair. 
 The value of "Alice" -> 10 is
 res16: (String, Int) = (Alice,10)
 PS: it is not a Range
