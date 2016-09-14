@@ -14,7 +14,7 @@ ___
 Basics
 ---
 As you can see, the Scala interpreter reads an expression, evaluates it, prints it, and reads the next expression. This is called
-the read-eval-print loop, or `**REPL**`.
+the read-eval-print loop, or **REPL**.
 Technically speaking, the scala program is not an interpreter. Behind the scenes, your input is quickly compiled into bytecode,
 and the bytecode is executed by the Java virtual machine. For that reason, most Scala programmers prefer to call it “the
 REPL”.
@@ -39,13 +39,13 @@ as a shorthand for
 a.method (b)
 where method is a method with two parameters (one implicit, one explicit).
 
-Scala allows you to define operators
+`Scala allows you to define operators`
 
 To use a package that starts with scala., you can omit the scala prefix. For example, import math._ is equivalent to import
 scala.math._, and math.sqrt(2) is the same as scala.math.sqrt(2).
 
-Scala doesn’t have static methods, but it has a similar feature, called singleton objects, which we will discuss in detail in
-Chapter 6. Often, a class has a companion object whose methods act just like static methods do in Java. For example, the
+`Scala doesn’t have static methods`, but it has a similar feature, called __singleton objects__, which we will discuss in detail in
+Chapter 6. Often, a class has a __companion object__ whose methods act just like static methods do in Java. For example, the
 BigInt companion object to the BigInt class has a method probablePrime that generates a random prime number with a given
 number of bits:
 BigInt.probablePrime(100, scala.util.Random)
@@ -59,7 +59,7 @@ Scala methods without parameters often don’t use parentheses. For example, the
 distinct, without (), to get the distinct letters in a string. You call it as "Hello".distinct
 The rule of thumb is that a parameterless method that doesn’t modify the object has no parentheses.
 
-The apply Method
+#####The apply Method
 In Scala, it is common to use a syntax that looks like a function call. For example, if s is a string, then s(i) is the ith character of the string. (In C++, you would write s[i]; in Java, s.charAt(i).) Try it out in the REPL:
 "Hello"(4) // Yields 'o'
 You can think of this as an overloaded form of the () operator. It is implemented as a method with the name apply. For example,
