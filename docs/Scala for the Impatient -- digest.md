@@ -16,6 +16,7 @@ ___
     * [argument sequence](#argument-sequence)
     * [procedure](#procedure)
 * [3. Working with Arrays](#working-with-arrays)
+    * [for if yield](#for-if-yield)
 
 Basics
 ---
@@ -280,13 +281,17 @@ Working with Arrays
 `• Use for (elem <- arr if . . . ) . . . yield . . . to transform into a new array.`  
 • Scala and Java arrays are interoperable; with ArrayBuffer, use **scala.collection.JavaConversions**.
 
+```scala
 // A string array with ten elements, all initialized with null
 val a = new Array[String](10)
 val s = Array("Hello", "World")
 s(0) = "Goodbye"
 // Array("Goodbye", "World")
-Inside the JVM, a Scala Array is implemented as a Java array.
+```
 
+**Inside the JVM, a Scala Array is implemented as a Java array.**
+
+```scala
 import scala.collection.mutable.ArrayBuffer
 val b = ArrayBuffer[Int]()
 // Or new ArrayBuffer[Int]
@@ -300,19 +305,28 @@ b += (1, 2, 3, 5)
 // Add multiple elements at the end by enclosing them in parentheses
 b ++= Array(8, 13, 21)
 // ArrayBuffer(1, 1, 2, 3, 5, 8, 13, 21)
+
+b ++= 22 to 23
+// ArrayBuffer(1, 1, 2, 3, 5, 8, 13, 21, 22, 23)
 // You can append any collection with the ++= operator
+
+//    b += 4 to 10        // failed due to type mismatch
+//    b += Array(11, 12)  // failed due to type mismatch
+
 b.trimEnd(5)
 // ArrayBuffer(1, 1, 2)
 // Removes the last five elements
+```
 
 Sometimes, you want to build up an Array, but you don’t yet know how many elements you will need. In that case, first make an
 array buffer, then call
-b.toArray
+**b.toArray**
 // Array(1, 1, 2)
-Conversely, call a.toBuffer to convert the array a to an array buffer.
+Conversely, call **a.toBuffer** to convert the array a to an array buffer.
 
-It is very easy to take an array (or array buffer) and transform it in some way. Such transformations don’t modify the original array, but they yield a new one.
+It is very easy to take an array (or array buffer) and transform it in some way. Such transformations don’t modify the original array, but they **yield a new one.**
 
+###for if yield
 Oftentimes, when you traverse a collection, you only want to process the elements that match a particular condition. This is
 achieved with a guard: an if inside the for. Here we double every even element, dropping the odd ones:
 for (elem <- a if elem % 2 == 0) yield 2 * elem
