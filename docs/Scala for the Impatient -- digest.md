@@ -27,7 +27,12 @@ Note that you need not specify the type of a value or variable. It is inferred f
 initialize it. (It is an error to declare a value or variable without initializing it.)
 However, you can specify the type if necessary.
 
-`In Scala, you use methods, not casts, to convert between numeric types. For example, 99.44.toInt is 99, and 99.toChar is 'c'.`
+`In Scala, you use methods, not casts, to convert between numeric types. For example, 99.44.toInt is 99, and 99.toChar is 'c'.
+(PS: what about asInstanceOf
+MessageFormat.format("the answer is {0} to {1}", "everything", 42.asInstanceOf[AnyRef]))
+`
+
+
 
 The + - * / % operators do their usual job, as do the bit operators & | ^ >> <<. There is just one surprising aspect: These
 operators are actually methods. For example,
@@ -196,9 +201,12 @@ def recursiveSum(args: Int*) : Int = {
 
 Here, the head of a sequence is its initial element, and tail is a sequence of all other elements. **That’s again a Seq, and we have to use : _* to convert it to an argument sequence.**
 	
-When you call a Java method with variable (number of )arguments of type Object, such as PrintStream.printf or MessageFormat.format, you need to convert any primitive types by hand. For example,
+`When you call a Java method with variable (number of )arguments of type Object, such as PrintStream.printf or MessageFormat.format, you need to convert any primitive types by hand.` For example,
+
+```scala
 val str = MessageFormat.format("The answer to {0} is {1}", "everything", 42.asInstanceOf[AnyRef])
-This is the case for any Object parameter, but I mention it here because it is most common with varargs methods.
+```
+This is the case for any Object parameter, but I mention it here because it is most common with **varargs** methods.
 
 Scala has a special notation for a function that returns no value. If the function body is enclosed in braces without a preceding =
 symbol, then the return type is Unit. Such a function is called a procedure. A procedure returns no value, and you only call it for
