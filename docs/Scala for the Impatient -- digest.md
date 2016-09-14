@@ -591,17 +591,17 @@ class Person {
 }
 Scala generates a class for the JVM with a private age field and getter and setter methods. These methods are public because
 we did not declare age as private. (For a private field, the getter and setter methods are private.) 
-In Scala, the getter and setter methods are called age and age_=. 
+In Scala, the getter and setter methods are called `age` and `age_=`. 
 For example,
 println(fred.age) // Calls the method fred.age() 
 fred.age = 21 // Calls fred.age_=(21)
-
 
 Bertrand Meyer, the inventor of the influential Eiffel language, formulated the Uniform Access Principle that states: “All services offered by a module should be available through a uniform notation, which does not betray whether they are implemented through storage or through computation.” In Scala, the caller of fred.age doesn’t know whether age is implemented through a field or a method. (Of course, in the JVM, the service is always implemented through a method, either synthesized or programmer-supplied.)
 
 
 To summarize, you have four choices for implementing properties:
-1. var foo: Scala synthesizes a getter and a setter. 2. val foo: Scala synthesizes a getter.
+1. var foo: Scala synthesizes a getter and a setter. 
+2. val foo: Scala synthesizes a getter.
 3. You define methods foo and foo_=.
 4. You define a method foo.
 
