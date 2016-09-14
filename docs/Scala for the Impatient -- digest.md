@@ -15,7 +15,7 @@ ___
     * [function](#function)
     * [argument sequence](#argument-sequence)
     * [procedure](#procedure)
-
+* [3. Working with Arrays](#working-with-arrays)
 
 Basics
 ---
@@ -245,8 +245,8 @@ if (x >= 0) {
 ```
 The first branch has type Double, the second has type Nothing. Therefore, the if/else expression also has type Double.
 
-The first branch has type Double, the second has type Nothing. Therefore, the if/else expression also has type Double.
 The syntax for catching exceptions is modeled after the pattern matching syntax (see Chapter 14).
+```scala
     val url = new URL("http://horstmann.com/fred-tiny.gif")
     try {
       process(url)
@@ -254,20 +254,25 @@ The syntax for catching exceptions is modeled after the pattern matching syntax 
       case _: MalformedURLException => println("Bad URL: " + url)
       case ex: IOException => ex.printStackTrace()
     }
+```
 
 As in Java or C++, the more general exception types should come after the more specific ones.
 Note that you can use _ for the variable name if you don’t need it.
 The try/finally statement lets you dispose of a resource whether or not an exception has occurred. For example:
+```scala
     var in = new URL("http://horstmann.com/fred.gif").openStream()
     try {
       process(in)
     } finally {
       in.close()
     }
+```
 The finally clause is executed whether or not the process function throws an exception. The reader is always closed.
 It is possible to combine them into a single try/catch/finally statement:
 try { ... } catch { ... } finally { ... }
 
+Working with Arrays
+---
 • Use an Array if the length is fixed, and an ArrayBuffer if the length can vary.
 • Don’t use new when supplying initial values.
 • Use () to access elements.
