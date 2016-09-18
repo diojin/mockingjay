@@ -28,6 +28,7 @@ ___
     * [Object-Private Fields](#object-private-fields)
     * [primary constructor](#primary-constructor)
 * [6. Objects](#objects)
+    + [The apply Method](#the-apply-method)
 
 Basics
 ---
@@ -727,5 +728,9 @@ The class and its companion object can access each other’s private features. T
 
 Objects Extending a Class or Trait  
 An object can extend a class and/or one or more traits. The result is an object of a class that extends the given class and/or traits, and in addition has all of the features specified in the object definition.
+
+###The apply Method
+It is common to have objects with an apply method. The apply method is called for expressions of the form Object(arg1, ..., argN)
+Typically, such an apply method returns an object of the companion class.
 
 
