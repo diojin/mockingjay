@@ -702,28 +702,30 @@ The name self is common, but perhaps confusing when used with nested classes.
 
 Objects
 ---
-In this short chapter, you will learn when to use the object construct in Scala. Use it when you need a class with a single instance, or when you want to find a home for miscellaneous values or functions.
-The key points of this chapter are:
-• Use objects for singletons and utility methods.
-• A class can have a companion object with the same name.
-• Objects can extend classes or traits.
-• The apply method of an object is usually used for constructing new instances of the companion class. • To avoid the main method, use an object that extends the App trait.
-• You can implement enumerations by extending the Enumeration object.
+In this short chapter, you will learn when to use the object construct in Scala. `Use it when you need a class with a single instance, or when you want to find a home for miscellaneous values or functions.`  
+The key points of this chapter are:  
+• Use objects for singletons and utility methods.  
+• A class can have a companion object with the same name.  
+• Objects can extend classes or traits.  
+• The apply method of an object is usually used for constructing new instances of the companion class.   
+• To avoid the main method, use an object that extends the **App** trait.  
+• You can implement enumerations by extending the Enumeration object.  
 
-Scala has no static methods or fields. Instead, you use the object construct. An object defines a single instance of a class with the features that you want.
+`Scala has no static methods or fields.` Instead, you use the object construct. An object defines a single instance of a class with the features that you want.
 
 An object can have essentially all the features of a class—it can even extend other classes or traits (see Section 6.3, “Objects Extending a Class or Trait,” on page 67). There is just one exception: You cannot provide constructor parameters.
-You use an object in Scala whenever you would have used a singleton object in Java or C++:
-• As a home for utility functions or constants
-• When a single immutable instance can be shared efficiently
-• When a single instance is required to coordinate some service (the singleton design pattern)
 
-Companion Objects
+You use an object in Scala whenever you would have used a singleton object in Java or C++:
+• As a home for utility functions or constants  
+• When a single immutable instance can be shared efficiently  
+• When a single instance is required to coordinate some service (the singleton design pattern)  
+
+###Companion Objects
 In Java or C++, you often have a class with both instance methods and static methods. In Scala, you achieve this by having a class and a “companion” object of the same name. 
 
 The class and its companion object can access each other’s private features. They must be located in the same source file.
 
-Objects Extending a Class or Trait
+Objects Extending a Class or Trait  
 An object can extend a class and/or one or more traits. The result is an object of a class that extends the given class and/or traits, and in addition has all of the features specified in the object definition.
 
 

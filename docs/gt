@@ -76,6 +76,10 @@ all_yeah() {
 
 # set -x
 
+if [[ -z "$@" ]]; then
+    help
+fi
+
 while getopts ":sSlLaAcChHm:M:r:R:b:B:" opt
    do
      case $opt in
