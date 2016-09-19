@@ -28,7 +28,9 @@ ___
     * [Object-Private Fields](#object-private-fields)
     * [primary constructor](#primary-constructor)
 * [6. Objects](#objects)
-    + [The apply Method](#the-apply-method)
+    + [The apply Method](#the-apply-method-1)
+    + [Application Objects](#application-objects)
+    + [Enumerations](#enumerations)
 
 Basics
 ---
@@ -729,8 +731,37 @@ The class and its companion object can access each other’s private features. T
 Objects Extending a Class or Trait  
 An object can extend a class and/or one or more traits. The result is an object of a class that extends the given class and/or traits, and in addition has all of the features specified in the object definition.
 
-###The apply Method
-It is common to have objects with an apply method. The apply method is called for expressions of the form Object(arg1, ..., argN)
+###The apply Method 1
+It is common to have objects with an apply method. The apply method is called for expressions of the form Object(arg1, ..., argN)  
 Typically, such an apply method returns an object of the companion class.
 
+It is easy to confuse Array(100) and new Array(100). The first expression calls apply(100), yielding an Array[Int] with a single element, the integer 100. The second expression invokes the constructor this(100). The result is an `Array[Nothing]` with 100 null elements.
+
+
+###Application Objects
+`Each Scala program must start with an object’s main method of type Array[String] => Unit`:  
+```scala
+object Hello {
+  def main(args: Array[String]) {
+    println("hello world")
+  }
+}
+```
+
+Instead of providing a main method for your application, you can extend the App trait and place the program code into the constructor body:  
+```scala
+object HelloNew extends App {  
+  if (args.length > 0){
+    println("hello " + args(0))
+  }else{
+    println("hello world")
+  }
+}
+```
+If you need the command-line arguments, you can get them from the args property
+
+###Enumerations
+Unlike Java or C++, `Scala does not have enumerated types`. However, the standard library provides an **Enumeration helper class** that you can use to produce enumerations.
+
+Define an object that extends the Enumeration class and initialize each value in your enumeration with a call to the **Value** method.  
 
