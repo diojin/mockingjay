@@ -31,6 +31,7 @@ ___
     + [The apply Method](#the-apply-method-1)
     + [Application Objects](#application-objects)
     + [Enumerations](#enumerations)
+* [7. Packages and Imports](#packages-and-imports)
 
 Basics
 ---
@@ -764,4 +765,67 @@ If you need the command-line arguments, you can get them from the args property
 Unlike Java or C++, `Scala does not have enumerated types`. However, the standard library provides an **Enumeration helper class** that you can use to produce enumerations.
 
 Define an object that extends the Enumeration class and initialize each value in your enumeration with a call to the **Value** method.  
+
+The ID of an enumeration value is returned by the id method, and its name by the toString method.
+
+```scala
+import TrafficEnhanced._
+import TrafficLightColor._
+
+def testEnum( color : TrafficLightColor.Value ){
+  if ( color == BLUE ) {
+    println(color)
+  }else{
+    println("unmatch")
+  }
+}
+def testEnumEnhanced ( color : TrafficEnhanced){
+  if ( color == AZURE ) {
+    println(color)
+  }else{
+    println("unmatch")
+  }
+}
+
+testEnum(ORANGE)
+testEnumEnhanced(AZURE)
+
+for ( c <- TrafficLightColor.values ) println(c.id + "\t" + c.toString())
+
+println( for ( c <- TrafficEnhanced.values) yield c.id + "\t" + c )
+
+println(TrafficLightColor(5))
+println(TrafficEnhanced(2))
+
+println(TrafficEnhanced.withName("TAN"))
+println(TrafficLightColor.withName("BLUE"))
+```
+
+Packages and Imports
+---
+Both packages and imports are more regular than in Java; they are also a bit more `flexible`.
+
+The key points of this chapter are:  
+`• Packages nest just like inner classes.`  
+• Package paths are not absolute.  
+• A chain x.y.z in a package clause leaves the intermediate packages x and x.y invisible.  
+• Package statements without braces at the top of the file extend to the entire file.  
+• A package object can hold functions and variables.  
+• Import statements can import packages, classes, and objects.  
+`• Import statements can be anywhere.`  
+`• Import statements can rename and hide members.`  
+`• java.lang, scala, and Predef are always imported.`  
+
+To add items to a package, you can include them in package statements, such as:
+```scala
+package com { 
+  package horstmann {
+    package impatient { 
+      class Employee ...
+    } 
+  }
+}
+```
+Then the class name Employee can be accessed anywhere as com.horstmann.impatient.Employee.
+
 
