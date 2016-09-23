@@ -32,6 +32,7 @@ ___
     + [Application Objects](#application-objects)
     + [Enumerations](#enumerations)
 * [7. Packages and Imports](#packages-and-imports)
+    + [Scope Rules](#scope-rules)
 
 Basics
 ---
@@ -810,7 +811,7 @@ The key points of this chapter are:
 • Package paths are not absolute.  
 • A chain x.y.z in a package clause leaves the intermediate packages x and x.y invisible.  
 • Package statements without braces at the top of the file extend to the entire file.  
-• A package object can hold functions and variables.  
+`• A package object can hold functions and variables.`  
 • Import statements can import packages, classes, and objects.  
 `• Import statements can be anywhere.`  
 `• Import statements can rename and hide members.`  
@@ -828,4 +829,21 @@ package com {
 ```
 Then the class name Employee can be accessed anywhere as com.horstmann.impatient.Employee.
 
+Unlike the definition of an object or a class, a package can be defined in multiple files. 
+
+`There is no enforced relationship between the directory of the source file and the package.` You don’t have to put Employee.scala and Manager.scala into a com/horstmann/impatient directory.
+
+Conversely, you can contribute to more than one package in a single file.
+
+###Scope Rules
+
+Scala packages nest just like all other scopes. You can access names from the enclosing scope.
+
+In Java, this problem can’t occur because package names are always absolute, starting at the root of the package hierarchy. But in Scala, package names are relative, just like inner class names. With inner classes, one doesn’t usually run into problems because all the code is in one file, under control of whoever is in charge of that file. But packages are open-ended. Anyone can contribute to a package at any time.
+
+One solution is to use `absolute package names`, starting with `_root_`, for example: 
+```scala
+val subordinates = new _root_.scala.collection.mutable.ArrayBuffer[Employee]  
+```
+Another approach is to use **“chained” package clauses**
 
