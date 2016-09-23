@@ -33,6 +33,9 @@ ___
     + [Enumerations](#enumerations)
 * [7. Packages and Imports](#packages-and-imports)
     + [Scope Rules](#scope-rules)
+    + [Chained Package Clauses](#chained-package-clauses)
+    + [Top-of-File Notation](#top-of-file-notation)
+    + [Package Objects](#package-objects)
 
 Basics
 ---
@@ -831,7 +834,7 @@ Then the class name Employee can be accessed anywhere as com.horstmann.impatient
 
 Unlike the definition of an object or a class, a package can be defined in multiple files. 
 
-`There is no enforced relationship between the directory of the source file and the package.` You don’t have to put Employee.scala and Manager.scala into a com/horstmann/impatient directory.
+**There is no enforced relationship between the directory of the source file and the package.** You don’t have to put Employee.scala and Manager.scala into a com/horstmann/impatient directory.
 
 Conversely, you can contribute to more than one package in a single file.
 
@@ -846,4 +849,82 @@ One solution is to use `absolute package names`, starting with `_root_`, for exa
 val subordinates = new _root_.scala.collection.mutable.ArrayBuffer[Employee]  
 ```
 Another approach is to use **“chained” package clauses**
+
+Most programmers use complete paths for package names, without the _root_ prefix. This is safe as long as everyone avoids names scala, java, com, org, and so on, for nested packages.
+
+###Chained Package Clauses
+A package clause can contain a “chain,” or path segment
+```scala
+package com.horstmann.impatient {
+  // Members of com and com.horstmann are not visible here 
+  package people {
+    class Person
+    ... 
+  }
+}
+```
+
+###Top-of-File Notation
+```scala
+package com.horstmann.impatient  
+package people
+class Person 
+...
+```
+This is equivalent to
+```scala
+package com.horstmann.impatient { 
+  package people {
+    class Person
+    ...
+    // Until the end of the file
+  } 
+}
+```
+
+###Package Objects
+
+A package can contain classes, objects, and traits, but not the definitions of functions or variables. That’s an unfortunate limitation of the Java virtual machine. It would make more sense to add `utility functions or constants` to a package than to some Utils object. Package objects address this limitation.
+
+`Every package can have one package object.` You define it in the parent package, and it has the same name as the child package. For example,
+```scala
+package com.horstmann.impatient
+package object people {
+  val defaultName = "John Q. Public"
+}
+package people { 
+  class Person {
+    var name = defaultName // A constant from the package 
+  }
+  ... 
+}
+```
+
+Note that the defaultName value didn’t need to be qualified because it was in the same package. Elsewhere, it is accessible as com.horstmann.impatient.people.defaultName.
+
+Behind the scenes, the package object gets compiled into a JVM class with static methods and fields, called package.class
+
+It is a good idea to use the same naming scheme for source files. Put the package object into a file com/horstmann/impatient/people/package.scala
+
+
+In Java, a class member that isn’t declared as public, private, or protected is visible in the package containing the class. In Scala, you can achieve the same effect with qualifiers. The following method is visible in its own package, or even enclosing package:
+
+package com.horstmann.impatient.people
+class Person {
+  private[people] def description = "A person with name " + name 
+  private[impatient] def description1 = "A person with name " + name
+  ...
+}
+
+You can import all members of a package as
+import java.awt._
+This is the same as the * wildcard in Java. 
+
+In Scala, `* is a valid character for an identifier`. You could define a package
+com.horstmann.*.people, but please don’t.
+
+You can also import all members of a class or object.
+
+
+
 
