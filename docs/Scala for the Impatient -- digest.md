@@ -413,7 +413,8 @@ For the min, max, and quickSort methods, the element type must have a comparison
 strings, and other types with the Ordered trait.
 
 ###multidimensional arrays
-Like in Java, multidimensional arrays are implemented as arrays of arrays. For example, a two-dimensional array of Double values has the type Array[Array[Double]]. To construct such an array, use the ofDim method:
+Like in Java, multidimensional arrays are implemented as arrays of arrays. For example, a two
+-Dimensional array of Double values has the type Array[Array[Double]]. To construct such an array, use the ofDim method:
 ```scala
 val matrix = Array.ofDim[Int](3,4) // Three rows, four columns
 
@@ -900,7 +901,8 @@ package people {
 }
 ```
 
-Note that the defaultName value didn’t need to be qualified because it was in the same package. Elsewhere, it is accessible as com.horstmann.impatient.people.defaultName.
+Note that the defaultName value didn’t need to be qualified because it was in the same package. Elsewhere, it is access
+  private[impatient] def description1 = "A person with name " + nameible as com.horstmann.impatient.people.defaultName.
 
 Behind the scenes, the package object gets compiled into a JVM class with static methods and fields, called package.class
 
@@ -912,7 +914,6 @@ In Java, a class member that isn’t declared as public, private, or protected i
 package com.horstmann.impatient.people
 class Person {
   private[people] def description = "A person with name " + name 
-  private[impatient] def description1 = "A person with name " + name
   ...
 }
 
