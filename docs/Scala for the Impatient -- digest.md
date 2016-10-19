@@ -413,7 +413,8 @@ For the min, max, and quickSort methods, the element type must have a comparison
 strings, and other types with the Ordered trait.
 
 ###multidimensional arrays
-Like in Java, multidimensional arrays are implemented as arrays of arrays. For example, a two
+Like in Java, multidimensional arrays are implemented as arrays of arrays. For example, a two
+
 -Dimensional array of Double values has the type Array[Array[Double]]. To construct such an array, use the ofDim method:
 ```scala
 val matrix = Array.ofDim[Int](3,4) // Three rows, four columns
@@ -833,7 +834,7 @@ package com {
 ```
 Then the class name Employee can be accessed anywhere as com.horstmann.impatient.Employee.
 
-Unlike the definition of an object or a class, a package can be defined in multiple files. 
+Unlike the definition of an object or a class, `a package can be defined in multiple files.`
 
 **There is no enforced relationship between the directory of the source file and the package.** You don’t have to put Employee.scala and Manager.scala into a com/horstmann/impatient directory.
 
