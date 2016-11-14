@@ -40,4 +40,8 @@ http://vacations.ctrip.com/visa/p84224s2.html
 
 护照      G59478197
 
+http://jetbrains.coupang.net/licenseServer
+http://jetbrains-license.coupang.net/
  
+mac credential:
+djin@coupang.com    Fantasy~!@3
