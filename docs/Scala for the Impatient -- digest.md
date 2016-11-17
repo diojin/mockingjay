@@ -53,7 +53,20 @@ However, you can specify the type if necessary.
 (PS: what about asInstanceOf
 MessageFormat.format("the answer is {0} to {1}", "everything", 42.asInstanceOf[AnyRef]))
 `
-
+another possible example of type convert
+```scala
+    println(recursiveSum(1 to 10:_*))
+    
+    println(recursiveSum(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
+    
+    def recursiveSum(args: Int*):Int = {
+      if ( args.length == 0 ){
+        0
+      }else{
+        args(0) + recursiveSum(args.tail:_*)
+      }
+    }
+```
 
 
 The + - * / % operators do their usual job, as do the bit operators & | ^ >> <<. There is just one surprising aspect: These
@@ -76,7 +89,7 @@ To use a package that starts with scala., you can omit the scala prefix. For exa
 scala.math._, and math.sqrt(2) is the same as scala.math.sqrt(2).
 
 `Scala doesn’t have static methods`, but it has a similar feature, called __singleton objects__, which we will discuss in detail in
-Chapter 6. Often, a class has a __companion object__ whose methods act just like static methods do in Java. For example, the
+Chapter 6. Often, a class has a __companion object__ whose methods act just    like static methods do in Java. For example, the
 BigInt companion object to the BigInt class has a method probablePrime that generates a random prime number with a given
 number of bits:
 BigInt.probablePrime(100, scala.util.Random)
@@ -224,6 +237,9 @@ def recursiveSum(args: Int*) : Int = {
 ```
 
 Here, the head of a sequence is its initial element, and tail is a sequence of all other elements. **That’s again a Seq, and we have to use : _* to convert it to an argument sequence.**
+
+Generally, the : notation is used for **type ascription**, forcing the compiler to see a value as some particular type. This is not quite the same as casting.
+
 
 `When you call a Java method with variable (number of )arguments of type Object, such as PrintStream.printf or MessageFormat.format, you need to convert any primitive types by hand.` For example,
 
