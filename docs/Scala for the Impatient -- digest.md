@@ -236,9 +236,11 @@ def recursiveSum(args: Int*) : Int = {
 }
 ```
 
-Here, the head of a sequence is its initial element, and tail is a sequence of all other elements. **That’s again a Seq, and we have to use : _* to convert it to an argument sequence.**
 
+Here, the head of a sequence is its initial element, and tail is a sequence of all other elements. **That’s again a Seq, and we have to use : _* to convert it to an argument sequence.**
 Generally, the : notation is used for **type ascription**, forcing the compiler to see a value as some particular type. This is not quite the same as casting.
+
+_*,  It "splats" the sequence. This doesn't have a cutesy-name in the SLS, but here are the details. The important thing to get is that it changes how Scala binds the arguments to the method with repeated parameters. That's scala syntax for exploding subclasses of Seq[T].
 
 
 `When you call a Java method with variable (number of )arguments of type Object, such as PrintStream.printf or MessageFormat.format, you need to convert any primitive types by hand.` For example,
@@ -376,38 +378,13 @@ b.filter { _ % 2 == 0 }.map { 2 * _ }
 Some programmers with experience in functional programming prefer filter and map to guards and yield. That’s just a
 matter of style—the for loop does exactly the same work. Use whichever you find easier.
 Keep in mind that **the result is a new collection**—the original collection is not affected.
-```scala
-var first = false
-// notice: condition here must involve each element, such as a(i) >= 0
-// otherwise it will be applied once per entire input collection, but rather
-// many times per each element
-val indexes = for (i <- 0 until a.length if first || a(i) >= 0) yield {
-	if (a(i) < 0) first = false; i
-}
+```scala  
+    val input = Array(1, 2, 3, 4, 5, 6) 
+    var latch = new AtomicInteger(-1);
+    val res4 = for ( i <- input if latch.incrementAndGet() > 0 ) yield i
+    println(res4)  // ArrayBuffer(2, 3, 4, 5, 6)
 ```
 
-evidence is as below:
-```scala
-println("ignore the 1st element")
-val input = Array(1, 2, 3, 4, 5, 6)
-var first = true
-var res = for ( i <- 0 until input.length if !first || i % 2 == 1 ) yield {
-  if ( first ) {
-    first = false
-  }
-  input(i)
-}
-println(res)  // Vector(2, 3, 4, 5, 6)
-
-first = true
-res = for ( i <- 0 until input.length if !first ) yield {
-  if ( first ) {
-    first = false
-  }
-  input(i)
-}
-println(res)  // Vector()
-```
 
 ###array sorting
 ```scala
@@ -426,12 +403,10 @@ scala.util.Sorting.quickSort(a)
 // a is now Array(1, 2, 7, 9)
 ```
 For the min, max, and quickSort methods, the element type must have a comparison operation. This is the case for numbers
-strings, and other types with the Ordered trait.
+strings, and other types with the __Ordered trait__.
 
 ###multidimensional arrays
-Like in Java, multidimensional arrays are implemented as arrays of arrays. For example, a two
-
--Dimensional array of Double values has the type Array[Array[Double]]. To construct such an array, use the ofDim method:
+Like in Java, multidimensional arrays are implemented as arrays of arrays. For example, a two-Dimensional array of Double values has the type Array[Array[Double]]. To construct such an array, use the ofDim method:
 ```scala
 val matrix = Array.ofDim[Int](3,4) // Three rows, four columns
 
