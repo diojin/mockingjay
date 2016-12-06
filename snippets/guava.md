@@ -6,6 +6,7 @@
 * [Multimap](#multimaps)
 * [FluentIterable](#fluentiterable)
     - [anyMatch](#1-fluentiterableanymatch)
+* [Splitter](#splitter)
 
 
 ###Maps
@@ -38,7 +39,7 @@ List<String> badGuys =
 
 FluentIterable
 ---
-####1, FluentIterable.anyMatch
+####1. FluentIterable.anyMatch
 
 Return true if any element matches the Predicate.
 
@@ -55,3 +56,20 @@ Return true if any element matches the Predicate.
 
     System.out.println(ifExists); // true
 ```
+
+Splitter
+---
+The process order is, split per onPattern at first, and then trimResults
+
+1. pattern using "look ahead" and "positively", split by comma which has even number of " mark after itself till end of line, moreover, trim all white space characters and " 
+```java
+Splitter.onPattern(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)")
+    .trimResults(CharMatcher.BREAKING_WHITESPACE.or(CharMatcher.is('\"')))
+    .split(line)
+```
+
+2. simple one
+```java
+Splitter.on(",").omitEmptyStrings().trimResults().splitToList(targetMemberIds)
+```
+
