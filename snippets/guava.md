@@ -5,7 +5,7 @@
 * [Maps](#maps)
 * [Multimap](#multimaps)
 * [FluentIterable](#fluentiterable)
-    - [anyMatch](#fluentIterable.anyMatch)
+    - [anyMatch](#1-fluentiterableanymatch)
 
 
 ###Maps
