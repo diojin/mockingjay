@@ -10,7 +10,7 @@
 
 ###Maps
 
-1. Convert `Collection<V>` to Map\<K, V\>, decided by `Function<V,K>`
+1. Convert Collection\<V\> to `Map<K, V>`, decided by `Function<V,K>`
 
 ```java
     Map<Long, OosReport> skuId2OosReportMap = Maps.uniqueIndex(rawDs, new Function<OosReport, Long>() {
