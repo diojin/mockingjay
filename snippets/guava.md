@@ -4,7 +4,7 @@
 
 * [Maps](#maps)
 * [Multimap](#multimaps)
-* [FluentIterable](#fluentIterable)
+* [FluentIterable](#fluentiterable)
     - [anyMatch](#fluentIterable.anyMatch)
 
 
@@ -38,7 +38,7 @@ List<String> badGuys =
 
 FluentIterable
 ---
-1, FluentIterable.anyMatch
+####1, FluentIterable.anyMatch
 
 Return true if any element matches the Predicate.
 
