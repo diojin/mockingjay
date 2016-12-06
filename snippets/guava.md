@@ -5,12 +5,12 @@
 * [Maps](#maps)
 * [Multimap](#multimaps)
 * [FluentIterable](#fluentiterable)
-    - [anyMatch](#1-fluentiterableanymatch)
+    - [anyMatch](#fluentiterableanymatch)
 
 
 ###Maps
 
-1. Convert Collection<V> to Map<K, V>, decided by Functio<V,K>
+Convert Collection<V> to Map<K, V>, decided by Function<V,K> 
 
 ```java
     Map<Long, OosReport> skuId2OosReportMap = Maps.uniqueIndex(rawDs, new Function<OosReport, Long>() {
@@ -24,7 +24,7 @@
 Multimaps
 ---
 
-1. Group a Collection<V> to Map<K, Collection<V>>, decided by Function<V, K>, 1st parameter of which is the group index.
+Group a Collection<V> to Map<K, Collection<V>>, decided by Function<V, K>, 1st parameter of which is the group index.
 
 ```java
 List<String> badGuys =
@@ -38,7 +38,7 @@ List<String> badGuys =
 
 FluentIterable
 ---
-####1, FluentIterable.anyMatch
+####FluentIterable.anyMatch
 
 Return true if any element matches the Predicate.
 
