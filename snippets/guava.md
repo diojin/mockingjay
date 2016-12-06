@@ -2,60 +2,29 @@
 ###Index
 ---
 
-* [1. Multimap](#multimap)
+* [Maps](#maps)
+* [Multimap](#multimaps)
+* [FluentIterable](#fluentIterable)
+    - [anyMatch](#fluentIterable.anyMatch)
 
 
+###Maps
+
+1. Convert Collection<V> to Map<K, V>, decided by Functio<V,K>
+
+```java
+    Map<Long, OosReport> skuId2OosReportMap = Maps.uniqueIndex(rawDs, new Function<OosReport, Long>() {
+         @Nullable 
+        @Override 
+        public Long apply(@Nullable OosReport input) { return input.getSkuId(); }
+    });
+```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Multimap
+Multimaps
 ---
 
-Group a collection to Map<Object, Collection>, 1st parameter of which is the group index.
+1. Group a Collection<V> to Map<K, Collection<V>>, decided by Function<V, K>, 1st parameter of which is the group index.
 
 ```java
 List<String> badGuys =
@@ -64,5 +33,25 @@ List<String> badGuys =
     Multimap<Integer, String> index =
             Multimaps.index(badGuys.iterator(), stringLengthFunction);
     System.out.println(index);
-    // result: {4=[Inky], 6=[Blinky], 5=[Pinky, Pinky, Clyde]}
+    // {4=[Inky], 6=[Blinky], 5=[Pinky, Pinky, Clyde]}
+```
+
+FluentIterable
+---
+1, FluentIterable.anyMatch
+
+Return true if any element matches the Predicate.
+
+```java
+    List<String> badGuys =
+            Arrays.asList("Inky", "Blinky", "Pinky", "Pinky", "Clyde");
+
+    boolean ifExists = FluentIterable.from(badGuys).anyMatch(new Predicate<String>() {
+        @Override
+        public boolean apply(@Nullable String input) {
+            return input.length() == 5;
+        }
+    });
+
+    System.out.println(ifExists); // true
 ```
