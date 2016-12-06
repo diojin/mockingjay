@@ -7,7 +7,7 @@
 * [FluentIterable](#fluentiterable)
     - [anyMatch](#1-fluentiterableanymatch)
 * [Splitter](#splitter)
-* [SN-393]
+* [SN-393](#sn-393-hahaha)
 
 
 ###Maps
@@ -74,5 +74,5 @@ Splitter.onPattern(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)")
 Splitter.on(",").omitEmptyStrings().trimResults().splitToList(targetMemberIds)
 ```
 
-SN-393
+SN-393 HAHAHA
 ---
