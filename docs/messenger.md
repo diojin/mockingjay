@@ -54,7 +54,7 @@ diojin@sina.com                                     ${new}
 猎聘  吴虹
 13818975055/110119wh
 
-
+https://pages.github.com/
 
 
 GST Co. ,Ltd, a certified venture company, has been developing since 1999 specialized in Bellows and Vacuum products. We focus on vacuum industry, so we hold various patents for technology in the field of manufacturing Bellows. In 2002, we awarded Korean Government Prime Minister’s prize as a new technology pioneer of the year. Government office, Samsung Electronics, Samsung SDI, JuSung ENG , Aerospace , Military science technology office, Science Technology office adopted our products into their system. In overseas countries Japan, Taiwan and Singapore, the market share is growing sharply excellent durability and performance of the products. GST established Win-Win Partnership with one of the biggest Vacuum Company in Japan through harmony exchanging our own manufacturing technology and their designing technology. Now all the staffs and board of directors are ready to meet, even most demanding customers at any time.
