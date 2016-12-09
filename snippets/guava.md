@@ -7,7 +7,11 @@
 * [FluentIterable](#fluentiterable)
     - [anyMatch](#1-fluentiterableanymatch)
 * [Splitter](#splitter)
-* [SN-393](#sn-393-hahaha)
+* [Misc](#misc)
+    - [Longs](#longs)
+    - [Predicates](#predicates)
+    - [Preconditions](#preconditions)
+    - [Iterators](#iterators)
 
 
 ###Maps
@@ -74,5 +78,35 @@ Splitter.onPattern(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)")
 Splitter.on(",").omitEmptyStrings().trimResults().splitToList(targetMemberIds)
 ```
 
-SN-393 HAHAHA
+Misc
 ---
+---
+
+####Longs
+```java
+Long value = Longs.tryParse(strMemberId);
+```
+
+####Predicates
+```java
+Predicates.notNull()
+```
+
+####Preconditions
+```java
+Preconditions.checkNotNull(loginId, "loginId can't be null.");
+Preconditions.checkArgument(productPrice.intValue() != 0, "ProductPrice is zero!!!");
+```
+
+####Iterators
+```java
+boolean result = Iterators.tryFind(failedList.iterator(), new Predicate<SubsItem>() {
+   @Override
+   public boolean apply(@NotNull SubsItem input) {
+      return input.getOrderResultType() == OrderResultType.NOT_REGULAR_MEMBER_TYPE ||
+         input.getOrderResultType() == OrderResultType.BLOCK_MEMBER ||
+         input.getOrderResultType() == OrderResultType.PAYMENT_BLOCK_MEMBER;
+   }
+}).isPresent();
+
+```
