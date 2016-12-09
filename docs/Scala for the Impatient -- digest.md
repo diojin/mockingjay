@@ -264,7 +264,7 @@ The concise procedure syntax can be a surprise for Java and C++ programmers. It 
 omit the = in a function definition. You then get an error message at the point where the function is called, and you are
 told that Unit is not acceptable at that location.
 
-When a val is declared as lazy, its initialization is deferred until it is accessed for the first time. For example,
+When a val is declared as __lazy__, its initialization is deferred until it is accessed for the first time. For example,
 ```scala
 lazy val words = scala.io.Source.fromFile("/usr/share/dict/words").mkString
 ```
