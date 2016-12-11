@@ -1,3 +1,8 @@
+
+
+
+---
+
 Name|Category|Account|PWD|Memo
 ----|--------|-------|------|--------
 citibank|Bank|diojin1|[citibank]|结算帐号:2000400092
@@ -183,3 +188,18 @@ www.shuame.com|Others|threepwoood@gmail.com|[new]|
 全民tv|Video|[mobile_no]|[new]
 熊猫tv|Video|[mobile_no]|[new]
 战旗|Video|threepwood|[new]
+
+---
+[digitfamiliy]: 111
+[digit]: 111
+[digitnew]: 111
+[old]: 111
+[oldsecure]: 111
+[new]: 111
+[newfinance]: 111
+[citibank]: 111          
+[father]: jin123456    
+[mother]: yuan123456
+[familydignew]: 111
+[familysimple]: a111111
+[simplest]: welcome
