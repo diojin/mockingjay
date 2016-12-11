@@ -43,10 +43,9 @@ http://vacations.ctrip.com/visa/p84224s2.html
 http://jetbrains.coupang.net/licenseServer
 http://jetbrains-license.coupang.net/
  
-mac credential:
-djin@coupang.com    Fantasy~!@3
 
-德邦快递 premierme@sina.com                          ${new}
+
+
 
 jsfiddle.net  premierme@sina.com    diojin          ${new}  
 diojin@sina.com                                     ${new}
