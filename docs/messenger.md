@@ -16,42 +16,18 @@ Scala In Depth。这本书比较适合初学者看，Scala中的重要语法内�
 Scala Cookbook。这本书按Scala的知识点来讲解Scala语法，大多数语法都有涉及，适合初学者
 Scala For the Impatient。这本书推荐初学者也一定要看，整体内容在我看来还是比较到位的，这本书也有中文版，不过我个人觉得翻译得也是让人有种淡淡的忧伤，很多地方都是字面翻译。
 
-geymotion      diojin premierme@sina.com                            ${new}
 
 1, install genymotion, install sasume s5 4.4.4
-					2, install charles
-
-http://formac.informer.com/notepad
-
-Upsource
-djin@coupang.com/1qaz2wsx~~
+2, install charles
 
 
-http://vacations.ctrip.com/visa/p84224s2.html
 
 
-尊敬的员工：金哲
-欢迎您成为携程旅行网的商旅客户！
-  激活您的专享商旅服务    点击进入http://ct.ctrip.com/crptravel/index.aspx
-携程商旅卡号：2112169120  初始密码： CuzugDFt  
-
-
-顺风      1561855153                  ${new} 
-
-护照      G59478197                   20220220
 
 http://jetbrains.coupang.net/licenseServer
 http://jetbrains-license.coupang.net/
  
 
-
-
-
-jsfiddle.net  premierme@sina.com    diojin          ${new}  
-diojin@sina.com                                     ${new}
-
-猎聘  吴虹
-13818975055/110119wh
 
 https://pages.github.com/
 
