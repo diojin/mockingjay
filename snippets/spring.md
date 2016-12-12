@@ -82,18 +82,18 @@ scanning for all matching files in the class path (as defined in the JPA specifi
 >
 DataSource names are by default interpreted as JNDI names, and no load time weaving is available (which requires weaving to be turned off in the persistence provider).
 
-DefaultPersistenceUnitManager - Found explicit default unit with name 'subscribeorder' in persistence.xml - overriding local default unit settings ('packagesToScan'/'mappingResources')
-persistence.xml  take precedence over  DefaultPersistenceUnitManager.packagesToScan/mappingResources ,available compositions are, 
+DefaultPersistenceUnitManager - Found explicit default unit in persistence.xml, which overrides local default settings ('packagesToScan'/'mappingResources')
 
-1. set DefaultPersistenceUnitManager.defaultPersistenceUnitName = DefaultPersistenceUnitManager.ORIGINAL_DEFAULT_PERSISTENCE_UNIT_NAME, as well as packagesToScan'/'mappingResources,  meanwhile there is no “default” in persistent.xml
+persistence.xml take precedence over  DefaultPersistenceUnitManager.packagesToScan/mappingResources ,available workarounds are, 
 
-this is most log-efficient way(has fewer log lines) way, because it only scan packagesToScan/mappingResources, but rather like way 2, which search everything but filter everything
+1. set DefaultPersistenceUnitManager.defaultPersistenceUnitName to "default", as well as setting packagesToScan'/'mappingResources,  meanwhile make sure there is no “default” in persistent.xml
+
+this is most log-efficient way(has fewer log lines way), because it only scan packagesToScan/mappingResources, but rather as way 2, which searches everything and then filters unnecessary ones
 
 2. use persistent.xml
-
 there is no way to specify where to scan from
 
-3. set PersistenceUnitPostProcessor by LocalContainerEntityManagerFactoryBean.setPersistenceUnitPostProcessors to override PersistentUnitInfo properties 
+3. set PersistenceUnitPostProcessor by LocalContainerEntityManagerFactoryBean.setPersistenceUnitPostProcessors to override PersistentUnitInfo properties
 
 
 
