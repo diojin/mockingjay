@@ -3,7 +3,7 @@ Emoji表情
 将对应emoji表情的符号码复制后输入你的markdown文本即可显示emoji表情。
 如`:blush:`，显示为:blush:
 
-## Figure
+## People
 
 syntax|preview|syntax|preview
 :-------:|:---:|:------:|:-----:
@@ -168,7 +168,7 @@ syntax|preview|syntax|preview
 `:dragon:`|:dragon:|`:squirrel:`|:squirrel:
 |`:waxing_gibbous_moon:`|:waxing_gibbous_moon:|||
 
-## Substance
+## Objects
 
 syntax|preview|syntax|preview
 :-------:|:---:|:------:|:-----:
@@ -303,7 +303,7 @@ syntax|preview|syntax|preview
 `:books:`|:books:|`:tomato:`|:tomato:
 `:telescope:`|:telescope:||
 
-## Location
+## Places
 
 syntax|preview|syntax|preview
 :-------:|:---:|:------:|:-----:
@@ -361,7 +361,7 @@ syntax|preview|syntax|preview
 `:kr:`|:kr:|`:es:`|:es:
 ` :jp:`| :jp:|` :gb:`| :gb:
 
-## Symbol
+## Symbols
 
 syntax|preview|syntax|preview
 :-------:|:---:|:------:|:-----:

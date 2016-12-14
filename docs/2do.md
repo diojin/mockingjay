@@ -2,7 +2,7 @@
 ___
 
 * [DO-DO](#do-do)
-* [References & Details]
+* [References & Details](#references-details)
 * [DONE](#done)
 
 ###DO-DO
@@ -46,5 +46,11 @@ ___
 - [ ] 
 
 ###References & Details
+
+:spades: :one:  
+:hearts: :two:  
+:clubs: :three:  
+:diamonds: :four:  
+:black_joker:  
 
 ###DONE
