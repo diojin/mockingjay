@@ -37,4 +37,6 @@ DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  impleme
 
 
 ###DONE
-- [x] :diamonds: :two: change screen saver     `2016-12-14`
+
+#####2016-12-14
+- [x] :diamonds: :two: change screen saver    
