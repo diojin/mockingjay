@@ -2,55 +2,39 @@
 ___
 
 * [DO-DO](#do-do)
-* [References & Details](#references-details)
+* [References & Details](#references--details)
+    - [Common](#common)
+    - [Restful API in Batch](#restful-api-in-batch)
 * [DONE](#done)
 
 ###DO-DO
 
-- [ ] post man
-- [ ] Virtual box set up
-- [ ] __docker__  — an image file that has all big data stuffs
-- [ ] how restful api support batch query
-    - [ ] upload books for money
-    - [ ] 
+- [ ] :spades: :one: post man
+- [ ] :spades: :one: Virtual box set up
+- [ ] :spades: :one: __docker__  — an image file that has all big data stuffs
+- [ ] :spades: :one: upload books for money
+- [ ] :spades: :one: annotation details + spring mvc annotations
+- [ ] :spades: :one: create a mockup project with similar framework as project
+    - [ ] :spades: :two: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)
+    - [ ] :spades: :two: go through performance test - test cases
+    - [ ] :spades: :two: lombok and get set annotation
 
-*
-*
-*
-*
-
-
-*
-    DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  url string
-    what about very long parameters that exceed the url length limitation
-        
-**go through performance test - test cases
-
-
-**lombok and get set annotation
-**annotation details + spring mvc annotations
-**debug with Intellij
-**create a mockup project with similar framework as project
-**gather data volume in production environment
-
-#goagent activation
-##change screen saver
-
-
-
-- [x] 系统设计
-- [x] 详细设计
-- [X] 编码
-- [ ] 测试
-- [ ] 交付
-- [ ] 
+- [ ] :clubs: :one: goagent activation
+    - [ ] :clubs: :two: gather data volume in production environment
 
 ###References & Details
 
+####Common
 :spades: :one:  
 :hearts: :two:  
 :clubs: :three:  
 :diamonds: :four:  
 :black_joker:  
 
+####Restful API in Batch
+DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  implemented by url string
+    how about very long parameters that exceed the url length limitation
+
+
 ###DONE
+    - [x] :clubs: :two: change screen saver     `2016-12-14`
