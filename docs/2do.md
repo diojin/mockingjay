@@ -9,18 +9,18 @@ ___
 
 ###DO-DO
 
-- [ ] :spades: :one: post man
-- [ ] :spades: :one: Virtual box set up
-- [ ] :spades: :one: __docker__  — an image file that has all big data stuffs
-- [ ] :spades: :one: upload books for money
-- [ ] :spades: :one: annotation details + spring mvc annotations
-- [ ] :spades: :one: create a mockup project with similar framework as project
-    - [ ] :spades: :two: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)
-    - [ ] :spades: :two: go through performance test - test cases
-    - [ ] :spades: :two: lombok and get set annotation
+- [ ] :hearts: :one: post man
+- [ ] :hearts: :one: Virtual box set up
+- [ ] :hearts: :one: __docker__  — an image file that has all big data stuffs
+- [ ] :hearts: :one: upload books for money
+- [ ] :hearts: :one: annotation details + spring mvc annotations
+- [ ] :hearts: :one: create a mockup project with similar framework as project
+    - [ ] :hearts: :two: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)
+    - [ ] :hearts: :two: go through performance test - test cases
+    - [ ] :hearts: :two: lombok and get set annotation
 
-- [ ] :clubs: :one: goagent activation
-    - [ ] :clubs: :two: gather data volume in production environment
+- [ ] :diamonds: :one: goagent activation
+    - [ ] :diamonds: :two: gather data volume in production environment
 
 ###References & Details
 
@@ -37,4 +37,4 @@ DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  impleme
 
 
 ###DONE
-    - [x] :clubs: :two: change screen saver     `2016-12-14`
+- [x] :diamonds: :two: change screen saver     `2016-12-14`
