@@ -17,7 +17,7 @@ ___
 - [ ] :hearts: :one: create a mockup project with similar framework as project
     - [ ] :hearts: :two: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)
     - [ ] :hearts: :two: go through performance test - test cases
-    - [ ] :hearts: :two: lombok and get set annotation
+    
 
 - [ ] :diamonds: :one: goagent activation
     - [ ] :diamonds: :two: gather data volume in production environment
@@ -39,4 +39,5 @@ DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  impleme
 ###DONE
 
 #####2016-12-14
-- [x] :diamonds: :two: change screen saver    
+- [x] :hearts: :two: lombok and get set annotation
+- [x] :diamonds: :two: change screen saver
