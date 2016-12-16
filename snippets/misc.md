@@ -13,6 +13,8 @@
         + [Handlerbar Code Examples](#handlerbar-code-examples)
 * [Lombok](#Lombok)
     - [Examples](#lombok-examples)
+* [Miscellaneous](#miscellaneous)
+    - [Temp](#temp)
 
 
 QueryDSL
@@ -85,3 +87,13 @@ Lombok
 @Value              // ps: to generate a immutable class
 ```
 
+
+###Miscellaneous
+
+####Temp
+
+`org.joda.time.DateTimeComparator`
+
+```java
+int result = DateTimeComparator.getDateOnlyInstance().compare(today, notifyDate);
+```
