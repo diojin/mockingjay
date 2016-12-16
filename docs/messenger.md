@@ -32,6 +32,10 @@ http://jetbrains-license.coupang.net/
 https://pages.github.com/
 
 
+Korean VPN code: 1234
+
+https://wiki.coupang.net:8443/display/China/VPN+configuration+process+in+korea
+
 GST Co. ,Ltd, a certified venture company, has been developing since 1999 specialized in Bellows and Vacuum products. We focus on vacuum industry, so we hold various patents for technology in the field of manufacturing Bellows. In 2002, we awarded Korean Government Prime Minister’s prize as a new technology pioneer of the year. Government office, Samsung Electronics, Samsung SDI, JuSung ENG , Aerospace , Military science technology office, Science Technology office adopted our products into their system. In overseas countries Japan, Taiwan and Singapore, the market share is growing sharply excellent durability and performance of the products. GST established Win-Win Partnership with one of the biggest Vacuum Company in Japan through harmony exchanging our own manufacturing technology and their designing technology. Now all the staffs and board of directors are ready to meet, even most demanding customers at any time.
 
 雅国实业（上海）有限公司，是韩国GST公司在上海设立的全资子公司。自2005年上海公司成立以来，秉承“求实、诚信、开拓、创新”的经营理念，公司旗下有多种产品，产品历年不断推陈出新，近两年公司规模扩大，根据人民日益增长的生活需求，公司新推出了“”金莓御酒“”的养生系列酒，金莓御酒秉承中医“天人合一“的整体观和“药食同源”的养生观念，再根据国医大师几十年的行医经验和对“治未病”的研究成果，产品一经推出就远销韩国日本等国家。

@@ -15,6 +15,7 @@ ___
 - [ ] :hearts: :one: upload books for money
 - [ ] :hearts: :one: annotation details + spring mvc annotations
 - [ ] :hearts: :one: create a mockup project with similar framework as project
+- [ ] :hearts: :one: register paper-free bill
     - [ ] :hearts: :two: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)
     - [ ] :hearts: :two: go through performance test - test cases
     
@@ -37,6 +38,7 @@ DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  impleme
 
 
 ###DONE
+___
 
 #####2016-12-14
 - [x] :hearts: :two: lombok and get set annotation
