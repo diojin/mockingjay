@@ -17,8 +17,7 @@ ___
 - [ ] :hearts: :one: create a mockup project with similar framework as project
 - [ ] :hearts: :one: register paper-free bill
     - [ ] :hearts: :two: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)
-    - [ ] :hearts: :two: go through performance test - test cases
-    
+    - [ ] :hearts: :two: go through performance test - test cases    
 
 - [ ] :diamonds: :one: goagent activation
     - [ ] :diamonds: :two: gather data volume in production environment
