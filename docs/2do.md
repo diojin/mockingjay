@@ -21,6 +21,7 @@ ___
 
 - [ ] :diamonds: :one: goagent activation
     - [ ] :diamonds: :two: gather data volume in production environment
+    - [ ] :diamonds: :two: clear up all unread mails, go through mails stored in Docs 
 
 ###References & Details
 

@@ -12,6 +12,7 @@
     - [Predicates](#predicates)
     - [Preconditions](#preconditions)
     - [Iterators](#iterators)
+    - [Optional](#optional)
 
 
 ###Maps
@@ -109,4 +110,16 @@ boolean result = Iterators.tryFind(failedList.iterator(), new Predicate<SubsItem
    }
 }).isPresent();
 
+```
+
+####Optional
+
+```java
+subscriptionInquiryRepository.querySubscriptionCountByMemberIdAndActivatedAndSubscriptionType(memberId, active, Optional.<SubscriptionType>absent());
+
+public Long querySubscriptionCountByMemberIdAndActivatedAndSubscriptionType(String memberId, Boolean activated, Optional<SubscriptionType> type) {
+    if (type.isPresent()) {
+        where = where.and(qSubscription.subscriptionType.eq(type.get()));
+    }
+}
 ```
