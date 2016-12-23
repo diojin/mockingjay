@@ -9,6 +9,9 @@ ___
 
 ###DO-DO
 
+- [ ] :hearts: :one: prepare for home environment
+- [ ] :hearts: :one: register paper-free bill
+
 - [ ] :hearts: :one: post man
 - [ ] :hearts: :one: Virtual box set up
 - [ ] :hearts: :one: __docker__  — an image file that has all big data stuffs
@@ -40,6 +43,9 @@ DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  impleme
 ###DONE
 ___
 
+#####2016-12-23
+- [x] :hearts: :one: ~~manage bean poc~~
+
 #####2016-12-14
-- [x] :hearts: :two: lombok and get set annotation
-- [x] :diamonds: :two: change screen saver
+- [x] :hearts: :two: ~~lombok and get set annotation~~
+- [x] :diamonds: :two: ~~change screen saver~~

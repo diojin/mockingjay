@@ -6,6 +6,7 @@
     - [Misc](#annotation-misc)
         + [@ComponentScan](#componentscan)
         + [@RequestMapping](#requestmapping)
+        + [@ManagedResource](#managedresource)
 * [Misc](#misc)    
     - [Libraries](#Libraries)
         + [DefaultPersistenceUnitManager](#defaultpersistenceunitmanager)
@@ -64,6 +65,73 @@ public class Application {
 ######@RequestMapping
 ```java
 @RequestMapping("/vp/products/{productId:[0-9]+}") public ModelAndView productDetail(   @PathVariable(value = "productId") Long receivedProductId )
+```
+
+
+######@ManagedResource
+
+```java
+@ManagedResource("com.coupang.subscribe_order:type=subscribeCounter,name=subscribeCounter")
+@Component
+public class SubscribeCounter extends SubscribeOrderCounter {
+
+    @Override
+    public String getName() {
+        return "subscribeCounter";
+    }
+}
+
+```
+
+```java
+
+CachedStatisticsProvider
+
+    @PostConstruct
+    public void registerCacheToMonitor() {
+        GuavaCacheStatsJMXRegister.register("CachedStatisticsProvider.popularFrequencyCache", popularFrequencyCache);
+    }
+
+public final class GuavaCacheStatsJMXRegister {
+    private GuavaCacheStatsJMXRegister() throws IllegalAccessException {
+        throw new IllegalAccessException();
+    }
+
+    public static boolean register(String name, Cache cache) {
+        GuavaCacheMXBean mxBean = new GuavaCacheMXBeanImpl(cache);
+        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+        try {
+            String objectName = String.format("%s:type=Cache,name=%s", cache.getClass().getPackage().getName(), name);
+            ObjectName mxBeanName = new ObjectName(objectName);
+            if (!server.isRegistered(mxBeanName)) {
+                server.registerMBean(mxBean, new ObjectName(objectName));
+            }
+            log.info("register guava cache stats to MBean [objectName : {}]", objectName);
+            return true;
+        } catch (Exception ex) {
+            log.error("register fail", ex);
+            return false;
+        }
+    }
+
+    public static class GuavaCacheMXBeanImpl implements GuavaCacheMXBean {
+        private final Cache cache;
+
+        public GuavaCacheMXBeanImpl(Cache cache) {
+            this.cache = cache;
+        }
+
+        @Override
+        public long getLoadSuccessCount() {
+            return cache.stats().loadSuccessCount();
+        }
+
+        @Override
+        public void cleanUp() {
+            cache.cleanUp();
+        }
+    }
+}
 ```
 
 Misc
