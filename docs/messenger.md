@@ -52,3 +52,49 @@ GST Co. ,Ltd, a certified venture company, has been developing since 1999 specia
 
 Junie(남주연)[Subscribe & Save] [8:06 PM]  
 010-5294-1806
+
+
+## working copy
+-Dconfig.override=classpath:vitamin/properties/project-subscribe-order-mapledev2-override.xml
+-Dfile.encoding=UTF-8
+-Dhandlebars.caching=false
+-Dspring.profiles.active=local
+-XX:MaxPermSize=512m
+-XX:PermSize=512m
+-Xmx1024m
+-Dlogback.override=/myconfig/logback-me.groovy
+
+## optional parts
+-Dwmsbilling.api.server=http://wms-billing-it.coupang.com.vitamin01.coupangdev.com
+-Dvalve.client.zookeeper.servers=10.255.32.34:2181,10.255.32.34:2182,10.255.32.34:2183
+-Dvalve.client.zookeeper.servers=zookeeper.valve01.coupangdev.com:2181,zookeeper.valve02.coupangdev.com:2181,zookeeper.valve03.coupangdev.com:2181
+-Dmobile.product.detail.page.prefix=http://maple-dev08.coupang.com:19010/nm/products/
+-Dproduct.api.legacy.server=http://maple-dev05.coupang.com:19050
+-Dproduct.api.server=http://maple-dev01.coupang.com:19010
+-Dshipment.rest.applicant=coupang
+-Dcoupang.mobile.web.api.server=http://web-it.coupang.com
+-Dcoupang.web.api.server=http://maple-dev07.coupang.com:19010
+-Dpayment.api.server=http://payment-backoffice.coupangdev.com
+-DwmsBilling.api.server=http://wms-billing-it.coupang.com
+-Dmember.api.server=https://intra-memberapi-it.coupang.com
+-Dcoupang.hibernatememcached.disabled=true
+
+## get member information from member id
+https://intra-memberapi-dev.coupang.net/v1/members/BasisMemberDTO/2000087566
+https://intra-memberapi-it.coupang.com/v1/members/BasisMemberDTO/2000237776
+
+
+## get member verification status
+https://intra-memberapi-dev.coupang.net/v1/verification/find/2000087566
+
+## get address info by membersrl + deliveryDetailSeq
+https://intra-memberapi-dev.coupang.net/v1/deliverydetail/2000087566/100057692
+
+## get vendor item information
+http://maple-dev01.coupang.com:19010/api/v1/vendoritem/5500002844
+
+## ProductAdapterUrl.VENDOR_ITEMS_QUANTITY
+http://maple-dev01.coupang.com:19010/api/v2/vendoritems/quantity?vendorItemIds=5500004121,5500000454,5500002844,5500004121,5500000403,5500000403
+
+## sku item information
+http://wms-fulfillment.coupangdev.com/api/v1/vendoritem/getskumapping?vendorItemId=3000858228
