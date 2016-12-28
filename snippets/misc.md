@@ -11,6 +11,8 @@
 * [Handlebar](#handlebar)
     - [Misc](#handlebar-misc)
         + [Handlerbar Code Examples](#handlerbar-code-examples)
+* [Html](#html)
+    - [Misc](#html-misc)
 * [Lombok](#Lombok)
     - [Examples](#lombok-examples)
 * [Miscellaneous](#miscellaneous)
@@ -71,6 +73,13 @@ Handlebar
     <a id="oosreporttab" data-toggle="tab" href="#oosReportDashboard">OOS Report</a>
 </li>
 ```
+
+
+
+Html
+---
+####Html Misc
+
 
 Lombok
 ---

@@ -17,20 +17,15 @@ Scala Cookbook。这本书按Scala的知识点来讲解Scala语法，大多数�
 Scala For the Impatient。这本书推荐初学者也一定要看，整体内容在我看来还是比较到位的，这本书也有中文版，不过我个人觉得翻译得也是让人有种淡淡的忧伤，很多地方都是字面翻译。
 
 
-1, install genymotion, install sasume s5 4.4.4
-2, install charles
+1. install genymotion, install sasume s5 4.4.4
+2. charles
+    Registered name: Forward Ventures LLC
+    License key: a1a5ada0b610cbfd60
 
-
-
-
-
-http://jetbrains.coupang.net/licenseServer
 http://jetbrains-license.coupang.net/
- 
 
 
-https://pages.github.com/
-
+Github homepage how-to: https://pages.github.com/
 
 Korean VPN code: 1234
 
@@ -98,3 +93,31 @@ http://maple-dev01.coupang.com:19010/api/v2/vendoritems/quantity?vendorItemIds=5
 
 ## sku item information
 http://wms-fulfillment.coupangdev.com/api/v1/vendoritem/getskumapping?vendorItemId=3000858228
+
+
+1. mySql 서버 설치 (가능한 최신버전)
+2. 계정 생성 
+-- create db
+CREATE DATABASE subscribe_order DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;
+-- create user if you need
+CREATE USER 'winter'@'localhost' IDENTIFIED BY 'cndnj!@#'; 
+CREATE USER 'summer'@'localhost' IDENTIFIED BY 'ejdnj!@#';
+-- access auth 
+INSERT INTO db (HOST,Db,USER,Select_priv,Insert_priv,Update_priv,Delete_priv,Create_priv,Drop_priv,Index_priv, Alter_priv) VALUES('localhost','subscribe_order','summer','Y','Y','Y','Y','N','N','N','N'); 
+INSERT INTO db (HOST,Db,USER,Select_priv,Insert_priv,Update_priv,Delete_priv,Create_priv,Drop_priv,Index_priv, Alter_priv) VALUES('localhost','subscribe_order','winter','Y','Y','Y','Y','Y','Y','Y','Y');
+FLUSH PRIVILEGES;
+3. gradle 변수 설정 (create gradle.properties)
+vi ~/.gradle/gradle.properties
+write 1 line ( profile.flyway=develop ) and save, exist
+4.hosts
+sudo vi /etc/hosts
+127.0.0.1 local.coupang.com
+5. git checkout (subscribe-order)
+6. run intellij idea
+build gradle
+build flyway init, clean, migrate
+build artifact  
+6. set tomcat vm option 
+-Dfile.encoding=UTF-8 -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=256m -Dssm.cache.disable=true -Dspring.profiles.active=develop
+7. run and connect
+
