@@ -13,8 +13,13 @@
         + [Handlerbar Code Examples](#handlerbar-code-examples)
 * [Html](#html)
     - [Misc](#html-misc)
+* [Android](#android)
+    - [Genymotion](#genymotion)
+        + [Installation](#installation)
+            * [Issues](#genymotion-installation-issue)
 * [Lombok](#Lombok)
     - [Examples](#lombok-examples)
+* [Docker](#docker)
 * [Miscellaneous](#miscellaneous)
     - [Temp](#temp)
 
@@ -74,7 +79,28 @@ Handlebar
 </li>
 ```
 
+Android
+---
+####Genymotion
+#####Installation
+######Genymotion Installation Issue
+* Can't download image
+find from genymotion.log the actually download link and put it under image path.
 
+Something like  
+
+>12月 28 17:14:43 [Genymotion] [debug] Downloading file  "http://dl.genymotion.com/dists/6.0.0/ova/genymotion_vbox86p_6.0_160825_141918.ova"
+
+
+Configuration {HOME} for genymotion: 
+Windows:    C:\Users\{username}\AppData\Local\Genymobile
+Mac OS:     /Users/diojin/.Genymobile
+
+log path:   ${HOME}/genymotion.log
+image path: ${HOME}/Genymotion/ova
+
+* Can't upgrade virtual device after upgration of Genymotion
+non license is like this, need to re-config a new virtual device
 
 Html
 ---
@@ -95,6 +121,11 @@ Lombok
 @Data               // ps; to generate a mutable class
 @Value              // ps: to generate a immutable class
 ```
+
+Docker
+---
+
+
 
 
 ###Miscellaneous

@@ -49,6 +49,27 @@ Junie(남주연)[Subscribe & Save] [8:06 PM]
 010-5294-1806
 
 
+## previous
+-Dasset.timestamp.generator=LOCAL_TIME
+-Dbenefit.api.server=http://benefit-dev.coupang.net
+-Dconfig.override=classpath:vitamin/properties/project-subscribe-order-mapledev2-override.xml
+-Dfile.encoding=UTF-8
+-Dhandlebars.caching=false
+-Dlock.zookeeper.hosts=zookeeper.lock01.coupangdev.com:2181,zookeeper.lock02.coupangdev.com:2181,zookeeper.lock03.coupangdev.com:2181
+-Dlogback.override=/Users/diojin/outerhaven/workspace/backup/logback-me.groovy
+-Dmemcached.coupang.server=memcached.platform01.coupangdev.com:27012,memcached.platform02.coupangdev.com:27012
+-Dmemcached.globalsession.server=memcached.platform01.coupangdev.com:27012,memcached.platform02.coupangcom.dev:27012
+-Drabbitmq.host=rabbitmq.platform.coupangdev.com
+-Dredis.sentinels=redis.platform01.coupangdev.com:26379,redis.platform02.coupangdev.com:26379,redis.platform03.coupangdev.com:26379
+-Dspring.profiles.active=local
+-Dvalve.client.zookeeper.servers=10.255.32.34:2181,10.255.32.34:2182,10.255.32.34:2183
+-Dvitamin.rabbitmq.host=rabbitmq.vitamin01.coupangdev.com
+-Dwmsbilling.api.server=http://wms-billing-it.coupang.com
+-Dwmsfulfillment.rest.api.server.url=http://wms-fulfillment.coupangdev.com/api
+-XX:MaxPermSize=512m
+-XX:PermSize=512m
+-Xmx1024m
+
 ## working copy
 -Dconfig.override=classpath:vitamin/properties/project-subscribe-order-mapledev2-override.xml
 -Dfile.encoding=UTF-8
@@ -73,6 +94,25 @@ Junie(남주연)[Subscribe & Save] [8:06 PM]
 -DwmsBilling.api.server=http://wms-billing-it.coupang.com
 -Dmember.api.server=https://intra-memberapi-it.coupang.com
 -Dcoupang.hibernatememcached.disabled=true
+-Dproduct.api.server=http://product.coupangdev.com/
+
+
+## To provide override testing 
+-Dconfig.override=classpath:vitamin/properties/project-subscribe-order-mapledev2-override.xml
+
+-Dconfig.override:   comma separated list,  the latter overrides the former
+-Dconfig.override=classpath:vitamin/properties/project-subscribe-order-mapledev2-override.xml,/myconfig/my-override.xml
+-Dconfig.override=/myconfig/my-override.xml
+-Dlogback.override=/myconfig/logback-me.groovy
+
+jdbc:mysql://localhost:3306/subscribe_order?useUnicode=true&amp;characterEncoding=UTF8
+
+
+
+## local server url:     domain  coupangdev.com is required to pass authentication
+http://local.coupangdev.com:19010/
+
+
 
 ## get member information from member id
 https://intra-memberapi-dev.coupang.net/v1/members/BasisMemberDTO/2000087566
@@ -120,4 +160,150 @@ build artifact
 6. set tomcat vm option 
 -Dfile.encoding=UTF-8 -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=256m -Dssm.cache.disable=true -Dspring.profiles.active=develop
 7. run and connect
+
+Username djin
+Email djin@coupang.com
+Full Name Jin Zhe(Dio/Dio)
+
+안녕하세요. 요세미티팀 디오입니다.
+
+initial mail password:      beopen!1004@
+login:1qaz2wsx
+email: 1qaz2wsx~~
+
+CP900552
+
+remote
+809 061 454
+m6cd29
+
+djin@coupang.com
+Aimless1234
+
+
+git: mail account
+git command line: id/mail pwd
+
+mysql initial password: root@localhost: eG&.VAqRo1fq
+mysql: 1qaz2wsx
+wiki： djin／mail pwd
+
+SSID: pang2g/5g 
+New Password -> azxsdc12@#, qswdef34!@
+pang-sh: adyia45&^
+pang-sh7f:         c0upam)#*sh
+pang-sh8f:
+pang-bj:             c0upam)#*bj
+pang-seattle:       C0up@mg)!)#
+pangguest: Cp2g0$#@
+pang-8f: Cp@190&%
+
+
+
+
+new nexus user name & password: username 'rocat'
+password 'ahskzh&^%'
+
+webex， 账号是Username: china2
+Password: Chinateam2
+
+DB Account: winter/cndnj!@#
+            summer/ejdnj!@#
+
+coupang/real123coupang!
+
+coupang / xmdhkdltm!3@4
+
+aws dev test account
+06084 
+010-2372-3483
+010-3998-0446
+
+Stage DB IP is changed, 10.10.10.25 -> 10.10.39.236
+
+
+VDI  tools
+
+server: https://vd.coupang.net
+
+domain:vdi
+
+maple2/mapleteam2@
+maple/mapleteam
+maple3/mapleteam3#
+
+Server:vdidb.coupang.net 
+ID: yosemite1,2
+PW: coupang!0 
+1qaz2wsx~~
+
+https://cs2.coupang.net/cs2/
+
+##  domain data
+mapletest18@coupang.com/coupang01       2000237776      373             Maple Q     
+100201118       deliveryDetailSeq
+D2 BATCH        0
+D3 BATCH        1
+
+djin@coupang.com            142 / 94        Dio         1qaz2wsx
+D2  6       D3  2/4     memberCartId  16/118        zipcode  060-82/228-38  deliveryDetailSeq   21/66
+
+2000087566 mapletest9@coupang.com coupang01
+
+Luffy:  104915456/154
+need4spd@naver.com/coupang!@#
+
+Junie:  namjooyoun@gmail.com/njy159515!
+010-5294-1806
+
+Joe test account: 
+jding@coupang.com/Welc0me1
+
+Black:
+love1kkk@paran.com/coupang1! 
+01053547222
+
+test account: k3214911@gmail.com/coupang!@#
+
+Luffy's memberId = 104915456
+k3214911 memberId = 46599274
+
+narrywh@naver.com/110119wh
+
+Credit card information:
+3562-9745-2219-0404     01/18       760403
+9410-3000-0940-2176     10/19       760403
+
+#82 + ext
+
+
+
+VDI:
+https://10.10.10.238:3443/decide3/index.ds
+your groupware id and initial password is 00000000
+
+my account for db-safe agent is a ‘need4spd/dydtjrtjgus2'
+
+## company facilities
+浦东新区金科路2889弄长泰广场C座7楼coupang
+61560500
+
+software location 172.29.2.2
+http://jetbrains.coupang.net/licenseServer
+
+http://jetbrains-license.coupang.net/
+
+sh-leave_request@coupang.com
+
+公司只能提供在职证明和营业执照, 需要leader和小磊的批复, HR in charge: merry   xingxiu  
+ IT just set up one printer at 8F.  
+IP address: 172.29.3.184.
+
+testlink
+[2016/12/16 下午3:44:32]  10003:maple
+
+
+## DBA Ticket   
+DB-10880, DB-11141      Green.Kang(그린 강/강지현)
+
 
