@@ -11,22 +11,20 @@ ___
 ### DO-DO
 
 - [ ] :heart_eyes_cat: :one: transfer and revise Interview.doc to md document
-- [ ] :heart_eyes_cat: :one: review coupang projects and techniques
+- [ ] :heart_eyes_cat: :two: review coupang projects and techniques
     - [ ] :arrow_right_hook: coupang development toolkits
     - [ ] :arrow_right_hook: coupang projects review
 
     - [ ] :kissing_cat: :one: annotation details + spring mvc annotations
 
-
         - [ ] :cat: :one: update cv
-        - [ ] :cat: :one: goagent activation or other VPN solutions
+        - [ ] :cat: :one: upload books for money
         - [ ] :cat: :one: __docker__  — an image file that has all big data stuffs
         - [ ] :cat: :one: Virtual box set up
 
-            - [ ] :crying_cat_face: :one: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)
-            - [ ] :crying_cat_face: :one: upload books for money
-            - [ ] :crying_cat_face: :one: post man
-
+            - [ ] :pouting_cat: :one: goagent activation or other VPN solutions
+            - [ ] :pouting_cat: :one: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)            
+            - [ ] :pouting_cat: :one: post man
 
 #### Mission 201701
 - [x] :hearts: :one: ~~Performance test, jmeter,  kibana~~
