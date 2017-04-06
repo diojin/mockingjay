@@ -10,12 +10,17 @@ ___
 
 ### DO-DO
 
-- [ ] :heart_eyes_cat: :one: transfer and revise Interview.doc to md document
-- [ ] :heart_eyes_cat: :two: review coupang projects and techniques
+- [ ] :heart_eyes_cat: keep pratising, long run and belly practise, arm massage
+
+- [ ] :kissing_cat: :one: transfer and revise Interview.doc to md document
+- [ ] :kissing_cat: :two: review coupang projects and techniques
     - [ ] :arrow_right_hook: coupang development toolkits
     - [ ] :arrow_right_hook: coupang projects review
+- [ ] :kissing_cat: :two: big data related books
+- [ ] :kissing_cat: :two: go through other review preparation materials
+- [ ] :kissing_cat: :two: update cv
 
-    - [ ] :kissing_cat: :one: annotation details + spring mvc annotations
+    - [ ] :smiley_cat: :one: annotation details + spring mvc annotations
 
         - [ ] :cat: :one: update cv
         - [ ] :cat: :one: upload books for money
