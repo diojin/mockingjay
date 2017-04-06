@@ -9,16 +9,20 @@ ___
 * [DONE](#done)
 
 ### DO-DO
-- [ ] :hearts: :one: review coupang projects and techniques
-    - [ ] :hearts:  
-    - [ ] :hearts: :two: annotation details + spring mvc annotations
+- [ ] :heart_eyes_cat: :one: update cv
+- [ ] :heart_eyes_cat: :one: review coupang projects and techniques
+    - [ ] :arrow_right_hook: coupang development toolkits
+    - [ ] :arrow_right_hook: coupang projects review
+    - [ ] :kissing_cat: :two: annotation details + spring mvc annotations
+        - [ ] :cat: :three: tbd
+            - [ ] :crying_cat_face: :four: tbd
 
-- [ ] :diamonds: :one: goagent activation or other VPN solutions
-- [ ] :diamonds: :one: __docker__  — an image file that has all big data stuffs
-- [ ] :diamonds: :one: Virtual box set up
-    - [ ] :diamonds: :two: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)
-    - [ ] :diamonds: :two: upload books for money
-    - [ ] :diamonds: :two: post man
+- [ ] :chicken: :one: goagent activation or other VPN solutions
+- [ ] :chicken: :one: __docker__  — an image file that has all big data stuffs
+- [ ] :chicken: :one: Virtual box set up
+    - [ ] :snail: :two: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)
+    - [ ] :snail: :two: upload books for money
+    - [ ] :snail: :two: post man
 
 #### Mission 201701
 - [x] :hearts: :one: ~~Performance test, jmeter,  kibana~~
@@ -63,12 +67,6 @@ ___
 :heart_eyes_cat:
 :scream_cat:
 :pouting_cat:
-:point_up:
-:pushpin:
-:blue_book:
-:paperclip:
-:warning:
-:arrow_right_hook:
 
 :cat:
 :dog:
@@ -90,11 +88,17 @@ ___
 :frog:
 :boar:
 :bug:
-:honeybee:
 :bee:
 :beetle:
 :snail:
 :dolphin:
+
+:point_up:
+:pushpin:
+:blue_book:
+:paperclip:
+:warning:
+:arrow_right_hook:
 
 :spades: :one:  
 :hearts: :two:  
