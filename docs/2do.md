@@ -18,6 +18,9 @@ ___
     - [ ] :arrow_right_hook: coupang projects review
 - [ ] :kissing_cat: :two: big data related books
 - [ ] :kissing_cat: :two: go through other review preparation materials
+    - [ ] :arrow_right_hook: algorithm
+    - [ ] :arrow_right_hook: a few small pdfs
+    - [ ] :arrow_right_hook: books, such as concurrent in practise,  jvm
 - [ ] :kissing_cat: :two: update cv
 
     - [ ] :smiley_cat: :one: annotation details + spring mvc annotations
