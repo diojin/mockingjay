@@ -2,7 +2,7 @@
 ___
 
 * [DO-DO](#do-do)
-    - [Mission One](#mission-one)
+    - [Mission 201701](#mission-201701)
 * [References & Details](#references--details)
     - [Common](#common)
     - [Restful API in Batch](#restful-api-in-batch)
@@ -11,10 +11,8 @@ ___
 ###DO-DO
 
 - [ ] :hearts: :one: goagent activation or other VPN solutions
-- [x] :hearts: :one: ~~arm ache alleviation, wrist muscle practise, neck ache~~
 - [ ] :hearts: :one: register paper-free bill
-- [ ] :hearts: :one: upload books for money
-- [x] :hearts: :one: ~~long run protection~~
+-
 - [ ] :hearts: :one: Virtual box set up
 - [ ] :hearts: :one: __docker__  — an image file that has all big data stuffs
 - [ ] :hearts: :one: annotation details + spring mvc annotations
@@ -23,11 +21,12 @@ ___
     - [ ] :hearts: :two: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)
     - [ ] :hearts: :two: go through performance test - test cases    
 
+    - [ ] :diamonds: :two: upload books for money
 - [ ] :diamonds: :one: post man
     - [ ] :diamonds: :two: gather data volume in production environment
     - [ ] :diamonds: :two: clear up all unread mails, go through mails stored in Docs 
 
-####Mission One
+####Mission 201701
 - [x] :hearts: :one: ~~Performance test, jmeter,  kibana~~
 - [ ] :hearts: :one: rabbitMQ
 - [ ] :hearts: :one: java profiling tools
@@ -71,6 +70,10 @@ DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  impleme
 
 ###DONE
 ___
+
+#####2017-04-06
+- [x] :hearts: :one: ~~arm ache alleviation, wrist muscle practise, neck ache~~
+- [x] :hearts: :one: ~~long run protection~~
 
 #####2017-01-18
 - [x] :hearts: :one: ~~journey to korean~~
