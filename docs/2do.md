@@ -1,4 +1,4 @@
-##Rock it
+## Rock it
 ___
 
 * [DO-DO](#do-do)
@@ -8,7 +8,7 @@ ___
     - [Restful API in Batch](#restful-api-in-batch)
 * [DONE](#done)
 
-###DO-DO
+### DO-DO
 
 - [ ] :hearts: :one: goagent activation or other VPN solutions
 - [ ] :hearts: :one: register paper-free bill
@@ -26,7 +26,7 @@ ___
     - [ ] :diamonds: :two: gather data volume in production environment
     - [ ] :diamonds: :two: clear up all unread mails, go through mails stored in Docs 
 
-####Mission 201701
+#### Mission 201701
 - [x] :hearts: :one: ~~Performance test, jmeter,  kibana~~
 - [ ] :hearts: :one: rabbitMQ
 - [ ] :hearts: :one: java profiling tools
@@ -54,37 +54,37 @@ ___
 - [ ] :hearts: :one: Slack
   
 
-###References & Details
+### References & Details
 
-####Common
+#### Common
 :spades: :one:  
 :hearts: :two:  
 :clubs: :three:  
 :diamonds: :four:  
 :black_joker:  
 
-####Restful API in Batch
+#### Restful API in Batch
 DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  implemented by url string
     how about very long parameters that exceed the url length limitation
 
 
-###DONE
+### DONE
 ___
 
-#####2017-04-06
+##### 2017-04-06
 - [x] :hearts: :one: ~~arm ache alleviation, wrist muscle practise, neck ache~~
 - [x] :hearts: :one: ~~long run protection~~
 
-#####2017-01-18
+##### 2017-01-18
 - [x] :hearts: :one: ~~journey to korean~~
 
 
-#####2017-01-11
+##### 2017-01-11
 - [x] :hearts: :one: ~~prepare for home environment~~  looks like a disaster, or else?
 
 #####2016-12-23
 - [x] :hearts: :one: ~~manage bean poc~~
 
-#####2016-12-14
+##### 2016-12-14
 - [x] :hearts: :two: ~~lombok and get set annotation~~
 - [x] :diamonds: :two: ~~change screen saver~~
