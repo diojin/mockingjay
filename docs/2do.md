@@ -9,22 +9,15 @@ ___
 * [DONE](#done)
 
 ### DO-DO
-
 - [ ] :hearts: :one: goagent activation or other VPN solutions
-- [ ] :hearts: :one: register paper-free bill
--
-- [ ] :hearts: :one: Virtual box set up
-- [ ] :hearts: :one: __docker__  — an image file that has all big data stuffs
-- [ ] :hearts: :one: annotation details + spring mvc annotations
-- [ ] :hearts: :one: create a mockup project with similar framework as project
-- [ ] :hearts: :one: register paper-free bill
-    - [ ] :hearts: :two: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)
-    - [ ] :hearts: :two: go through performance test - test cases    
+    - [ ] :hearts: :two: annotation details + spring mvc annotations
 
+- [ ] :diamonds: :one: goagent activation or other VPN solutions
+- [ ] :diamonds: :one: __docker__  — an image file that has all big data stuffs
+- [ ] :diamonds: :one: Virtual box set up
+    - [ ] :diamonds: :two: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)
     - [ ] :diamonds: :two: upload books for money
-- [ ] :diamonds: :one: post man
-    - [ ] :diamonds: :two: gather data volume in production environment
-    - [ ] :diamonds: :two: clear up all unread mails, go through mails stored in Docs 
+    - [ ] :diamonds: :two: post man
 
 #### Mission 201701
 - [x] :hearts: :one: ~~Performance test, jmeter,  kibana~~
@@ -74,6 +67,10 @@ ___
 ##### 2017-04-06
 - [x] :hearts: :one: ~~arm ache alleviation, wrist muscle practise, neck ache~~
 - [x] :hearts: :one: ~~long run protection~~
+- [ ] :hearts: :one: ~~register paper-free bill~~
+- [ ] :hearts: :two: ~~go through performance test - test cases~~
+- [ ] :diamonds: :two: ~~gather data volume in production environment~~
+- [ ] :diamonds: :two: ~~clear up all unread mails, go through mails stored in Docs~~ 
 
 ##### 2017-01-18
 - [x] :hearts: :one: ~~journey to korean~~
