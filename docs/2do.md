@@ -9,7 +9,8 @@ ___
 * [DONE](#done)
 
 ### DO-DO
-- [ ] :hearts: :one: goagent activation or other VPN solutions
+- [ ] :hearts: :one: review coupang projects and techniques
+    - [ ] :hearts:  
     - [ ] :hearts: :two: annotation details + spring mvc annotations
 
 - [ ] :diamonds: :one: goagent activation or other VPN solutions
@@ -50,6 +51,51 @@ ___
 ### References & Details
 
 #### Common
+
+:cat:
+:octocat:
+:smiley_cat:
+:smile_cat:
+:smirk_cat:
+:joy_cat:
+:kissing_cat:
+:crying_cat_face:
+:heart_eyes_cat:
+:scream_cat:
+:pouting_cat:
+:point_up:
+:pushpin:
+:blue_book:
+:paperclip:
+:warning:
+:arrow_right_hook:
+
+:cat:
+:dog:
+:hamster:
+:rabbit:
+:tiger:
+:bear:
+:pig:
+:cow:
+:monkey:
+:horse:
+:camel:
+:sheep:
+:panda_face:
+:baby_chick:
+:hatched_chick:
+:chicken:
+:penguin:
+:frog:
+:boar:
+:bug:
+:honeybee:
+:bee:
+:beetle:
+:snail:
+:dolphin:
+
 :spades: :one:  
 :hearts: :two:  
 :clubs: :three:  
