@@ -21,6 +21,7 @@ ___
     - [ ] :arrow_right_hook: algorithm
     - [ ] :arrow_right_hook: a few small pdfs
     - [ ] :arrow_right_hook: books, such as concurrent in practise,  jvm
+- [ ] :kissing_cat: :two: changes in JDK 8 and previous versions
 - [ ] :kissing_cat: :two: update cv
 
     - [ ] :smiley_cat: :one: annotation details + spring mvc annotations
