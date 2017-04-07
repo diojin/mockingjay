@@ -32,11 +32,21 @@ STL容器分两种，
 
 ###### set/map vs hash_set/hash_map on performance
 
-1. 从程序运行结果可以发现，我们自己实现的hash_table（简化版）在插入和查找的效率要远高于set。 
+从程序运行结果可以发现，我们自己实现的hash_table（简化版）在插入和查找的效率要远高于set。 
 
 [![collections_1]][collections_2]
 
 [For more information][collections_2]
+
+可以发现在hash_table(简化实现的)中最长的链表也只有5个元素，长度为1和长度为2的链表中的数据占全部数据的89%以上。因此绝大数查询将仅仅访问哈希表1次到2次。这样的查询效率当然会比set（内部使用红黑树——类似于二叉平衡树）高的多。有了这个图示，无疑已经可以证明hash_set会比set快速高效了。
+
+###### RB Tree vs Hashtable on performance
+
+据朋友№邦卡猫№的做的红黑树和hash table的性能测试中发现：`当数据量基本上int型key时，hash table是rbtree的3-4倍，但hash table一般会浪费大概一半内存`。
+
+因为hash table所做的运算就是个%，而rbtree要比较很多，比如rbtree要看value的数据 ，每个节点要多出3个指针（或者偏移量） 如果需要其他功能，比如，统计某个范围内的key的数量，就需要加一个计数成员。
+    
+且1s rbtree能进行大概50w+次插入，hash table大概是差不多200w次。不过很多的时候，其速度可以忍了，例如倒排索引差不多也是这个速度，而且单线程，且倒排表的拉链长度不会太大。`正因为基于树的实现其实不比hashtable慢到哪里去，所以数据库的索引一般都是用的B/B+树，而且B+树还对磁盘友好(B树能有效降低它的高度，所以减少磁盘交互次数)。比如现在非常流行的NoSQL数据库，像MongoDB也是采用的B树索引。`关于B树系列，请参考本blog内此篇文章：[从B树、B+树、B*树谈到R 树][collections_3]。更多请待后续实验论证。
 
 
 
@@ -47,3 +57,4 @@ STL容器分两种，
 ---
 [collections_1]:/resources/img/java/collection_performance_test_1.png "performance test: set vs hash_set vs hash_table"
 [collections_2]:http://blog.csdn.net/morewindows/article/details/7330323 "STL系列之九 探索hash_set"
+[collections_3]:http://blog.csdn.net/v_JULY_v/article/details/6530142 "从B 树、B+ 树、B* 树谈到R 树"
