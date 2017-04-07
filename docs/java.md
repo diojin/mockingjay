@@ -58,52 +58,59 @@ STL容器分两种，
 __Java默认提供的三个ClassLoader__
 1. BootStrap ClassLoader：称为启动类加载器，是Java类加载层次中最顶层的类加载器，负责加载JDK中的核心类库，如：rt.jar、resources.jar、charsets.jar等，可通过如下程序获得该类加载器从哪些地方加载了相关的jar或class文件
 2. Extension ClassLoader：称为扩展类加载器，负责加载Java的扩展类库，默认加载JAVA_HOME/jre/lib/ext/目下的所有jar。
-3. App ClassLoader：称为系统类加载器，负责加载应用程序classpath目录下的所有jar和class文件。
+3. App ClassLoader(System ClassLoader)：称为系统类加载器，负责加载应用程序classpath目录下的所有jar和class文件。
 
 注意： 除了Java默认提供的三个ClassLoader之外，用户还可以根据需要定义自已的ClassLoader，而这些自定义的ClassLoader都必须继承自java.lang.ClassLoader类，也包括Java提供的另外二个ClassLoader（Extension ClassLoader和App ClassLoader）在内，但是Bootstrap ClassLoader不继承自ClassLoader，因为它不是一个普通的Java类，底层由C++编写，已嵌入到了JVM内核当中，当JVM启动后，Bootstrap ClassLoader也随着启动，负责加载完核心类库后，并构造Extension ClassLoader和App ClassLoader类加载器。
 
 __ClassLoader加载类的原理__
-1. 原理介绍
+1. 原理介绍  
 ClassLoader使用的是`双亲委托模型`来搜索类的，每个ClassLoader实例都有一个父类加载器的引用（不是继承的关系，是一个包含的关系），虚拟机内置的类加载器（Bootstrap ClassLoader）本身没有父类加载器，但可以用作其它ClassLoader实例的的父类加载器。当一个ClassLoader实例需要加载某个类时，它会试图亲自搜索某个类之前，先把这个任务委托给它的父类加载器，这个过程是由上至下依次检查的，首先由最顶层的类加载器Bootstrap ClassLoader试图加载，如果没加载到，则把任务转交给Extension ClassLoader试图加载，如果也没加载到，则转交给App ClassLoader 进行加载，如果它也没有加载得到的话，则返回给委托的发起者，由它到指定的文件系统或网络等URL中加载该类。如果它们都没有加载到这个类时，则抛出ClassNotFoundException异常。否则将这个找到的类生成一个类的定义，并将它加载到内存当中，最后返回这个类在内存中的Class实例对象
 
-2、为什么要使用双亲委托这种模型呢？
-       因为这样可以避免重复加载，当父亲已经加载了该类的时候，就没有必要子ClassLoader再加载一次。考虑到安全因素，我们试想一下，如果不使用这种委托模式，那我们就可以随时使用自定义的String来动态替代java核心api中定义的类型，这样会存在非常大的安全隐患，而双亲委托的方式，就可以避免这种情况，因为String已经在启动时就被引导类加载器（Bootstrcp ClassLoader）加载，所以用户自定义的ClassLoader永远也无法加载一个自己写的String，除非你改变JDK中ClassLoader搜索类的默认算法。
+2. 为什么要使用双亲委托这种模型呢？  
+因为这样可以避免重复加载，当父亲已经加载了该类的时候，就没有必要子ClassLoader再加载一次。考虑到安全因素，我们试想一下，如果不使用这种委托模式，那我们就可以随时使用自定义的String来动态替代java核心api中定义的类型，这样会存在非常大的安全隐患，而双亲委托的方式，就可以避免这种情况，因为String已经在启动时就被引导类加载器（Bootstrcp ClassLoader）加载，所以用户自定义的ClassLoader永远也无法加载一个自己写的String，除非你改变JDK中ClassLoader搜索类的默认算法。
 
-3、 但是JVM在搜索类的时候，又是如何判定两个class是相同的呢？
-     JVM在判定两个class是否相同时，不仅要判断两个类名是否相同，而且要判断是否由同一个类加载器实例加载的。只有两者同时满足的情况下，JVM才认为这两个class是相同的。就算两个class是同一份class字节码，如果被两个不同的ClassLoader实例所加载，JVM也会认为它们是两个不同class。比如网络上的一个Java类org.classloader.simple.NetClassLoaderSimple，javac编译之后生成字节码文件NetClassLoaderSimple.class，ClassLoaderA和ClassLoaderB这两个类加载器并读取了NetClassLoaderSimple.class文件，并分别定义出了java.lang.Class实例来表示这个类，对于JVM来说，它们是两个不同的实例对象，但它们确实是同一份字节码文件，如果试图将这个Class实例生成具体的对象进行转换时，就会抛运行时异常java.lang.ClassCaseException，提示这是两个不同的类型。现在通过实例来验证上述所描述的是否正确：
+3. 但是JVM在搜索类的时候，又是如何判定两个class是相同的呢？  
+JVM在判定两个class是否相同时，`不仅要判断两个类名是否相同，而且要判断是否由同一个类加载器实例加载的`。只有两者同时满足的情况下，JVM才认为这两个class是相同的。`就算两个class是同一份class字节码，如果被两个不同的ClassLoader实例所加载，JVM也会认为它们是两个不同class`。
 
-4、ClassLoader的体系架构：
- 
+classloader 加载类用的是`全盘负责委托机制`。所谓`全盘负责`，即是当一个classloader加载一个Class的时候，这个Class所依赖的和引用的所有 Class也由这个classloader负责载入，除非是显式的使用另外一个classloader载入；`委托机制`则是先让parent（父）类加载器 (而不是super，它与parent classloader类不是继承关系)寻找，只有在parent找不到的时候才从自己的类路径中去寻找。此外类加载还`采用了cache机制`，也就是如果 cache中保存了这个Class就直接返回它，如果没有才从文件中读取和转换成Class，并存入cache，这就是为什么我们修改了Class但是必须重新启动JVM才能生效的原因
 
-四、定义自已的ClassLoader
-既然JVM已经提供了默认的类加载器，为什么还要定义自已的类加载器呢？
-      因为Java中提供的默认ClassLoader，只加载指定目录下的jar和class，如果我们想加载其它位置的类或jar时，比如：我要加载网络上的一个class文件，通过动态加载到内存之后，要调用这个类中的方法实现我的业务逻辑。在这样的情况下，默认的ClassLoader就不能满足我们的需求了，所以需要定义自己的ClassLoader。
-定义自已的类加载器分为两步：
+加载Class的默认规则比较简单，有两个：  
+1. 双亲委托机制。
+2. 同一个加载器：类A引用到类B，则由类A的加载器去加载类B，保证引用到的类由同一个加载器加载。
+
+定义自已的类加载器分为两步：  
 1、继承java.lang.ClassLoader
 2、重写父类的findClass方法
 读者可能在这里有疑问，父类有那么多方法，为什么偏偏只重写findClass方法？
-      因为JDK已经在loadClass方法中帮我们实现了ClassLoader搜索类的算法，当在loadClass方法中搜索不到类时，loadClass方法就会调用findClass方法来搜索类，所以我们只需重写该方法即可。如没有特殊的要求，一般不建议重写loadClass搜索类的算法。下图是API中ClassLoader的loadClass方法：
- 
+因为JDK已经在loadClass方法中帮我们实现了ClassLoader搜索类的算法，当在loadClass方法中搜索不到类时，loadClass方法就会调用findClass方法来搜索类，所以我们只需重写该方法即可。如没有特殊的要求，一般不建议重写loadClass搜索类的算法。下图是JAVA 8 API中ClassLoader的loadClass方法：
 
+>From JDK 8 
+protected Class<?> loadClass(String name,boolean resolve)                      throws ClassNotFoundException
 
-http://www.blogjava.net/lhulcn618/archive/2006/05/25/48230.html
+>Loads the class with the specified binary name. The default implementation of this method searches for classes in the following order:
+1. Invoke findLoadedClass(String) to check if the class has already been loaded.
+2. Invoke the loadClass method on the parent class loader. If the parent is null the class loader built-in to the virtual machine is used, instead.
+3. Invoke the findClass(String) method to find the class.
+
+>If the class was found using the above steps, and the resolve flag is true, this method will then invoke the resolveClass(Class) method on the resulting Class object.
+
+>Subclasses of ClassLoader are encouraged to override findClass(String), rather than this method.
+
+>Unless overridden, this method synchronizes on the result of getClassLoadingLock method during the entire class loading process.
+
 
 
 classloader 加载类用的是全盘负责委托机制。所谓全盘负责，即是当一个classloader加载一个Class的时候，这个Class所依赖的和引用的所有 Class也由这个classloader负责载入，除非是显式的使用另外一个classloader载入；委托机制则是先让parent（父）类加载器 (而不是super，它与parent classloader类不是继承关系)寻找，只有在parent找不到的时候才从自己的类路径中去寻找。此外类加载还采用了cache机制，也就是如果 cache中保存了这个Class就直接返回它，如果没有才从文件中读取和转换成Class，并存入cache，这就是为什么我们修改了Class但是必须重新启动JVM才能生效的原因
 
-每个ClassLoader加载Class的过程是：
-1.检测此Class是否载入过（即在cache中是否有此Class），如果有到8,如果没有到2
-2.如果parent classloader不存在（没有parent，那parent一定是bootstrap classloader了），到4
-3.请求parent classloader载入，如果成功到8，不成功到5
-4.请求jvm从bootstrap classloader中载入，如果成功到8
-5.寻找Class文件（从与此classloader相关的类路径中寻找）。如果找不到则到7.
-6.从文件中载入Class，到8.
-7.抛出ClassNotFoundException.
-8.返回Class.
-
 其中5.6步我们可以通过覆盖ClassLoader的findClass方法来实现自己的载入策略。甚至覆盖loadClass方法来实现自己的载入过程。
 
-这里怎么又出来一个context classloader呢？它有什么用呢？我们在建立一个线程Thread的时候，可以为这个线程通过setContextClassLoader方法来指定一个合适的classloader作为这个线程的context classloader，当此线程运行的时候，我们可以通过getContextClassLoader方法来获得此context classloader，就可以用它来载入我们所需要的Class。默认的是system classloader。利用这个特性，我们可以“打破”classloader委托机制了，父classloader可以获得当前线程的context classloader，而这个context classloader可以是它的子classloader或者其他的classloader，那么父classloader就可以从其获得所需的 Class，这就打破了只能向父classloader请求的限制了。这个机制可以满足当我们的classpath是在运行时才确定,并由定制的 classloader加载的时候,由system classloader(即在jvm classpath中)加载的class可以通过context classloader获得定制的classloader并加载入特定的class(通常是抽象类和接口,定制的classloader中是其实现),例如web应用中的servlet就是用这种机制加载的.
+__Context ClassLoader__
+这里怎么又出来一个context classloader呢？它有什么用呢？我们在建立一个线程Thread的时候，可以为这个线程通过setContextClassLoader方法来指定一个合适的classloader作为这个线程的context classloader，当此线程运行的时候，我们可以通过getContextClassLoader方法来获得此context classloader，就可以用它来载入我们所需要的Class。默认的是System classloader。
+
+>From JDK 8
+If not set, the default is the ClassLoader context of the parent Thread. The context ClassLoader of the primordial thread is typically set to the class loader used to load the application. 
+
+利用这个特性，我们可以“打破”classloader委托机制了，父classloader可以获得当前线程的context classloader，而这个context classloader可以是它的子classloader或者其他的classloader，那么父classloader就可以从其获得所需的 Class，这就打破了只能向父classloader请求的限制了。这个机制可以满足当我们的classpath是在运行时才确定,并由定制的 classloader加载的时候,由system classloader(即在jvm classpath中)加载的class可以通过context classloader获得定制的classloader并加载入特定的class(通常是抽象类和接口,定制的classloader中是其实现),例如web应用中的servlet就是用这种机制加载的.
 
 
 #### NIO

@@ -32,6 +32,7 @@ ___
         - [ ] :cat: :one: __docker__  — an image file that has all big data stuffs
         - [ ] :cat: :one: Virtual box set up
 
+            - [ ] :pouting_cat: :one: python
             - [ ] :pouting_cat: :one: goagent activation or other VPN solutions
             - [ ] :pouting_cat: :one: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)            
             - [ ] :pouting_cat: :one: post man
