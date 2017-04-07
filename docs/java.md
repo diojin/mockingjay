@@ -34,7 +34,7 @@ STL容器分两种，
 
 1. 从程序运行结果可以发现，我们自己实现的hash_table（简化版）在插入和查找的效率要远高于set。 
 
-[![collections_2]][collections_1]
+[![collections_1]][collections_2]
 
 [For more information][collections_2]
 

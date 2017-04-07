@@ -27,6 +27,7 @@ ___
     - [ ] :smiley_cat: :one: annotation details + spring mvc annotations
 
         - [ ] :cat: :one: update cv
+        - [ ] :cat: :one: clean chrome bookmarks
         - [ ] :cat: :one: upload books for money
         - [ ] :cat: :one: __docker__  — an image file that has all big data stuffs
         - [ ] :cat: :one: Virtual box set up
