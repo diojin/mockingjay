@@ -74,9 +74,6 @@ JVM在判定两个class是否相同时，`不仅要判断两个类名是否相�
 
 classloader 加载类用的是`全盘负责委托机制`。所谓`全盘负责`，即是当一个classloader加载一个Class的时候，这个Class所依赖的和引用的所有 Class也由这个classloader负责载入，除非是显式的使用另外一个classloader载入；`委托机制`则是先让parent（父）类加载器 (而不是super，它与parent classloader类不是继承关系)寻找，只有在parent找不到的时候才从自己的类路径中去寻找。此外类加载还`采用了cache机制`，也就是如果 cache中保存了这个Class就直接返回它，如果没有才从文件中读取和转换成Class，并存入cache，这就是为什么我们修改了Class但是必须重新启动JVM才能生效的原因
 
-加载Class的默认规则比较简单，有两个：  
-1. 双亲委托机制。
-2. 同一个加载器：类A引用到类B，则由类A的加载器去加载类B，保证引用到的类由同一个加载器加载。
 
 定义自已的类加载器分为两步：  
 1、继承java.lang.ClassLoader
@@ -87,18 +84,16 @@ classloader 加载类用的是`全盘负责委托机制`。所谓`全盘负责`�
 >From JDK 8 
 protected Class<?> loadClass(String name,boolean resolve)                      throws ClassNotFoundException
 
->>Loads the class with the specified binary name. The default implementation of this method searches for classes in the following order:
-1 Invoke findLoadedClass(String) to check if the class has already been loaded.
-2 Invoke the loadClass method on the parent class loader. If the parent is null the class loader built-in to the virtual machine is used, instead.
-3 Invoke the findClass(String) method to find the class.
+>>Loads the class with the specified binary name. The default implementation of this method searches for classes in the following order:  
+1 Invoke findLoadedClass(String) to check if the class has already been loaded.  
+2 Invoke the loadClass method on the parent class loader. If the parent is null the class loader built-in to the virtual machine is used, instead.  
+3 Invoke the findClass(String) method to find the class.  
 
 >>If the class was found using the above steps, and the resolve flag is true, this method will then invoke the resolveClass(Class) method on the resulting Class object.
 
 >>Subclasses of ClassLoader are encouraged to override findClass(String), rather than this method.
 
 >>Unless overridden, this method synchronizes on the result of getClassLoadingLock method during the entire class loading process.
-
-
 
 classloader 加载类用的是全盘负责委托机制。所谓全盘负责，即是当一个classloader加载一个Class的时候，这个Class所依赖的和引用的所有 Class也由这个classloader负责载入，除非是显式的使用另外一个classloader载入；委托机制则是先让parent（父）类加载器 (而不是super，它与parent classloader类不是继承关系)寻找，只有在parent找不到的时候才从自己的类路径中去寻找。此外类加载还采用了cache机制，也就是如果 cache中保存了这个Class就直接返回它，如果没有才从文件中读取和转换成Class，并存入cache，这就是为什么我们修改了Class但是必须重新启动JVM才能生效的原因
 
@@ -110,8 +105,17 @@ __Context ClassLoader__
 >From JDK 8
 If not set, the default is the ClassLoader context of the parent Thread. The context ClassLoader of the primordial thread is typically set to the class loader used to load the application. 
 
-利用这个特性，我们可以“打破”classloader委托机制了，父classloader可以获得当前线程的context classloader，而这个context classloader可以是它的子classloader或者其他的classloader，那么父classloader就可以从其获得所需的 Class，这就打破了只能向父classloader请求的限制了。这个机制可以满足当我们的classpath是在运行时才确定,并由定制的 classloader加载的时候,由system classloader(即在jvm classpath中)加载的class可以通过context classloader获得定制的classloader并加载入特定的class(通常是抽象类和接口,定制的classloader中是其实现),例如web应用中的servlet就是用这种机制加载的.
+加载Class的默认规则比较简单，有两个：  
+1. 双亲委托机制。
+2. 同一个加载器：类A引用到类B，则由类A的加载器去加载类B，保证引用到的类由同一个加载器加载。
 
+这其实是因为加载Class的默认规则在某些情况下不能满足要求。比如jdk中的jdbc API 和具体数据库厂商的实现类SPI的类加载问题。在jdbc API的类是由BootStrap加载的，那么如果在jdbc API需要用到spi的实现类时，根据默认规则2，则实现类也会由BootStrap加载，但是spi实现类却没法由BootStrap加载，只能由Ext或者App加载，如何解决这个问题？牛人们就想出了ContextClassLoader的方法。
+
+具体的实现过程如下：在类Thread定义一个属性classLoader，用来供用户保存一个classLoader（默认是App），并公开setter和getter方法，使得此线程的任何语句都可以得到此classLoader，然后用它来加载类，以此来打破默认规则2。说白了，ContextClassLoader就是Thread的一个属性而已，没什么复杂的。只不过这个属性和底层的加载体系联系紧密。
+那么我们看看ContextClassLoader是如何解决上面的问题的呢？以jdbc为例，当DriverManager需要加载SPI中的实现类是，可以获取ContextClassLoader(默认是App)，然后用此classLoader来加载spi中的类。很简单的过程。当然不使用ContextClassLoader，自己找个地方把classLoader保存起来，在其他地方能得到此classLoader就可以。Tomcat就是这么做的。比如StandardContext是由Common加载的，而StandardContext要用到项目下的类时怎么办，显然不能用Common来加载，而只能用WebAppClassLoader来加载，怎么办？当然可以采用ContextClassLoader的方式来解决，但是tomcat不是这样解决的，而是为每个App创建一个Loader，里面保存着此WebApp的ClassLoader。需要加载WebApp下的类时，就取出ClassLoader来使用，原理和ContextClassLoader是一样的。至于tomcat为什么要这么做呢？因为tomcat中有关类加载的问题，是由一个main线程来处理的，而并没有为每个WebApp单独创建一个线程，故没办法用ContextClassLoader的方式来解决，而是用自己的属性来解决。
+ 
+既然规则2已经被打破了，那么规则1：双亲委托机制能被打破吗？规则1是因为安全问题而设置的，如果我自己能控制类加载的安全问题，是否可以违反规则1呢？答案是肯定的。同样的Tomcat也打破了此规则。Tomcat中WebAppClassLoader加载项目的类时，可以决定是否先在项目本地的路径中查找class文件。而不是自动使用父加载器Common在tomcat下的common目录查找。这是怎么实现的呢？
+要回答这个问题，就要先明白双亲委托机制是如何实现的。只有明白了如何实现，才有办法改变它。双亲委托机制是在类ClassLoader的loadClass里面实现的。那么继承ClassLoader的WebAppClassLoader，只要覆盖loadClass方法，实现自己的加载策略，即可避开双亲委托机制。
 
 #### NIO
 
