@@ -53,12 +53,43 @@ STL容器分两种，
 
 #### NIO
 
+[For more information][collections_4]
+
 Java NIO 由以下几个核心部分组成： 
 
 * Channels
 - Buffers
 * Selectors
 
+基本上，所有的 IO 在NIO 中都从一个Channel 开始。Channel 有点象流。 数据可以从Channel读到Buffer中，也可以从Buffer 写到Channel中。
+
+Channel和Buffer有好几种类型。下面是JAVA NIO中的一些主要Channel的实现： 
+* FileChannel
+* DatagramChannel
+* SocketChannel
+* ServerSocketChannel
+
+以下是Java NIO里关键的Buffer实现：
+* ByteBuffer
+* CharBuffer
+* DoubleBuffer
+* FloatBuffer
+* IntBuffer
+* LongBuffer
+* ShortBuffer
+
+__MappedByteBuffer__
+java处理大文件，一般用BufferedReader,BufferedInputStream这类带缓冲的Io类，不过如果文件超大的话，更快的方式是采用MappedByteBuffer。MappedByteBuffer是java nio引入的文件内存映射方案，读写性能极高。NIO最主要的就是实现了对异步操作的支持。
+
+Selector允许单线程处理多个 Channel。如果你的应用打开了多个连接（通道），但每个连接的流量都很低，使用Selector就会很方便。例如，在一个聊天服务器中。 
+
+要使用Selector，得向Selector注册Channel，然后调用它的select()方法。这个方法会一直阻塞到某个注册的通道有事件就绪。一旦这个方法返回，线程就可以处理这些事件，事件的例子有如新连接进来，数据接收等。
+
+IO|NIO
+----|----
+Stream oriented | Buffer oriented
+Blocking IO | Non blocking IO
+ | Selectors
 
 #### Stream
 
@@ -66,3 +97,4 @@ Java NIO 由以下几个核心部分组成：
 [collections_1]:/resources/img/java/collection_performance_test_1.png "performance test: set vs hash_set vs hash_table"
 [collections_2]:http://blog.csdn.net/morewindows/article/details/7330323 "STL系列之九 探索hash_set"
 [collections_3]:http://blog.csdn.net/v_JULY_v/article/details/6530142 "从B 树、B+ 树、B* 树谈到R 树"
+[collections_4]:http://www.iteye.com/magazines/132-Java-NIO "Java NIO 系列教程"
