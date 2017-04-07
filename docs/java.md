@@ -5,11 +5,10 @@
 * [Collections](#collections)
     - [Misc](#collections-misc)
 * [Miscellaneous](#miscellaneous)
+    - [NIO](#nio)
     - [Stream](#stream)
 
 ### Collections
-
-
 
 #### Collections Misc
 
@@ -51,6 +50,15 @@ STL容器分两种，
 
 
 ### Miscellaneous
+
+#### NIO
+
+Java NIO 由以下几个核心部分组成： 
+
+* Channels
+- Buffers
+* Selectors
+
 
 #### Stream
 
