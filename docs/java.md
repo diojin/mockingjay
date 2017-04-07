@@ -87,16 +87,16 @@ classloader 加载类用的是`全盘负责委托机制`。所谓`全盘负责`�
 >From JDK 8 
 protected Class<?> loadClass(String name,boolean resolve)                      throws ClassNotFoundException
 
->Loads the class with the specified binary name. The default implementation of this method searches for classes in the following order:
-1. Invoke findLoadedClass(String) to check if the class has already been loaded.
-2. Invoke the loadClass method on the parent class loader. If the parent is null the class loader built-in to the virtual machine is used, instead.
-3. Invoke the findClass(String) method to find the class.
+>>Loads the class with the specified binary name. The default implementation of this method searches for classes in the following order:
+1 Invoke findLoadedClass(String) to check if the class has already been loaded.
+2 Invoke the loadClass method on the parent class loader. If the parent is null the class loader built-in to the virtual machine is used, instead.
+3 Invoke the findClass(String) method to find the class.
 
->If the class was found using the above steps, and the resolve flag is true, this method will then invoke the resolveClass(Class) method on the resulting Class object.
+>>If the class was found using the above steps, and the resolve flag is true, this method will then invoke the resolveClass(Class) method on the resulting Class object.
 
->Subclasses of ClassLoader are encouraged to override findClass(String), rather than this method.
+>>Subclasses of ClassLoader are encouraged to override findClass(String), rather than this method.
 
->Unless overridden, this method synchronizes on the result of getClassLoadingLock method during the entire class loading process.
+>>Unless overridden, this method synchronizes on the result of getClassLoadingLock method during the entire class loading process.
 
 
 
