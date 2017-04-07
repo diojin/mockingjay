@@ -16,4 +16,4 @@
 ### Miscellaneous
 
 ---
-[collections_1]:/resources/img/collection_performance_test_1.png "description"
+[collections_1]:/resources/img/java/collection_performance_test_1.png "description"
