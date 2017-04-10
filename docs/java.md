@@ -22,6 +22,12 @@
 
 Immutable objects offers several benefits over conventional mutable object, especially while creating concurrent Java application. Immutable object not only guarantees __safe publication__ of object’s state, but also can be __shared among other threads without any external synchronization__. In fact JDK itself contains several immutable classes like String, Integer and other wrapper classes.
 
+1. State of immutable object can not be modified after construction, any modification should result in new immutable object.
+2. All fields of Immutable class should be final.
+3. Object must be properly constructed i.e. object reference must not leak during construction process.
+4. Object should be final in order to restrict sub-class for altering immutability of parent class.
+
+
 ##### thread dump
 
 ###### thread status
