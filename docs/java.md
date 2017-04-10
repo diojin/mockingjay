@@ -56,6 +56,17 @@ STL容器分两种，
 #### thread dump
 
 __How to generate thread dump?__
+1. use jstack/jconsole
+2. kill [-QUIT/-3] <pid>, with correct JVM parameters  
+    -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=C: mpjvmoutput.log
+
+##### thread status
+
+1. RUNNABLE  
+    1. wait for IO read, for example, BufferedReader.readLine()
+2. BLOCKED
+3. WAITING
+4. TIMED_WAITING
 
 #### class loader
 [For more information][misc_class_loader_1]
@@ -147,7 +158,7 @@ Channel和Buffer有好几种类型。下面是JAVA NIO中的一些主要Channel�
 * LongBuffer
 * ShortBuffer
 
-__MappedByteBuffer__
+__MappedByteBuffer__  
 java处理大文件，一般用BufferedReader,BufferedInputStream这类带缓冲的Io类，不过如果文件超大的话，更快的方式是采用MappedByteBuffer。MappedByteBuffer是java nio引入的文件内存映射方案，读写性能极高。NIO最主要的就是实现了对异步操作的支持。
 
 Selector允许单线程处理多个 Channel。如果你的应用打开了多个连接（通道），但每个连接的流量都很低，使用Selector就会很方便。例如，在一个聊天服务器中。 
