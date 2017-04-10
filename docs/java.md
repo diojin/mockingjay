@@ -11,7 +11,7 @@
     - [SOAP](#soap)
     - [Related Techniques](#ws-related-techniques)
         + [RMI vs IIOP](#rmi-vs-iiop)
-            * [CORBA(Common Object Request Broker Architecture)](#corba-common-object-request-broker-architecture)
+            * [CORBA(Common Object Request Broker Architecture)](#corbacommon-object-request-broker-architecture)
 * [JMS](#jms)
     - [Message Broker](#message-broker)
 * [J2EE](@j2ee)
