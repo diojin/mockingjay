@@ -5,6 +5,7 @@
 * [Collections](#collections)
     - [Misc](#collections-misc)
 * [Miscellaneous](#miscellaneous)
+    - [thread dump](#thread-dump)
     - [class loader](#class-loader)
     - [NIO](#nio)
     - [Stream](#stream)
@@ -52,6 +53,10 @@ STL容器分两种，
 
 ### Miscellaneous
 
+#### thread dump
+
+__How to generate thread dump?__
+
 #### class loader
 [For more information][misc_class_loader_1]
 
@@ -94,8 +99,6 @@ protected Class<?> loadClass(String name,boolean resolve)                      t
 >>Subclasses of ClassLoader are encouraged to override findClass(String), rather than this method.
 
 >>Unless overridden, this method synchronizes on the result of getClassLoadingLock method during the entire class loading process.
-
-classloader 加载类用的是全盘负责委托机制。所谓全盘负责，即是当一个classloader加载一个Class的时候，这个Class所依赖的和引用的所有 Class也由这个classloader负责载入，除非是显式的使用另外一个classloader载入；委托机制则是先让parent（父）类加载器 (而不是super，它与parent classloader类不是继承关系)寻找，只有在parent找不到的时候才从自己的类路径中去寻找。此外类加载还采用了cache机制，也就是如果 cache中保存了这个Class就直接返回它，如果没有才从文件中读取和转换成Class，并存入cache，这就是为什么我们修改了Class但是必须重新启动JVM才能生效的原因
 
 其中5.6步我们可以通过覆盖ClassLoader的findClass方法来实现自己的载入策略。甚至覆盖loadClass方法来实现自己的载入过程。
 
