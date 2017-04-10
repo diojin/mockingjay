@@ -1,14 +1,43 @@
 ## Indexes
 ---
 
-
+* [Concurrent](#concurrent)
+    - [Misc](#concurrent-misc)
+        + [thread dump](#thread-dump)
 * [Collections](#collections)
     - [Misc](#collections-misc)
 * [Miscellaneous](#miscellaneous)
-    - [thread dump](#thread-dump)
     - [class loader](#class-loader)
     - [NIO](#nio)
     - [Stream](#stream)
+
+### Concurrent
+
+#### Concurrent Misc
+
+##### thread dump
+
+###### thread status
+
+1. RUNNABLE  
+    1. wait for IO read, for example, BufferedReader.readLine()
+    2. infinit loop
+2. BLOCKED
+    1. enter synchronized block
+3. WAITING
+    1. Object#wait()
+    2. Thread#join()
+    3. LockSupport.park()
+4. TIMED_WAITING
+    1. Thread.sleep()
+    2. Object#wait(time)
+    3. Thread#join(time)
+    4. LockSupport.part(time)
+
+__How to generate thread dump?__  
+1. use jstack/jconsole
+2. kill [-QUIT/-3] <pid>, with correct JVM parameters  
+    -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=C: mpjvmoutput.log
 
 ### Collections
 
@@ -52,21 +81,6 @@ STL容器分两种，
 
 
 ### Miscellaneous
-
-#### thread dump
-
-__How to generate thread dump?__
-1. use jstack/jconsole
-2. kill [-QUIT/-3] <pid>, with correct JVM parameters  
-    -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=C: mpjvmoutput.log
-
-##### thread status
-
-1. RUNNABLE  
-    1. wait for IO read, for example, BufferedReader.readLine()
-2. BLOCKED
-3. WAITING
-4. TIMED_WAITING
 
 #### class loader
 [For more information][misc_class_loader_1]
