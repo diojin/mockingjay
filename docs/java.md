@@ -12,10 +12,16 @@
     - [Related Techniques](#ws-related-techniques)
         + [RMI vs IIOP](#rmi-vs-iiop)
             * [CORBA(Common Object Request Broker Architecture)](#corbacommon-object-request-broker-architecture)
+            * [IIOP(Internet Inter-ORB Protocol)](#iiopinternet-inter-orb-protocol)
+            * [JavaIDL](#javaidl)
+            * [RMI-IIOP](#rmi-iiop)
 * [JMS](#jms)
     - [Message Broker](#message-broker)
+    - [Misc](#jms-misc)
+        + [Relations between acknowledgement, session, transaction](#)
 * [J2EE](@j2ee)
 * [Miscellaneous](#miscellaneous)
+    - [Connection Pooling](#connection_pooling)
     - [class loader](#class-loader)
     - [NIO](#nio)
     - [Stream](#stream)
@@ -183,6 +189,15 @@ stub 对象负责调用参数和返回值的流化(serialization)、打包解包
 ###### IIOP(Internet Inter-ORB Protocol)
 是CORBA的通讯协议。CORBA是由OMG(Object Management Group)组织定义的一种分布式组件标准，通过和各种编程语言相匹配的`IDL(Interface Definition Language)`，CORBA可以作到和语言无关，也就是说，用不同编程语言编写的CORBA对象可以互相调用。
 
+它是一个用于CORBA 2.0及兼容平台上的协议。这个协议的最初阶段是要建立以下几个组件部分：一个IIOP到HTTP的网关，使用这个网关可以让CORBA客户访问WWW资源；一个HTTP到IIOP的网关，通过这个网关可以访问CORBA资源；一个为IIOP和HTTP提供资源的服务器，一个能够将IIOP作为可识别协议的浏览器。
+
+###### JavaIDL
+定义了Java语言到CORBA之间的匹配，通过JavaIDL，用Java语言编写的应用程序可以和任何CORBA对象通讯。 
+
+###### RMI-IIOP
+结合了RMI的易用性和CORBA/IIOP的语言无关性，通过RMI-IIOP，RMI对象可以采用IIOP协议和CORBA对象通讯。RMI-IIOP对RMI的调用参数作了一些很轻微的限制，在调用CORBA对象时，必须遵循这些限制。JDK1.3已经提供对RMI-IIOP的支持。 
+
+
 ### JMS
 #### Message Broker
 [For more information][jms-message-broker-1]
@@ -200,11 +215,37 @@ The purpose of a broker is to take incoming messages from applications and perfo
 
 Message broker transforms messages from one format to another (e.g. JMS to MQ) or routes a message to another place/broker/queue depending on content or topic; where as MQ is the queue the message ending up on, where it's held until it's consumed by some other app. 
 
+#### JMS Misc
+
+##### Relations between acknowledgement, session, transaction
+
+**Acknowledgement mode:**  
+* DUPS_OK_ACKNOWLEDGE - Automatic but a delayed acknowledgement of messages by the session that may result in duplicate messages if JMS provider fails.
+* AUTO_ACKNOWLEDGE - Session automatically acknowledges when a message is delivered to application
+* CLIENT_ACKNOWLEDGE - Client application explicitly acknowledges messages.
+
+For your requirement I think you can choose CLIENT_ACKNOWLEDGE as it allows your application to explicitly acknowledge messages. But you must note that in some JMS providers, acknowledging a consumed message automatically acknowledges the receipt of all messages that have been delivered by its session. However some JMS providers do implement a per message acknowledgement.
+
+The other option you have is to use a transacted session where acknowledge mode has no effect. In a transacted session, messages are removed from a queue only when application calls commit. If the session calls rollback or ends without calling commit, all messages that were delivered to an application since the previous commit call will reappear in the queue.
+
+
 ### J2EE
 
 J2EE 是Sun公司提出的多层(multi-tiered),分布式(distributed),基于组件(component-base)的企业级应用模型 (enterpriese application model).在这样的一个应用系统中，可按照功能划分为不同的组件，这些组件又可在不同计算机上，并且处于相应的层次(tier)中。所属层次包括客户层(clietn tier)组件,web层和组件,Business层和组件,企业信息系统(EIS)层。
 
 ### Miscellaneous
+
+#### Connection Pooling
+
+Frequently used connection pool, 
+* BasicDataSource
+* DBPool (used in GMARRS)
+
+##### BasicDataSource
+
+##### DBPool
+[For more information][misc-connection-pooling-1]
+
 
 #### class loader
 [For more information][misc_class_loader_1]
@@ -340,3 +381,4 @@ Java IO的各种流是阻塞的。这意味着，当一个线程调用read() 或
 [misc_nio_1]:http://www.iteye.com/magazines/132-Java-NIO "Java NIO 系列教程"
 [misc_class_loader_1]:http://blog.csdn.net/xyang81/article/details/7292380 "深入分析Java ClassLoader原理"
 [jms-message-broker-1]:https://en.wikipedia.org/wiki/Message_broker "Message broker"
+[misc-connection-pooling-1]:http://www.snaq.net/java/DBPool/ "DBPool : Java Database Connection Pooling"
