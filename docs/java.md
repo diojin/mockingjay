@@ -7,6 +7,14 @@
         + [thread dump](#thread-dump)
 * [Collections](#collections)
     - [Misc](#collections-misc)
+* [Web Service](#web-service)
+    - [SOAP](#soap)
+    - [Related Techniques](#ws-related-techniques)
+        + [RMI vs IIOP](#rmi-vs-iiop)
+            * [CORBA(Common Object Request Broker Architecture)](#corba-common-object-request-broker-architecture)
+* [JMS](#jms)
+    - [Message Broker](#message-broker)
+* [J2EE](@j2ee)
 * [Miscellaneous](#miscellaneous)
     - [class loader](#class-loader)
     - [NIO](#nio)
@@ -22,11 +30,13 @@
 
 Immutable objects offers several benefits over conventional mutable object, especially while creating concurrent Java application. Immutable object not only guarantees __safe publication__ of object’s state, but also can be __shared among other threads without any external synchronization__. In fact JDK itself contains several immutable classes like String, Integer and other wrapper classes.
 
+__How to create an immutable class__  
 1. State of immutable object can not be modified after construction, any modification should result in new immutable object.
 2. All fields of Immutable class should be final.
 3. Object must be properly constructed i.e. object reference must not leak during construction process.
 4. Object should be final in order to restrict sub-class for altering immutability of parent class.
 
+Apart from above advantages, immutable object has **disadvantage of creating garbage as well**. Since immutable object can not be reused and they are just a use and throw. String being a prime example, which can create lot of garbage and can potentially slow down application due to heavy garbage collection, but again that's extreme case and if used properly Immutable object adds lot of value
 
 ##### thread dump
 
@@ -91,7 +101,108 @@ STL容器分两种，
     
 且1s rbtree能进行大概50w+次插入，hash table大概是差不多200w次。不过很多的时候，其速度可以忍了，例如倒排索引差不多也是这个速度，而且单线程，且倒排表的拉链长度不会太大。`正因为基于树的实现其实不比hashtable慢到哪里去，所以数据库的索引一般都是用的B/B+树，而且B+树还对磁盘友好(B树能有效降低它的高度，所以减少磁盘交互次数)。比如现在非常流行的NoSQL数据库，像MongoDB也是采用的B树索引。`关于B树系列，请参考本blog内此篇文章：[从B树、B+树、B*树谈到R 树][collections_3]。更多请待后续实验论证。
 
+### Web Service
 
+Web Service是基于网络的、分布式的模块化组件，它执行特定的任务，遵守具体的技术规范，这些规范使得Web Service能与其他兼容的组件进行互操作。
+
+WSDL是一种 XML 格式??，用于将网络服务描述为一组端点，这些端点对包含面向文档信息或面向过程信息的消息进行操作。这种格式首先对操作和消息进行抽象描述，然后将其绑定到具体的网络协议和消息格式上以定义端点。相关的具体端点即组合成为抽象端点（服务）。
+
+WebService使用WSDL来描述自身，调用者通过WSDL即可以了解WebService的调用方法。  
+因为这些特征，WEBService具有了两个很大的优势：一是提供了方便的交互，二是实现松散联接。
+
+**优势**  
+1. 跨平台。
+2. SOAP协议是基于XML和HTTP这些业界的标准的，得到了所有的重要公司的支持。
+3. 由于使用了SOAP，数据是以ASCII文本的方式而非二进制传输，调试很方便；并且由于这样，它的数据容易通过防火墙，不需要防火墙为了程序而单独开一个“漏洞”。
+4. 此外，WebService实现的技术难度要比CORBA和DCOM小得多。
+5. 要实现B2B集成，EDI比较完善与比较复杂；而用WebService则可以低成本的实现，小公司也可以用上。
+6. 在C/S的程序中，WebService可以实现网页无整体刷新的与服务器打交道并取数。??
+**缺点**  
+1. WebService使用了XML对数据封装，会造成大量的数据要在网络中传输。
+2. WebService规范没有规定任何与实现相关的细节，包括对象模型、编程语言，这一点，它不如CORBA。??
+
+
+#### SOAP
+SOAP协议（Simple Object Access Protocal,简单对象访问协议）,它是一个用于分散和分布式环境下网络信息交换的基于XML的通讯协议。在此协议下，软件组件或应用程序能够通过标准的HTTP协议进行通讯。它的设计目标就是简单性和扩展性，这有助于大量异构程序和平台之间的互操作性，从而使存在的应用程序能够被广泛的用户访问。
+
+#### WS Related Techniques
+
+**JAXP(Java API for XML Parsing)** 定义了在Java中使用DOM, SAX, XSLT的通用的接口。这样在你的程序中你只要使用这些通用的接口，当你需要改变具体的实现时候也不需要修改代码。
+
+**JAXM(Java API for XML Messaging)** 是为SOAP通信提供访问方法和传输机制的API。
+　
+**WSDL**是一种 XML 格式，用于将网络服务描述为一组端点，这些端点对包含面向文档信息或面向过程信息的消息进行操作。这种格式首先对操作和消息进行抽象描述，然后将其绑定到具体的网络协议和消息格式上以定义端点。相关的具体端点即组合成为抽象端点（服务）
+
+**UDDI**是一种规范，Universal Description Discovery and Integration, 它主要提供基于Web Service的注册和发现机制，为Web服务提供三个重要的技术支持：
+1. 标准、透明、专门描述Web服务的机制
+2. 调用Web服务的机制
+3. 可以访问的Web服务注册中心
+
+##### RMI vs IIOP
+
+分布式计算系统要求运行在不同地址空间不同主机上的对象互相调用。各种分布式系统都有自己的调用协议，如CORBA的IIOP(Internet InterORB Protocol), MTS的DCOM。那么EJB组件呢？ Socket, PRC and RMI
+
+在Java里提供了完整的Socket通讯接口，但Socket要求客户端和服务端必须进行**应用级协议**的编码交换数据，采用sockets是非常麻烦的。 
+
+一个代替Socket的协议是RPC(Remote Procedure Call), 它抽象出了通讯接口用于过程调用，使得编程者调用一个远程过程和调用本地过程同样方便。RPC 系统采用XDR(外部数据表示)来编码远程调用的参数和返回值。 
+
+**但RPC 并不支持对象**
+
+RPC也要求串行化参数和返回数值数据，但由于没有涉及对象，情况比较简单。
+
+而EJB构造的是完全面向对象的分布式系统，所以，**面向对象的远程调用RMI**(Remote Method Invocation)成为必然选择。采用RMI，调用远程对象和调用本地对象同样方便。RMI采用JRMP(Java Remote Method Protocol)通讯协议，是构建在TCP/IP协议上的一种远程调用方法。 
+RMI定义了一组远程接口，可以用于生成远程对象。客户机可以象调用本地对象的方法一样用相同的语法调用远程对象。RMI API提供的类和方法可以处理所有访问远程方法的基础通信和参数引用要求的串行化。 
+
+RPC和RMI之间的一个重要差别是RPC用快速而不够可靠的UDP协议，RMI用低速而可靠的TCP/IP协议。
+
+###### RMI调用机制 
+RMI 采用stubs 和 skeletons 来进行远程对象(remote object)的通讯。stub 充当远程对象的客户端代理，有着和远程对象相同的远程接口，远程对象的调用实际是通过调用该对象的客户端代理对象stub来完成的。 每个远程对象都包含一个代理对象stub，当运行在本地Java虚拟机上的程序调用运行在远程Java虚拟机上的对象方法时，它首先在本地创建该对象的代理对象stub, 然后调用代理对象上匹配的方法，代理对象会作如下工作： 
+
+**Stub Processing flow**  
+* 与远程对象所在的虚拟机建立连接 
+* 打包(marshal)参数并发送到远程虚拟机 
+* 等待执行结果 
+* 解包(unmarshal)返回值或返回的错误 
+* 返回调用结果给调用程序 
+
+stub 对象负责调用参数和返回值的流化(serialization)、打包解包，以及网络层的通讯过程。 
+
+
+每一个远程对象同时也包含一个skeleton对象，skeleton运行在远程对象所在的虚拟机上，接受来自stub对象的调用。当skeleton接收到来自stub对象的调用请求后，skeleton会作如下工作： 
+
+**Skeleton processing flow**  
+* 解包stub传来的参数 
+* 调用远程对象匹配的方法 
+* 打包返回值或错误发送给stub对象 
+
+远程对象的stub和skeleton对象都是由`rmic编译工具`产生的
+
+###### CORBA（Common Object Request Broker Architecture）
+是OMG的Object Management Architecture（对象管理结构），它是面向对象的分布式系统建立所依据的标准。CORBA被设计成一个能供所有编程语言使用的一个开放性说明，就是说一个机器上的Java客户可以要求另一个用SmallTalk或C++的机器服务。正是由于这种语言的独立性使得CORBA这么灵活和吸引人。为了适应语言独立性，CORBA采用了非常通用的标准作为其接口。在不同的语言中，远程调用、签名和对象的引入有各自不同的定义，所以CORBA必须尽可能的中立和开放。正是这种通用性是CORBA的一个弱点。当开发人员都采用CORBA时，他们要用一种新的标准定义语言接口，它`要求开发者学习新的编程接口`，从而减小了远程模型的透明性。
+
+###### IIOP(Internet Inter-ORB Protocol)
+是CORBA的通讯协议。CORBA是由OMG(Object Management Group)组织定义的一种分布式组件标准，通过和各种编程语言相匹配的`IDL(Interface Definition Language)`，CORBA可以作到和语言无关，也就是说，用不同编程语言编写的CORBA对象可以互相调用。
+
+### JMS
+#### Message Broker
+[For more information][jms-message-broker-1]
+Message broker is an intermediary program module that translates a message from the formal messaging protocol of the sender to the formal messaging protocol of the receiver. Message brokers are elements in telecommunication networks where software applications communicate by exchanging formally-defined messages. Message brokers are a building block of Message oriented middleware.
+
+A message broker is an architectural pattern for message **validation, transformation and routing**.[1] It mediates communication amongst applications, minimizing the mutual awareness that applications should have of each other in order to be able to exchange messages, effectively implementing **decoupling**.
+The purpose of a broker is to take incoming messages from applications and perform some action on them. The following are examples of actions that might be taken in by the broker:
+* Route messages to one or more of many destinations
+* Transform messages to an alternative representation
+* Perform message aggregation, decomposing messages into multiple messages and sending them to their destination, then recomposing the responses into one message to return to the user
+* Interact with an external repository to augment a message or store it
+* Invoke Web services to retrieve data
+* Respond to events or errors
+* Provide content and topic-based message routing using the publish–subscribe pattern
+
+Message broker transforms messages from one format to another (e.g. JMS to MQ) or routes a message to another place/broker/queue depending on content or topic; where as MQ is the queue the message ending up on, where it's held until it's consumed by some other app. 
+
+### J2EE
+
+J2EE 是Sun公司提出的多层(multi-tiered),分布式(distributed),基于组件(component-base)的企业级应用模型 (enterpriese application model).在这样的一个应用系统中，可按照功能划分为不同的组件，这些组件又可在不同计算机上，并且处于相应的层次(tier)中。所属层次包括客户层(clietn tier)组件,web层和组件,Business层和组件,企业信息系统(EIS)层。
 
 ### Miscellaneous
 
@@ -228,3 +339,4 @@ Java IO的各种流是阻塞的。这意味着，当一个线程调用read() 或
 [collections_3]:http://blog.csdn.net/v_JULY_v/article/details/6530142 "从B 树、B+ 树、B* 树谈到R 树"
 [misc_nio_1]:http://www.iteye.com/magazines/132-Java-NIO "Java NIO 系列教程"
 [misc_class_loader_1]:http://blog.csdn.net/xyang81/article/details/7292380 "深入分析Java ClassLoader原理"
+[jms-message-broker-1]:https://en.wikipedia.org/wiki/Message_broker "Message broker"
