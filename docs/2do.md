@@ -24,6 +24,7 @@ ___
     - [ ] :arrow_right_hook: books, such as concurrent in practise,  jvm
 - [ ] :kissing_cat: :two: changes in JDK 8 and previous versions
 - [ ] :kissing_cat: :two: update cv
+- [ ] :kissing_cat: :two: sell old computer
 
     - [ ] :smiley_cat: :one: annotation details + spring mvc annotations
 

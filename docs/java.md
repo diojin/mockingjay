@@ -3,6 +3,7 @@
 
 * [Concurrent](#concurrent)
     - [Misc](#concurrent-misc)
+        + [Immutable Class](#immutable-class)
         + [thread dump](#thread-dump)
 * [Collections](#collections)
     - [Misc](#collections-misc)
@@ -13,7 +14,13 @@
 
 ### Concurrent
 
+
+
 #### Concurrent Misc
+
+##### Immutable Class
+
+Immutable objects offers several benefits over conventional mutable object, especially while creating concurrent Java application. Immutable object not only guarantees __safe publication__ of object’s state, but also can be __shared among other threads without any external synchronization__. In fact JDK itself contains several immutable classes like String, Integer and other wrapper classes.
 
 ##### thread dump
 
