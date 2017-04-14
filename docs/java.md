@@ -17,6 +17,7 @@
             * [RMI-IIOP](#rmi-iiop)
 * [JMS](#jms)
     - [Message Broker](#message-broker)
+    - [AMQP(Advanced Message Queuing Protocol)](#amqpadvanced-message-queuing-protocol))
     - [Misc](#jms-misc)
         + [Relations between acknowledgement, session, transaction](#relations-between-acknowledgement-session-transaction)
 * [J2EE](@j2ee)
@@ -215,7 +216,19 @@ The purpose of a broker is to take incoming messages from applications and perfo
 
 Message broker transforms messages from one format to another (e.g. JMS to MQ) or routes a message to another place/broker/queue depending on content or topic; where as MQ is the queue the message ending up on, where it's held until it's consumed by some other app. 
 
-#### JMS Misc
+#### AMQP(Advanced Message Queuing Protocol)
+
+高级消息队列协议
+
+AMQP，一个提供`统一消息服务`的应用层标准高级消息队列协议,是`应用层协议的一个开放标准`,为面向消息的中间件设计。基于此协议的客户端与消息中间件可传递消息，并`不受客户端/中间件不同产品，不同的开发语言等条件的限制`。Erlang中的实现有 RabbitMQ等。
+
+AMQP的原始用途只是为金融界提供一个可以彼此协作的消息协议，而现在的目标则是为通用消息队列架构提供通用构建工具。因此，`面向消息的中间件（MOM）`系统，例如发布/订阅队列，没有作为基本元素实现。反而`通过发送简化的AMQ实体`，用户被赋予了构建例如这些实体的能力。这些实体也是规范的一部分，形成了在线路层协议顶端的一个层级：`AMQP模型`。`这个模型统一了消息模式，诸如之前提到的发布/订阅，队列，事务以及流数据，并且添加了额外的特性，例如更易于扩展，基于内容的路由。`
+
+当然这种降低耦合的机制是基于与上层产品，语言无关的协议。AMQP协议是一种`二进制协议`，提供客户端应用与消息中
+
+
+#### JMS Misc间件之间`异步、安全、高效`地交互。从整体来看，AMQP协议可划分为三层：
+
 
 ##### Relations between acknowledgement, session, transaction
 
