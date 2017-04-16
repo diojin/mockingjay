@@ -21,6 +21,7 @@
     - [Misc](#jms-misc)
         + [Relations between acknowledgement, session, transaction](#relations-between-acknowledgement-session-transaction)
 * [J2EE](#j2ee)
+    - [J2EE Design Pattern](#j2ee-design-pattern)
 * [EJB](#ejb)
     - [EJB Misc](#ejb_misc)
         + [Differences between StatefulBean and StatelessBean](#differences-between-statefulbean-and-statelessbean)
@@ -28,6 +29,9 @@
         + [EJB roles and components](#ejb-roles-and-components)
         + [Aspect fuctions provided by EJB Container](#aspect-fuctions-provided-by-ejb-container)
 * [Miscellaneous](#miscellaneous)
+    - [Terminologies](#terminologies)
+        + [JAF(JavaBeans Activation Framework)](#jafjavabeans-activation-framework)
+        + [JAT(Java Application Template)](#jatjava-application-template)
     - [Connection Pooling](#connection-pooling)
     - [class loader](#class-loader)
     - [NIO](#nio)
@@ -264,12 +268,30 @@ The other option you have is to use a transacted session where acknowledge mode 
 
 J2EE 是Sun公司提出的多层(multi-tiered),分布式(distributed),基于组件(component-base)的企业级应用模型 (enterpriese application model).在这样的一个应用系统中，可按照功能划分为不同的组件，这些组件又可在不同计算机上，并且处于相应的层次(tier)中。所属层次包括客户层(clietn tier)组件,web层和组件,Business层和组件,企业信息系统(EIS)层。
 
+#### J2EE Design Pattern
+
 ![j2ee_core_design_pattern_1]
+
+[For more information][j2ee_core_design_pattern_2]
+
+Some common used patterns,
+
+**Intercepting Filter** Facilitates preprocessing and post-processing of a request.
+
+**Transfer Object** Carries data across a tier
+
+**Data Access Object** Abstracts and encapsulates access to persistent store.
+
+**Business Delegate** Encapsulates access to a business service.
+ 
+**Session Façade** Encapsulates business-tier components and exposes a coarse-grained service to remote clients.
+
+
 
 
 ### EJB
 
-EJB包括Session Bean、Entity Bean、Message Driven Bean，基于JNDI、RMI、JAT(JTA?)等技术实现。
+EJB包括Session Bean、Entity Bean、Message Driven Bean，基于JNDI、RMI、JTA等技术实现。
 
 Session Bean又可分为有状态(stateful)和无状态(stateless)两种。
 Entity bean可分为bean管理的持续性(bmp)和容器管理的持续性(cmp)两种。
@@ -333,6 +355,30 @@ Messaging, Directory, Logging, Context
 
 
 ### Miscellaneous
+
+#### Terminologies
+
+##### JAF(JavaBeans Activation Framework)
+JavaBeans Activation Framework (JAF) is a standard extension to the Java platform that lets you take advantage of standard services to: determine the type of an arbitrary piece of data; encapsulate access to it; discover the operations available on it; and instantiate the appropriate bean to perform the operation(s).
+
+##### JAT(Java Application Template)
+
+JAT is an easy to extend Java Open Source framework. It supplies modular and flexible basic functionality to develop Java applications, improving application start-up time. Jat Portal is an enhanced version for building a complete Web Application.
+[For more information][misc-terminologies-jat-1]
+
+JAT is a flexible Java base-framework which can be easily extended to improve projects start-up time. JAT allows to build Web applications (J2EE) or standalone application (server, batch, etc.). JAT supplies the main basic functionalities of any Java application, such as: 
+
+* High Business Object abstraction 
+* Integration facilities (provided for DBMS, LDAP and open to any software product) 
+* Authentication and user privileges management 
+* MVC pattern implementation (with privileges management and page flow control) 
+* HTML layout structure management (header, footer, menu, etc.) 
+* HTML dynamic contents and facilities (form, report, paging) 
+* Logging feautures 
+* Help on-line utility 
+* High configuration of all described functionalities 
+* Administration and configuration GUI
+
 
 #### Connection Pooling
 
@@ -483,3 +529,5 @@ Java IO的各种流是阻塞的。这意味着，当一个线程调用read() 或
 [misc-connection-pooling-1]:http://www.snaq.net/java/DBPool/ "DBPool : Java Database Connection Pooling"
 [jms_amqp_1]:/resources/img/java/jms_amqp_1.png "layers of AMQP"
 [j2ee_core_design_pattern_1]:/resources/img/java/Core_J2EE_Pattern_Catalog.png "Core_J2EE_Pattern_Catalog"
+[j2ee_core_design_pattern_2]:http://www.corej2eepatterns.com/index.htm "Core J2EE Pattern Catalog"
+[misc-terminologies-jat-1]:https://sourceforge.net/projects/javappstemplate/ "Jat - Java Application Template"
