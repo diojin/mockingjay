@@ -20,7 +20,13 @@
     - [AMQP(Advanced Message Queuing Protocol)](#amqpadvanced-message-queuing-protocol))
     - [Misc](#jms-misc)
         + [Relations between acknowledgement, session, transaction](#relations-between-acknowledgement-session-transaction)
-* [J2EE](@j2ee)
+* [J2EE](#j2ee)
+* [EJB](#ejb)
+    - [EJB Misc](#ejb_misc)
+        + [Differences between StatefulBean and StatelessBean](#differences-between-statefulbean-and-statelessbean)
+        + [EJB lifecycle and Transaction Management](#ejb-lifecycle-and-transaction-management)
+        + [EJB roles and components](#ejb-roles-and-components)
+        + [Aspect fuctions provided by EJB Container](#aspect-fuctions-provided-by-ejb-container)
 * [Miscellaneous](#miscellaneous)
     - [Connection Pooling](#connection-pooling)
     - [class loader](#class-loader)
@@ -229,9 +235,18 @@ AMQP的原始用途只是为金融界提供一个可以彼此协作的消息协�
 从整体来看，AMQP协议可划分为三层:  
 ![jms_amqp_1]
 
+上面是对AMQP协议的大致说明。下面会以我们对消息服务的需求来理解AMQP所提供的域模型。消息中间件的主要功能是`消息的路由(Routing)和缓存(Buffering)`。在AMQP中提供类似功能的两种域模型：`Exchange` 和 `Message queue`
 
-#### JMS Misc间件之间`异步、安全、高效`地交互。从整体来看，AMQP协议可划分为三层：
+Exchange接收消息生产者(Message Producer)发送的消息根据不同的路由算法将消息发送往Message queue。Message queue会在消息不能被正常消费时缓存这些消息，具体的缓存策略由实现者决定，当message queue与消息消费者(Message consumer)之间的连接通畅时，Message queue有将消息转发到consumer的责任。
 
+一个broker中会存在多个Message queue，Exchange怎样知道它要把消息发送到哪个Message queue中去呢? 这就是上图中所展示`Binding`的作用。Message queue的创建是由client application控制的，在创建Message queue后需要确定它来接收并保存哪个Exchange路由的结果。Binding是用来关联Exchange与Message queue的域模型。Client application控制Exchange与某个特定Message queue关联，并将这个queue接受哪种消息的条件绑定到Exchange，这个条件也叫Binding key或是 Criteria。
+
+一个broker中会存在多个Message queue，Exchange怎样知道它要把消息发送到哪个Message queue中去呢? 这就是上图中所展示Binding的作用。Message queue的创建是由client application控制的，在创建Message queue后需要确定它来接收并保存哪个Exchange路由的结果。Binding是用来关联Exchange与Message queue的域模型。Client application控制Exchange与某个特定Message queue关联，并将这个queue接受哪种消息的条件绑定到Exchange，这个条件也叫Binding key或是 Criteria。 
+
+在与多个Message queue关联后，Exchange中就会存在一个路由表，这个表中存储着每个Message queue所需要消息的限制条件。Exchange就会检查它接受到的每个Message的Header及Body信息，来决定将Message路由到哪个queue中去。Message的Header中应该有个属性叫Routing Key，它由Message发送者产生，提供给Exchange路由这条Message的标准。Exchange根据不同路由算法有不同有Exchange Type。比如有Direct类似，需要Binding key等于Routing key；也有Binding key与Routing key符合一个模式关系；也有根据Message包含的某些属性来判断。一些基础的路由算法由AMQP所提供，client application也可以自定义各种自己的`扩展路由算法`。
+
+
+#### JMS Misc
 
 ##### Relations between acknowledgement, session, transaction
 
@@ -248,6 +263,74 @@ The other option you have is to use a transacted session where acknowledge mode 
 ### J2EE
 
 J2EE 是Sun公司提出的多层(multi-tiered),分布式(distributed),基于组件(component-base)的企业级应用模型 (enterpriese application model).在这样的一个应用系统中，可按照功能划分为不同的组件，这些组件又可在不同计算机上，并且处于相应的层次(tier)中。所属层次包括客户层(clietn tier)组件,web层和组件,Business层和组件,企业信息系统(EIS)层。
+
+![j2ee_core_design_pattern_1]
+
+
+### EJB
+
+EJB包括Session Bean、Entity Bean、Message Driven Bean，基于JNDI、RMI、JAT(JTA?)等技术实现。
+
+Session Bean又可分为有状态(stateful)和无状态(stateless)两种。
+Entity bean可分为bean管理的持续性(bmp)和容器管理的持续性(cmp)两种。
+
+remote接口定义了业务方法，用于ejb客户端调用业务方法。 
+home接口是ejb工厂用于创建和移除查找ejb实例 
+
+设置jndi服务工厂以及jndi服务地址系统属性，查找home接口，从home接口调用create方法创建remote接口，通过remote接口调用其业务方法。
+
+
+
+#### EJB Misc
+
+##### Differences between StatefulBean and StatelessBean
+这两种的 Session Bean都可以将系统逻辑放在method之中执行，
+不同的是 Stateful Session Bean 可以`记录呼叫者的状态`，因此通常来说，一个使用者会有一个相对应的 Stateful Session Bean 的实体。
+
+Stateless Session Bean 虽然也是逻辑组件，但是他却不负责记录使用者状态，也就是说当使用者呼叫 Stateless Session Bean 的时候，EJB Container 并不会找寻特定的 Stateless Session Bean 的实体来执行这个 method。换言之，很可能数个使用者在执行某个 Stateless Session Bean 的 methods 时，会是同一个 Bean 的 Instance 在执行。
+
+从内存方面来看， Stateful Session Bean 与 Stateless Session Bean 比较， Stateful Session Bean 会消耗 J2EE Server 较多的内存，然而 Stateful Session Bean 的优势却在于他可以维持使用者的状态。
+
+对于stateless session bean、entity bean、message driven bean一般存在缓冲池管理，而对于entity bean和statefull session bean存在cache管理，通常包含创建实例，设置上下文、创建ejb object(create)、业务方法调用、remove等过程，对于存在缓冲池管理的bean，在create之后实例并不从内存清除，而是采用缓冲池调度机制不断重用实例，而对于存在cache管理的bean则通过激活和去激活机制保持bean的状态并限制内存中实例数量。
+
+以Stateful Session Bean 为例：其Cache大小决定了内存中可以同时存在的Bean实例的数量，根据MRU或NRU算法，实例在激活和去激活状态之间迁移，激活机制是当客户端调用某个EJB实例业务方法时，如果对应EJB Object发现自己没有绑定对应的Bean实例则从其去激活Bean存储中（通过序列化机制存储实例）回复（激活）此实例。状态变迁前会调用对应的 ejbActivate和ejbPassivate方法。
+
+##### EJB lifecycle and Transaction Management
+
+sessionbean：  
+stateless session bean 的生命周期是由容器决定的，当客户机发出请求要建立一个bean的实例时，ejb容器不一定要创建一个新的bean的实例供客户机调用，而是随便找一个现有的实例提供给客户机。  
+
+当客户机第一次调用一个stateful session bean 时，容器必须立即在服务器中创建一个新的bean实例，并关联到客户机上，以后此客户机调用stateful session bean 的方法时容器会把调用分派到与此客户机相关联的bean实例。 
+
+entity beans能存活相对较长的时间，并且状态是持续的。只要数据库中的数据存在，entity beans就一直存活。而不是按照应用程序或者服务进程来说的。即使ejb容器崩溃了，entity beans也是存活的。entity beans生命周期能够被容器或者 beans自己管理。
+
+**ejb通过以下技术管理事务**  
+对象管理组织(omg)的对象事务服务(ots)，SUN microsystems的transaction service(jts)、java transaction api(jta)，开发组(x/open)的xa接口。
+
+##### EJB roles and components
+一个完整的基于ejb的分布式计算结构由六个角色组成，这六个角色可以由不同的开发商提供，每个角色所作的工作必须遵循sun公司提供的ejb规范，以保证彼此之间的兼容性。这六个角色分别是`ejb组件开发者(enterprise bean provider)`, `ejb 容器提供者(ejb container provider)`, `ejb 服务器提供者(ejb server provider)`, `应用组合者(application assembler)`, `部署者(deployer)`, `系统管理员(system administrator)`
+
+三个对象是remote(local)接口、home(localhome)接口，bean类
+
+
+##### Aspect fuctions provided by EJB Container
+
+主要提供生命周期管理、代码产生、持续性管理、安全、事务管理、锁和并发行管理等服务。 
+
+Messaging, Directory, Logging, Context
+
+##### Prohabited functions by EJB specification
+
+1. 不能操作线程和线程api(线程api指非线程对象的方法如notify,wait等)。
+2. 不能操作awt
+3. 不能实现服务器功能
+4. 不能对静态属性存取
+5. 不能使用io操作直接存取文件系统
+6. 不能加载本地库
+7. 不能将this作为变量和返回
+8. 不能循环调用。 
+
+
 
 ### Miscellaneous
 
@@ -399,3 +482,4 @@ Java IO的各种流是阻塞的。这意味着，当一个线程调用read() 或
 [jms-message-broker-1]:https://en.wikipedia.org/wiki/Message_broker "Message broker"
 [misc-connection-pooling-1]:http://www.snaq.net/java/DBPool/ "DBPool : Java Database Connection Pooling"
 [jms_amqp_1]:/resources/img/java/jms_amqp_1.png "layers of AMQP"
+[j2ee_core_design_pattern_1]:/resources/img/java/Core_J2EE_Pattern_Catalog.png "Core_J2EE_Pattern_Catalog"
