@@ -224,7 +224,10 @@ AMQP，一个提供`统一消息服务`的应用层标准高级消息队列协�
 
 AMQP的原始用途只是为金融界提供一个可以彼此协作的消息协议，而现在的目标则是为通用消息队列架构提供通用构建工具。因此，`面向消息的中间件（MOM）`系统，例如发布/订阅队列，没有作为基本元素实现。反而`通过发送简化的AMQ实体`，用户被赋予了构建例如这些实体的能力。这些实体也是规范的一部分，形成了在线路层协议顶端的一个层级：`AMQP模型`。`这个模型统一了消息模式，诸如之前提到的发布/订阅，队列，事务以及流数据，并且添加了额外的特性，例如更易于扩展，基于内容的路由。`
 
-当然这种降低耦合的机制是基于与上层产品，语言无关的协议。AMQP协议是一种`二进制协议`，提供客户端应用与消息中
+当然这种降低耦合的机制是基于与上层产品，语言无关的协议。AMQP协议是一种`二进制协议`，提供客户端应用与消息中间件之间`异步、安全、高效地交互`。
+
+从整体来看，AMQP协议可划分为三层:  
+![jms_amqp_1]
 
 
 #### JMS Misc间件之间`异步、安全、高效`地交互。从整体来看，AMQP协议可划分为三层：
@@ -395,3 +398,4 @@ Java IO的各种流是阻塞的。这意味着，当一个线程调用read() 或
 [misc_class_loader_1]:http://blog.csdn.net/xyang81/article/details/7292380 "深入分析Java ClassLoader原理"
 [jms-message-broker-1]:https://en.wikipedia.org/wiki/Message_broker "Message broker"
 [misc-connection-pooling-1]:http://www.snaq.net/java/DBPool/ "DBPool : Java Database Connection Pooling"
+[jms_amqp_1]:/resources/img/java/jms_amqp_1.png "layers of AMQP"
