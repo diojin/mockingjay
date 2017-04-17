@@ -36,6 +36,7 @@
     - [class loader](#class-loader)
     - [NIO](#nio)
     - [Stream](#stream)
+    - [Eclipse Shortcuts](#eclipse-shortcuts)
 
 ### Concurrent
 
@@ -334,7 +335,6 @@ entity beans能存活相对较长的时间，并且状态是持续的。只要�
 
 三个对象是remote(local)接口、home(localhome)接口，bean类
 
-
 ##### Aspect fuctions provided by EJB Container
 
 主要提供生命周期管理、代码产生、持续性管理、安全、事务管理、锁和并发行管理等服务。 
@@ -351,8 +351,6 @@ Messaging, Directory, Logging, Context
 6. 不能加载本地库
 7. 不能将this作为变量和返回
 8. 不能循环调用。 
-
-
 
 ### Miscellaneous
 
@@ -518,6 +516,32 @@ Java IO的各种流是阻塞的。这意味着，当一个线程调用read() 或
 
 
 #### Stream
+
+#### Eclipse Shortcuts
+
+全局 打开外部javadoc Shift+F2 
+Java编辑器 打开结构 Ctrl+F3 
+全局 打开资源 Ctrl+Shift+R 
+全局 打开类型 Ctrl+Shift+T 
+全局 打开类型层次结构 F4 
+全局 打开声明 F3 
+全局 在层次结构中打开类型 Ctrl+Shift+H 
+
+全局 转至匹配的括号 Ctrl+Shift+P
+
+全局 转至上一个编辑位置 Ctrl+Q  
+
+全局 快速修正 Ctrl+1 
+全局 内容辅助 Alt+/ 
+全局 上下文信息/智能提示  Alt+ / 
+Alt+Shift+/
+Ctrl+Shift+Space 
+
+ctrl + shift + o：导入类 
+ctrl + shift + f：格式化代码 
+
+查找当前元素的声明 Ctrl+G
+查找当前元素的所有引用 Ctrl+Shift+G
 
 ---
 [collections_1]:/resources/img/java/collection_performance_test_1.png "performance test: set vs hash_set vs hash_table"
