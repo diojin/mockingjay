@@ -126,9 +126,7 @@ PROPAGATION_NESTED–如果当前存在事务，则在嵌套事务内执行。�
 #### Spring Misc
 
 
-
-
 ### Miscellaneous
 
 ---
-[spring-framework-1]:/resources/img/java/spring-framework-runtime "Overview of the Spring Framework(from Spring 4.2.6)"
+[spring-framework-1]:/resources/img/java/spring-framework-runtime.png "Overview of the Spring Framework(from Spring 4.2.6)"
