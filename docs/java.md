@@ -20,7 +20,9 @@
     - [AMQP(Advanced Message Queuing Protocol)](#amqpadvanced-message-queuing-protocol))
     - [Misc](#jms-misc)
         + [Relations between acknowledgement, session, transaction](#relations-between-acknowledgement-session-transaction)
-* [J2EE](#j2ee)
+* [Java SE](#java-se)
+    - [Instrumentation](#instrumenmtation)
+* [Java EE](#java-ee)
     - [J2EE Design Pattern](#j2ee-design-pattern)
 * [EJB](#ejb)
     - [EJB Misc](#ejb_misc)
@@ -264,8 +266,162 @@ For your requirement I think you can choose CLIENT_ACKNOWLEDGE as it allows your
 
 The other option you have is to use a transacted session where acknowledge mode has no effect. In a transacted session, messages are removed from a queue only when application calls commit. If the session calls rollback or ends without calling commit, all messages that were delivered to an application since the previous commit call will reappear in the queue.
 
+### Java SE
 
-### J2EE
+#### Instrumentation
+
+利用 java.lang.instrument 做动态 Instrumentation 是 Java SE 5 的新特性，使用 Instrumentation，开发者可以构建一个独立于应用程序的代理程序（Agent），用来监测和协助运行在 JVM 上的程序，甚至能够替换和修改某些类的定义。这样的特性实际上提供了一种虚拟机级别支持的 AOP 实现方式，使得开发者无需对 JDK 做任何升级和改动，就可以实现某些 AOP 的功能了。
+
+在 Java SE 6 里面，instrumentation 包被赋予了更强大的功能：
+* 运行时的 instrument
+* 本地代码（native code）instrument
+* 动态改变 classpath 等等
+
+在 Java SE6 里面，最大的改变使运行时的 Instrumentation 成为可能。在 Java SE 5 中，Instrument 要求在运行前利用命令行参数或者系统参数来设置代理类，在实际的运行之中，虚拟机在初始化之时（在绝大多数的 Java 类库被载入之前），instrumentation 的设置已经启动，并在虚拟机中设置了回调函数，检测特定类的加载情况，并完成实际工作。但是在实际的很多的情况下，我们没有办法在虚拟机启动之时就为其设定代理，这样实际上限制了 instrument 的应用。而 Java SE 6 的新特性改变了这种情况，通过 Java Tool API 中的 attach 方式，我们可以很方便地在运行过程中动态地设置加载代理类，以达到 instrumentation 的目的。
+
+另外，对 native 的 Instrumentation 也是 Java SE 6 的一个崭新的功能，这使以前无法完成的功能 —— 对 native 接口的 instrumentation 可以在 Java SE 6 中，通过一个或者一系列的 prefix 添加而得以完成。
+
+最后，Java SE 6 里的 Instrumentation 也增加了动态添加 class path 的功能。
+
+有两种方式来获取Instrumentation接口实例：  
+* 命令行参数. 启动JVM时指定agent类。这种方式，Instrumentation的实例通过agent class的premain方法被传入。
+* 运行时. JVM提供一种当JVM启动完成后开启agent机制。这种情况下，Instrumention实例通过agent代码中的的agentmain传入。
+
+java agent 在JDK package specification中解释：一个agent 是被作为Jar 文件形式来部署的。在Jar文件中manifest中指定哪个类作为agent类。
+
+__Example:__  
+
+
+
+1. 命令行方法
+2. 
+```java
+import java.lang.instrument.ClassFileTransformer;
+public class PeopleClassFileTransformer implements ClassFileTransformer {
+    @Override
+    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+        System.out.println("load class:"+className);
+        if("com.yao.intrumentation.People".equals(className)){
+            try {
+                //通过javassist修改sayHello方法字节码
+                CtClass ctClass= ClassPool.getDefault().get(className.replace('/','.'));
+                CtMethod sayHelloMethod=ctClass.getDeclaredMethod("sayHello");
+                sayHelloMethod.insertBefore("System.out.println(\"before sayHello----\");");
+                sayHelloMethod.insertAfter("System.out.println(\"after sayHello----\");");
+                return ctClass.toBytecode();
+            } catch (NotFoundException e) {
+                e.printStackTrace();
+            } catch (CannotCompileException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return classfileBuffer;
+    }
+}
+
+// to-be-agent codes
+public class People {
+
+    public void sayHello(){
+        System.out.println("hello !!!!");
+    }
+}
+
+// Agent class
+public class MyAgent {
+    public static void premain(String agentArgs,Instrumentation inst){
+        //PeopleClassFileTransformer
+        inst.addTransformer(new PeopleClassFileTransformer());
+    }
+}
+```
+
+* in META-INF/MANIFEST
+```java
+Premain-Class: com.yao.intrumentation.MyAgent
+```
+
+* pack PeopleClassFileTransformer and MyAgent into a separate jar file, myagent.jar
+jar -cvfm myagent.jar META-INF/MANIFEST.MF *
+
+* test class, launch it with VM parameters "-javaagent:/Users/yao/workspace/private/JavaSPI/target/classes/myagent.jar"
+```java
+public class TestMain {
+    public static void main(String[]args){
+        People people=new People();
+        people.sayHello();
+    }
+}
+```
+
+result is like:  
+load class:java/lang/invoke/MethodHandleImpl
+load class:java/lang/invoke/MethodHandleImpl$1
+load class:java/lang/invoke/MethodHandleImpl$2
+load class:java/util/function/Function
+load class:java/lang/invoke/MethodHandleImpl$3
+load class:java/lang/invoke/MethodHandleImpl$4
+load class:java/lang/ClassValue
+load class:java/lang/ClassValue$Entry
+load class:java/lang/ClassValue$Identity
+load class:java/lang/ClassValue$Version
+load class:java/lang/invoke/MemberName$Factory
+load class:java/lang/invoke/MethodHandleStatics
+load class:java/lang/invoke/MethodHandleStatics$1
+load class:sun/misc/PostVMInitHook
+load class:sun/launcher/LauncherHelper
+load class:com/yao/intrumentation/TestMain
+load class:sun/launcher/LauncherHelper$FXHelper
+load class:java/lang/Class$MethodArray
+load class:java/lang/Void
+load class:com/yao/intrumentation/People
+before sayHello----
+hello !!!!
+after sayHello----
+load class:java/lang/Shutdown
+load class:java/lang/Shutdown$Lock
+
+2. 运行时方法
+
+put agent class into a separate jar, similiar as the 1st way
+```java
+// agent class
+public class MainAgent {
+    public static void agentmain(String args, Instrumentation inst){
+        Class[] classes = inst.getAllLoadedClasses();
+        for(Class cls :classes){
+            System.out.println(cls.getName());
+        }
+
+    }
+}
+// in META-INF/MANIFEST.MF
+Agent-Class: com.yao.intrumentation.MainAgent
+```
+
+```java
+// to-be-agent codes
+public class RunningApp {
+    public static void main(String[]args) throws InterruptedException {
+        People people=new People();
+        Thread.sleep(1000*1000);
+    }
+}
+
+// test class
+public class TestMainAgent {
+    public static void main(String[]args) throws InterruptedException, IOException, AgentLoadException, AgentInitializationException, AttachNotSupportedException {
+        VirtualMachine vm = VirtualMachine.attach(args[0]); //正在运行的java 程序 pid of RunningApp
+        vm.loadAgent("/Users/yao/workspace/private/JavaSPI/target/classes/agentmain.jar");
+        //刚刚编译好的agent jar 位置
+    }
+}
+
+```
+
+### Java EE
 
 J2EE 是Sun公司提出的多层(multi-tiered),分布式(distributed),基于组件(component-base)的企业级应用模型 (enterpriese application model).在这样的一个应用系统中，可按照功能划分为不同的组件，这些组件又可在不同计算机上，并且处于相应的层次(tier)中。所属层次包括客户层(clietn tier)组件,web层和组件,Business层和组件,企业信息系统(EIS)层。
 
