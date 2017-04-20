@@ -670,7 +670,7 @@ public String showPriceHistory(@RequestParam Long subscriptionId, @RequestParam 
 ##### @Autowired and @Required and @Inject and @Resource
 
 >RequiredAnnotationBeanPostProcessor
->>In particular, it does not check that a configured value is not null. 
+>>Please note that an 'init' method may still need to implemented (and may still be desirable), because all that this class does is enforce that a 'required' property has actually been configured with a value. It does not check anything else... In particular, it does not check that a configured value is not null.  
 Note: A default RequiredAnnotationBeanPostProcessor will be registered by the "context:annotation-config" and "context:component-scan" XML tags. Remove or turn off the default annotation configuration there if you intend to specify a custom RequiredAnnotationBeanPostProcessor bean definition.
 
 [SPRING INJECTION WITH @RESOURCE, @AUTOWIRED AND @INJECT][spring_annotation_1]
@@ -696,6 +696,7 @@ __@Resource__
 1. Matches by Name
 2. Matches by Type
 3. Restricts by Qualifiers (ignored if match is found by name)
+
 While it could be argued that ‘@Resource’ will perform faster by name than ‘@Autowired’ and ‘@Inject’ it would be negligible. This isn’t a sufficient reason to favor one syntax over the others. I do however favor the ‘@Resource’ annotation for it’s concise notation style.
 
 
