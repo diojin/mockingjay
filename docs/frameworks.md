@@ -6,9 +6,26 @@
         + [Bean Lifecycle](#bean-lifecycle)
     - [Annotation](#spring-annotation)
         + [@ComponentScan](#componentscan)
+        + [@Component](#component)
+        + [@Controller](#controller)
+        + [@Service](#service)
+        + [@Repository](#repository)
+        + [@Scope](#scope)
+        + [@Value](#value)
+        + [@Bean](#bean)
+        + [@Primary](#primary)
+        + [@PostConstruct](#postconstruct)
+        + [@PreDestroy](#predestroy)
+        + [@Async](#async)
+        + [@Transational](#transactional)
+        + [@RequestMapping](#requestmapping)
+        + [@ModelAttribute](#modelattribute)
+        + [@Model and @ModelMap](#model-and-modelmap)
     - [Aspect](#spring-aspect)
     - [Transaction](#spring-transaction)    
     - [Misc](#spring-misc)
+        + [Bean Bootstrapping ways](#bean-bootstrapping-ways)
+        + [context:annotation-config](#context-annotation-config)
 * [Miscellaneous](#miscellaneous)
 
 
@@ -85,8 +102,576 @@ The similar apply to destroy processes,
 注解实现Bean配置主要用来进行如依赖注入、生命周期回调方法定义等，不能消除XML文件中的Bean元数据定义，且`基于XML配置中的依赖注入的数据将覆盖基于注解配置中的依赖注入的数据`
 
 ##### @ComponentScan
+Configures component scanning directives for use with @Configuration classes. Provides support parallel with Spring XML's <context:component-scan> element.
 
-component-scan
+It can be used with AnnotationConfigApplicationContext.
+
+Note that the <context:component-scan> element has an annotation-config attribute, however this annotation does not. This is because in almost all cases when using @ComponentScan, default annotation config processing (e.g. processing @Autowired and friends) is assumed. Furthermore, when using AnnotationConfigApplicationContext, annotation config processors are always registered, meaning that any attempt to disable them at the @ComponentScan level would be ignored. 
+
+```xml
+
+<context:component-scan base-package="cn.gacl.java"/>
+<!-- 表明cn.gacl.java包及其子包中，如果某个类的头上带有特定的注解【@Component/@Repository/@Service/@Controller】，就会将这个对象作为Bean注册进Spring容器。也可以在<context:component-scan base-package=” ”/>中指定多个包，如 -->
+<context:component-scan base-package="cn.gacl.dao.impl,cn.gacl.action"/>
+
+<context:component-scan base-package="com.spring.ioc5">  
+    <!-- annotation 通过注解来过滤          org.example.SomeAnnotation    
+        assignable 通过指定名称过滤        org.example.SomeClass  
+        regex      通过正则表达式过滤      org\.example\.Default.*  
+        aspectj    通过aspectj表达式过滤  org.example..*Service+  
+    -->  
+    <context:include-filter type="regex" expression="com.spring.ioc5.*"/>
+    <context:exclude-filter type="annotation" expression="org.springframework.beans.factory.annotation.Autowired"/>  
+</context:component-scan> 
+```
+
+```java
+import com.coupang.configuration.CommonApplicationContextConfig;
+import com.coupang.configuration.ConfigurationPropertiesApplicationContextInitializer;
+
+@Configuration
+@Import({CommonApplicationContextConfig.class, MyJpaRepositortyConfigSinglePackage.class})
+@ComponentScan(
+    basePackageClasses = {ZombieCustomerTraceRepository.class},
+    useDefaultFilters = false,
+    includeFilters = {
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, value = {ZombieCustomerTraceRepository.class, AddressInfoRepository.class})
+    }
+)
+class MyDbDependenciesSinglePackagesConfig{
+}
+
+// test classes
+@Test
+@Ignore
+public void testMyDBSinglePackageScanned(){
+    AnnotationConfigApplicationContext rootContext = new AnnotationConfigApplicationContext();
+    new ConfigurationPropertiesApplicationContextInitializer().initialize(rootContext);
+    rootContext.register(MyDbDependenciesSinglePackagesConfig.class);
+    rootContext.refresh();
+    ZombieCustomerTraceRepository repo = rootContext.getBean(ZombieCustomerTraceRepository.class);
+    System.out.println(repo.findOne(15l));
+}
+
+```
+
+
+##### @Component
+Indicates that an annotated class is a "component". Such classes are considered as candidates for auto-detection when using annotation-based configuration and classpath scanning. 
+
+Other class-level annotations may be considered as identifying a component as well, typically a special kind of component: e.g. the @Repository annotation or AspectJ's @Aspect annotation.
+
+Other annotations marked as @Component includes @Configuration, @Controller, @Service, @Repository, and etc.
+
+>org.springframework.context.annotation.ClassPathBeanDefinitionScanner
+>>A bean definition scanner that detects bean candidates on the classpath, registering corresponding bean definitions with a given registry (BeanFactory or ApplicationContext). 
+Candidate classes are detected through configurable type filters. The default filters include classes that are annotated with Spring's @Component, @Repository, @Service, or @Controller stereotype. 
+Also supports Java EE 6's javax.annotation.ManagedBean and JSR-330's javax.inject.Named annotations, if available
+
+##### @Configuration
+org.springframework.context.annotation.Configuration
+
+Indicates that a class declares one or more @Bean methods and may be processed by the Spring container to generate bean definitions and service requests for those beans at runtime, for example:
+
+```java
+@Configuration
+public class AppConfig {
+    @Bean
+    public MyBean myBean() {
+        // instantiate, configure and return bean ...
+    }
+}
+
+// for example, a @Bean definition
+@Bean(name = "threadPoolTaskExecutor")
+public TaskExecutor threadPoolTaskExecutor() {
+    ThreadPoolTaskExecutor threadPoolTaskExecutor =
+            new ThreadPoolTaskExecutor();
+    threadPoolTaskExecutor.setCorePoolSize(ASYNC_CORE_POOL_SIZE);
+    threadPoolTaskExecutor.setMaxPoolSize(ASYNC_MAX_POOL_SIZE);
+    threadPoolTaskExecutor.setQueueCapacity(ASYNC_QUEUE_CAPACITY);
+    threadPoolTaskExecutor.setThreadNamePrefix("SubscribeOrderWorker");
+    threadPoolTaskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
+    ThreadPoolExecutorStatsJMXRegister.register(threadPoolTaskExecutor);
+    return threadPoolTaskExecutor;
+}
+```
+
+__Bootstrapping @Configuration classes__  
+1. Via AnnotationConfigApplicationContext
+@Configuration classes are typically bootstrapped using either **AnnotationConfigApplicationContext** or its web-capable variant, **AnnotationConfigWebApplicationContext**. A simple example with the former follows: 
+```java
+AnnotationConfigApplicationContext ctx =
+    new AnnotationConfigApplicationContext();
+ctx.register(AppConfig.class);
+ctx.refresh();
+MyBean myBean = ctx.getBean(MyBean.class);
+// use myBean ...
+```
+
+2. Via Spring <beans> XML
+As an alternative to registering @Configuration classes directly against an AnnotationConfigApplicationContext, @Configuration classes may be declared as normal <bean> definitions within Spring XML files: 
+
+```xml
+<beans>
+   <context:annotation-config/>
+   <bean class="com.acme.AppConfig"/>
+</beans>
+```
+In the example above, <context:annotation-config/> is required in order to enable ConfigurationClassPostProcessor and other annotation-related post processors that facilitate handling @Configuration classes. 
+
+3. Via component scanning
+@Configuration is meta-annotated with @Component, therefore @Configuration classes are candidates for component scanning (typically using Spring XML's <context:component-scan/> element) and therefore may also take advantage of @Autowired/@Inject at the field and method level (but not at the constructor level). 
+
+@Configuration classes may not only be bootstrapped using component scanning, but may also themselves configure component scanning using the @ComponentScan annotation: 
+```java
+@Configuration
+@ComponentScan("com.acme.app.services")
+public class AppConfig {
+    // various @Bean definitions ...
+}
+```
+
+__Working with externalized values__  
+1. Using the Environment API
+
+Externalized values may be looked up by injecting the Spring Environment into a @Configuration class using the @Autowired or the @Inject annotation: 
+```java
+@Configuration
+public class AppConfig {
+    @Inject Environment env;
+
+    @Bean
+    public MyBean myBean() {
+        MyBean myBean = new MyBean();
+        myBean.setName(env.getProperty("bean.name"));
+        return myBean;
+    }
+}
+```
+
+Properties resolved through the Environment reside in one or more "property source" objects, and @Configuration classes may contribute property sources to the Environment object using the @PropertySources annotation: 
+
+```java
+@Configuration
+@PropertySource("classpath:/com/acme/app.properties")
+public class AppConfig {
+    @Inject Environment env;
+
+    @Bean
+    public MyBean myBean() {
+        return new MyBean(env.getProperty("bean.name"));
+    }
+}
+```
+
+2. Using the @Value annotation
+Externalized values may be 'wired into' @Configuration classes using the @Value annotation: 
+```java
+ @Configuration
+ @PropertySource("classpath:/com/acme/app.properties")
+ public class AppConfig {
+     @Value("${bean.name}") String beanName;
+
+     @Bean
+     public MyBean myBean() {
+         return new MyBean(beanName);
+     }
+ }
+```
+This approach is most useful when using Spring's PropertySourcesPlaceholderConfigurer, usually enabled via XML with <context:property-placeholder/>. See the section below on composing @Configuration classes with Spring XML using @ImportResource, see @Value Javadoc, and see @Bean Javadoc for details on working with BeanFactoryPostProcessor types such as PropertySourcesPlaceholderConfigurer. 
+
+__Composing @Configuration classes__  
+1. With the @Import annotation
+@Configuration classes may be composed using the @Import annotation, not unlike the way that <import> works in Spring XML. Because @Configuration objects are managed as Spring beans within the container, imported configurations may be injected using @Autowired or @Inject: 
+```java
+@Configuration
+public class DatabaseConfig {
+    @Bean
+    public DataSource dataSource() {
+        // instantiate, configure and return DataSource
+    }
+}
+
+@Configuration
+@Import(DatabaseConfig.class)
+public class AppConfig {
+    @Inject DatabaseConfig dataConfig;
+
+    @Bean
+    public MyBean myBean() {
+        // reference the dataSource() bean method
+        return new MyBean(dataConfig.dataSource());
+    }
+}
+// Now both AppConfig and the imported DatabaseConfig can be bootstrapped by registering only AppConfig against the Spring context: 
+new AnnotationConfigApplicationContext(AppConfig.class);
+```
+
+2. With the @Profile annotation
+@Configuration classes may be marked with the @Profile annotation to indicate they should be processed only if a given profile or profiles are active: 
+```java
+@Profile("embedded")
+@Configuration
+public class EmbeddedDatabaseConfig {
+    @Bean
+    public DataSource dataSource() {
+        // instantiate, configure and return embedded DataSource
+    }
+}
+
+@Profile("production")
+@Configuration
+public class ProductionDatabaseConfig {
+    @Bean
+    public DataSource dataSource() {
+        // instantiate, configure and return production DataSource
+    }
+}
+```
+
+3. With Spring XML using the @ImportResource annotation
+As mentioned above, @Configuration classes may be declared as regular Spring <bean> definitions within Spring XML files. It is also possible to import Spring XML configuration files into @Configuration classes using the @ImportResource annotation. Bean definitions imported from XML can be injected using @Autowired or @Import: 
+```java
+ @Configuration
+ @ImportResource("classpath:/com/acme/database-config.xml")
+ public class AppConfig {
+     @Inject DataSource dataSource; // from XML
+
+     @Bean
+     public MyBean myBean() {
+         // inject the XML-defined dataSource bean
+         return new MyBean(this.dataSource);
+     }
+ }
+```
+
+4. With nested @Configuration classes
+@Configuration classes may be nested within one another as follows: 
+```java
+@Configuration
+public class AppConfig {
+    @Inject DataSource dataSource;
+
+    @Bean
+    public MyBean myBean() {
+        return new MyBean(dataSource);
+    }
+
+    @Configuration
+    static class DatabaseConfig {
+        @Bean
+        DataSource dataSource() {
+            return new EmbeddedDatabaseBuilder().build();
+        }
+    }
+}
+```
+When bootstrapping such an arrangement, only AppConfig need be registered against the application context. By virtue of being a nested @Configuration class, DatabaseConfig will be registered automatically. This avoids the need to use an @Import annotation when the relationship between AppConfig DatabaseConfig is already implicitly clear. 
+Note also that nested @Configuration classes can be used to good effect with the @Profile annotation to provide two options of the same bean to the enclosing @Configuration class. 
+
+__Configuring lazy initialization__  
+By default, @Bean methods will be **eagerly instantiated** at container bootstrap time. To avoid this, @Configuration may be used in conjunction with the **@Lazy** annotation to indicate that all @Bean methods declared within the class are by default lazily initialized. Note that @Lazy may be used on individual @Bean methods as well. 
+
+__Testing support for @Configuration classes__  
+The Spring TestContext framework available in the spring-test module provides the @ContextConfiguration annotation, which as of Spring 3.1 can accept an array of @Configuration Class objects: 
+ @RunWith(SpringJUnit4ClassRunner.class)
+ @ContextConfiguration(classes={AppConfig.class, DatabaseConfig.class})
+ public class MyTests {
+
+     @Autowired MyBean myBean;
+
+     @Autowired DataSource dataSource;
+
+     @Test
+     public void test() {
+         // assertions against myBean ...
+     }
+ }
+
+__Enabling built-in Spring features using @Enable annotations__  
+Spring features such as asynchronous method execution, scheduled task execution, annotation driven transaction management, and even Spring MVC can be enabled and configured from @Configuration classes using their respective "@Enable" annotations. See @EnableAsync, @EnableScheduling, @EnableTransactionManagement, @EnableAspectJAutoProxy, and @EnableWebMvc for details. 
+
+__Constraints when authoring @Configuration classes__  
+1. @Configuration classes must be non-final 
+2. @Configuration classes must be non-local (may not be declared within a method) 
+3. @Configuration classes must have a default/no-arg constructor and may not use @Autowired constructor parameters. 
+4. Any nested configuration classes must be static. 
+
+##### @Controller
+* org.springframework.stereotype.Controller
+This annotation serves as a specialization of @Component, allowing for implementation classes to be autodetected through classpath scanning. It is typically used in combination with annotated handler methods based on the org.springframework.web.bind.annotation.RequestMapping annotation.
+```java
+@Controller
+@Scope("prototype")
+public class UserAction extends BaseAction<User>{
+    //……
+}
+```
+
+使用@Controller注解标识UserAction之后，就表示要把UserAction交给Spring容器管理，在Spring容器中会存在一个名字为"userAction"的action，这个名字是根据UserAction类名来取的。
+
+注意：如果@Controller不指定其value，则默认的bean名字为这个类的类名首字母小写，如果指定value【@Controller(value="UserAction")】或者【@Controller("UserAction")】，则使用value作为bean的名字。
+
+* org.springframework.web.servlet.mvc.Controller
+Base Controller interface, representing a component that receives HttpServletRequest and HttpServletResponse instances just like a HttpServlet but is able to participate in an MVC workflow. Controllers are comparable to the notion of a Struts Action. 
+
+Not used in coupang project.
+
+##### @Service
+org.springframework.stereotype
+
+Indicates that an annotated class is a "Service", originally defined by Domain-Driven Design (Evans, 2003) as "an operation offered as an interface that stands alone in the model, with no encapsulated state." 
+
+May also indicate that a class is a "Business Service Facade" (in the Core J2EE patterns sense), or something similar. This annotation is a general-purpose stereotype and individual teams may narrow their semantics and use as appropriate. 
+
+This annotation serves as a specialization of @Component, allowing for implementation classes to be autodetected through classpath scanning.
+
+##### @Repository
+org.springframework.stereotype.Repository
+
+Indicates that an annotated class is a "Repository", originally defined by Domain-Driven Design (Evans, 2003) as "a mechanism for encapsulating storage, retrieval, and search behavior which emulates a collection of objects". 
+
+Teams implementing traditional J2EE patterns such as "Data Access Object" may also apply this stereotype to DAO classes, This annotation is a general-purpose stereotype and individual teams may narrow their semantics and use as appropriate. 
+
+As of Spring 2.5, this annotation also serves as a specialization of @Component, allowing for implementation classes to be autodetected through classpath scanning.
+
+##### @Scope
+When used as a type-level annotation in conjunction with the Component annotation, indicates the name of a scope to use for instances of the annotated type. 
+
+When used as a method-level annotation in conjunction with the Bean annotation, indicates the name of a scope to use for the instance returned from the method. 
+
+In this context, scope means the lifecycle of an instance, such as singleton, prototype, and so forth. Scopes provided out of the box in Spring may be referred to using the SCOPE_* constants available in via ConfigurableBeanFactory and WebApplicationContext interfaces.
+```java 
+ConfigurableBeanFactory.SCOPE_SINGLETON
+ConfigurableBeanFactory.SCOPE_PROTOTYPE
+org.springframework.web.context.WebApplicationContext.SCOPE_REQUEST
+org.springframework.web.context.WebApplicationContext.SCOPE_SESSION
+```
+To register additional custom scopes, see CustomScopeConfigurer.
+
+##### @Value
+
+Annotation at the field or method/constructor parameter level that indicates a default value expression for the affected argument. 
+
+Typically used for expression-driven dependency injection. Also supported for dynamic resolution of handler method parameters, e.g. in Spring MVC. 
+
+用于注入SpEL表达式
+
+```java
+@Value("#{environment['product.change.tips.categories']}")
+```
+
+##### @Bean
+Indicates that a method produces a bean to be managed by the Spring container. 
+
+```java
+public @interface Bean {
+    String[] name() default {};
+    /** Are dependencies to be injected via convention-based autowiring by name or type? */
+    Autowire autowire() default Autowire.NO;
+    String initMethod() default "";
+    String destroyMethod() default AbstractBeanDefinition.INFER_METHOD;
+}
+```
+
+
+Note that the @Bean annotation does not provide attributes for scope, depends-on, primary, or lazy. Rather, it should be used in conjunction with @Scope, @DependsOn, @Primary, and @Lazy annotations to achieve those semantics. For example: 
+```java
+@Bean
+@Scope("prototype")
+public MyBean myBean() {
+    // instantiate and configure MyBean obj
+    return obj;
+}
+```
+
+Typically, @Bean methods are declared within @Configuration classes. In this case, bean methods may reference other @Bean methods in the same class by calling them directly. Such so-called 'inter-bean references' 
+
+```java
+@Configuration
+public class AppConfig {
+    @Bean
+    public FooService fooService() {
+        return new FooService(fooRepository());
+    }
+    @Bean
+    public FooRepository fooRepository() {
+        return new JdbcFooRepository(dataSource());
+    }
+    // ...
+}
+```
+
+@Bean methods may also be declared within classes that are not annotated with @Configuration. In such cases, a @Bean method will get processed in a so-called 'lite' mode. 
+
+Bean methods in lite mode will be treated as plain factory methods by the container (similar to factory-method declarations in XML)
+
+In contrast to the semantics for bean methods in @Configuration classes, 'inter-bean references' are not supported in lite mode.
+
+To avoid these lifecycle issues, mark BFPP-returning @Bean methods as static. For example: 
+
+```java
+@Bean
+public static PropertyPlaceholderConfigurer ppc() {
+    // instantiate, configure and return ppc ...
+}
+```
+
+##### @Primary
+自动装配时当出现多个Bean候选者时，被注解为@Primary的Bean将作为首选者，否则将抛出异常
+
+##### @PostConstruct
+用于指定初始化方法（用在方法上）
+
+##### @PreDestory
+用于指定销毁方法（用在方法上）
+
+##### @Async
+Annotation that marks a method as a candidate for asynchronous execution. Can also be used at the type level, in which case all of the type's methods are considered as asynchronous. 
+
+the return type is constrained to either void or java.util.concurrent.Future.
+
+1. by xml
+```xml
+<bean id="taskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+    <property name="corePoolSize" value="10"/>
+    <property name="maxPoolSize" value="300"/>
+</bean>
+<task:annotation-driven/>
+```
+
+2. by annotation
+
+```java
+// in some @Configuration class
+@Bean(name = "threadPoolTaskExecutor")
+public TaskExecutor threadPoolTaskExecutor() {
+    ThreadPoolTaskExecutor threadPoolTaskExecutor =
+            new ThreadPoolTaskExecutor();
+    threadPoolTaskExecutor.setCorePoolSize(ASYNC_CORE_POOL_SIZE);
+    threadPoolTaskExecutor.setMaxPoolSize(ASYNC_MAX_POOL_SIZE);
+    threadPoolTaskExecutor.setQueueCapacity(ASYNC_QUEUE_CAPACITY);
+    threadPoolTaskExecutor.setThreadNamePrefix("SubscribeOrderWorker");
+    threadPoolTaskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
+
+    ThreadPoolExecutorStatsJMXRegister.register(threadPoolTaskExecutor);
+
+    return threadPoolTaskExecutor;
+}
+
+// how to use
+@Async("threadPoolTaskExecutor")
+
+// if only one executor is specified
+@Async
+```
+
+@Inject
+
+@Autowired 默认按类型装配，如果我们想使用按名称装配，可以结合@Qualifier注解一起使用。如下：
+@Autowired @Qualifier("personDaoBean") 存在多个实例配合使用
+@Resource默认按名称装配，当找不到与名称匹配的bean才会按类型装配。
+
+##### @Transational 
+
+顾名思义就是用于事务控制的
+```java
+@Transactional(readOnly = false, rollbackFor = DataAccessException.class)  
+public Account register(Account account);  
+```
+
+##### @RequestMapping
+
+Annotation for mapping web requests onto specific handler classes and/or handler methods. 
+
+注释在类上是定义该类的访问地址，需要访问其方法是，需要在地址的后面加上”？“+方法名。如果该注解注释在方法上就指定了该方法的访问地址。
+
+```java
+@RequestMapping("center/switcher")
+public ModelAndView notificationCenterSwitcher(){}
+
+@RequestMapping(value = "/changeOrder/show", method = RequestMethod.POST, consumes = "application/json")
+@ResponseBody
+public List<ChangeRealOrderDateDTO> show(@RequestBody String request){}
+
+@RequestMapping(value = "/findVendors", method = RequestMethod.POST)
+@ResponseBody
+public DataTableResponseVO findVendors(@RequestBody @Valid List<DataTableRequestVO> dataTableVOs){}
+
+@RequestMapping(value = "/fundItems/{vendorId}", method = RequestMethod.GET)
+public String funds(@PathVariable("vendorId") String vendorId, ModelMap modelMap){}
+
+@RequestMapping("channel/modify")
+public ModelAndView updateNotificationChannelType(@RequestParam(value = "channelTypeId", required = true) Long notificationChannelTypeId) {}
+
+@Controller  
+@RequestMapping(value = "/login.do")  
+public class LoginController {  
+    @RequestMapping(method = RequestMethod.GET)  
+    public String initForm(ModelMap model) {  
+        Account account = new Account();  
+        model.addAttribute("account", account);  
+        // 直接跳转到登录页面  
+        return "account/login";  
+    }  
+    @RequestMapping(method = RequestMethod.POST)  
+    public String login(@ModelAttribute("account") Account account) {  
+        Account acc = accountService.read(account.getUsername(), account  
+                .getPassword());  
+        if (acc != null) {  
+            return "redirect:profile.do?id=" + acc.getId();  
+        } else {  
+            return "redirect:login.do";  
+        }  
+    }  
+} 
+```
+
+##### @ModelAttribute
+
+Annotation that binds a method parameter or method return value to a named model attribute, exposed to a web view.
+
+将任何一个拥有返回值的方法标注上 @ModelAttribute，使其返回值将会进入到模型对象的属性列表中.(ModelMap)
+
+@ModelAttribute("account") Account
+用来绑定表单即指明了这个方法使用的数据是来自account这个表单的数据，接收数据的对象就是Account。
+
+```java
+@RequestMapping(value={REQUEST_MAPPING_SUBSCRIPTION_LIST}, method = RequestMethod.GET)
+public ModelAndView customerSubscriptionList(@ModelAttribute CsSubscriptionSearchForm searchForm){}
+
+@ResponseBody
+@RequestMapping(value = "/cs/subscribe/addressEdit/selectAddress", method = RequestMethod.POST)
+public ModelAndView applyNewSelectedAddress(@ModelAttribute AddressSelectedInfoDTO addressSelectedInfoDTO, Model model){}
+```
+
+
+##### @Model and @ModelMap
+
+* @ModelMap
+This class serves as generic model holder for both Servlet and Portlet MVC, but is not tied to either of those. Check out the Model interface for a Java-5-based interface variant that serves the same purpose.
+
+* @Model
+Java-5-specific interface that defines a holder for model attributes. Primarily designed for adding attributes to the model. Allows for accessing the overall model as a java.util.Map.
+
+```java
+@RequestMapping(value = "/cashaccumulatedetail/cashAccumulateDetailList", method = RequestMethod.GET)
+public String cashAccumulateList(Model model, CashAccumulateHistoryDetailCondition condition){
+    model.addAttribute("condition", condition);
+    model.addAttribute("pageIndex", condition.getPage());
+    return "web/page/cashaccumulatehistory/detail/cashAccumulateDetailList";
+}
+
+@RequestMapping(value = REQUEST_MAPPING_PRICE_HISTORY)
+public String showPriceHistory(@RequestParam Long subscriptionId, @RequestParam String memberId, @RequestParam Long vendorItemId, ModelMap modelMap){
+    modelMap.addAttribute("priceHistory", priceHistory);
+    modelMap.addAttribute("subscriptionId", subscriptionId);
+    return VIEW_NAME_PRICE_HISTORY;
+}
+
+
+```
 
 #### Spring Aspect
 
@@ -195,6 +780,27 @@ PROPAGATION_NESTED–如果当前存在事务，则在嵌套事务内执行。�
 
 #### Spring Misc
 
+##### Bean Bootstrapping ways
+
+1. xml
+```xml
+<bean class="org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor"/>
+```
+
+2. context:annotation-config
+```xml
+<beans>
+   <context:annotation-config/>
+   <bean class="com.acme.AppConfig"/>
+</beans>
+```
+In the example above, <context:annotation-config/> is required in order to enable ConfigurationClassPostProcessor and other annotation-related post processors that facilitate handling @Configuration classes. 
+
+<context:annotation-config /> 将隐式地向spring 容器注册AutowiredAnnotationBeanPostProcessor 、CommonAnnotationBeanPostProcessor 、 PersistenceAnnotationBeanPostProcessor 以及RequiredAnnotationBeanPostProcessor 这4 个BeanPostProcessor 
+
+3. <context:component-scan />
+
+##### context:annotation-config
 
 ### Miscellaneous
 
