@@ -25,7 +25,7 @@
     - [Transaction](#spring-transaction)    
     - [Misc](#spring-misc)
         + [Bean Bootstrapping ways](#bean-bootstrapping-ways)
-        + [context:annotation-config](#context-annotation-config)
+        + [context:annotation-config](#contextannotation-config)
 * [Miscellaneous](#miscellaneous)
 
 
@@ -567,12 +567,6 @@ public TaskExecutor threadPoolTaskExecutor() {
 @Async
 ```
 
-@Inject
-
-@Autowired 默认按类型装配，如果我们想使用按名称装配，可以结合@Qualifier注解一起使用。如下：
-@Autowired @Qualifier("personDaoBean") 存在多个实例配合使用
-@Resource默认按名称装配，当找不到与名称匹配的bean才会按类型装配。
-
 ##### @Transational 
 
 顾名思义就是用于事务控制的
@@ -672,6 +666,45 @@ public String showPriceHistory(@RequestParam Long subscriptionId, @RequestParam 
 
 
 ```
+
+##### @Autowired and @Required and @Inject and @Resource
+
+>RequiredAnnotationBeanPostProcessor
+>>In particular, it does not check that a configured value is not null. 
+Note: A default RequiredAnnotationBeanPostProcessor will be registered by the "context:annotation-config" and "context:component-scan" XML tags. Remove or turn off the default annotation configuration there if you intend to specify a custom RequiredAnnotationBeanPostProcessor bean definition.
+
+[SPRING INJECTION WITH @RESOURCE, @AUTOWIRED AND @INJECT][spring_annotation_1]
+
+
+ANNOTATION|PACKAGE|SOURCE
+:----------|:-------|------
+@Resource   |javax.annotation    |Java
+@Inject     |javax.inject        |Java
+@Qualifier  |javax.inject        |Java
+@Autowired  |org.springframework.bean.factory    |Spring
+
+When I looked under the hood I determined that the ‘@Autowired’ and ‘@Inject’ annotation behave identically. Both of these annotations use the ‘AutowiredAnnotationBeanPostProcessor’ to inject dependencies. ‘@Autowired’ and ‘@Inject’ can be used interchangeable to inject Spring beans. 
+
+However the ‘@Resource’ annotation uses the ‘CommonAnnotationBeanPostProcessor’ to inject dependencies. Even though they use different post processor classes they all behave nearly identically. Below is a summary of their **execution paths**.
+
+__@Autowired and @Inject__ 
+1. Matches by Type
+2. Restricts by Qualifiers
+3. Matches by Name  
+
+__@Resource__  
+1. Matches by Name
+2. Matches by Type
+3. Restricts by Qualifiers (ignored if match is found by name)
+While it could be argued that ‘@Resource’ will perform faster by name than ‘@Autowired’ and ‘@Inject’ it would be negligible. This isn’t a sufficient reason to favor one syntax over the others. I do however favor the ‘@Resource’ annotation for it’s concise notation style.
+
+
+@Inject
+
+@Autowired 默认按类型装配，如果我们想使用按名称装配，可以结合@Qualifier注解一起使用。如下：
+@Autowired @Qualifier("personDaoBean") 存在多个实例配合使用
+@Resource默认按名称装配，当找不到与名称匹配的bean才会按类型装配。
+
 
 #### Spring Aspect
 
@@ -802,9 +835,20 @@ In the example above, <context:annotation-config/> is required in order to enabl
 
 ##### context:annotation-config
 
+<context:annotation-config /> 将隐式地向spring 容器注册AutowiredAnnotationBeanPostProcessor 、CommonAnnotationBeanPostProcessor 、 PersistenceAnnotationBeanPostProcessor 以及RequiredAnnotationBeanPostProcessor 这4个BeanPostProcessor, so that @Autowired and @Required are supported.
+
+To do it separatedly, 
+* 通过在配置文件中配置AutowiredAnnotationBeanPostProcessor 达到支持@Autowired
+* For @Required 接着我们需要在 配置文件中加上这样一句话
+```xml
+<bean class="org.springframework.beans.factory.annotation.    
+    RequiredAnnotationBeanPostProcessor"/>   
+```
+
 ### Miscellaneous
 
 ---
 [spring-framework-1]:/resources/img/java/spring-framework-runtime.png "Overview of the Spring Framework(from Spring 4.2.6)"
 [spring_bean_lifecycle_1]:/resources/img/java/spring_bean_lifecycle_1.png "spring bean lifecycle in bean factory"
 [spring_bean_lifecycle_2]:/resources/img/java/spring_bean_lifecycle_2.png "spring bean lifecycle in application context"
+[spring_annotation_1]:https://blogs.sourceallies.com/2011/08/spring-injection-with-resource-and-autowired/#more-2350 "SPRING INJECTION WITH @RESOURCE, @AUTOWIRED AND @INJECT"
