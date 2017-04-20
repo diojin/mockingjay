@@ -21,11 +21,15 @@
         + [@RequestMapping](#requestmapping)
         + [@ModelAttribute](#modelattribute)
         + [@Model and @ModelMap](#model-and-modelmap)
+        + [@Autowired @Inject @Resource](#autowired-inject-resource)
+        + [@Required](#required)
+        + [context:annotation-config](#contextannotation-config)
     - [Aspect](#spring-aspect)
     - [Transaction](#spring-transaction)    
     - [Misc](#spring-misc)
         + [Bean Bootstrapping ways](#bean-bootstrapping-ways)
-        + [context:annotation-config](#contextannotation-config)
+        + [Struts MVC vs Spring MVC](#struts-mvc-vs-spring-mvc)
+        + [Spring's traits](#spring-s-traits)
 * [Miscellaneous](#miscellaneous)
 
 
@@ -667,14 +671,9 @@ public String showPriceHistory(@RequestParam Long subscriptionId, @RequestParam 
 
 ```
 
-##### @Autowired and @Required and @Inject and @Resource
-
->RequiredAnnotationBeanPostProcessor
->>Please note that an 'init' method may still need to implemented (and may still be desirable), because all that this class does is enforce that a 'required' property has actually been configured with a value. It does not check anything else... In particular, it does not check that a configured value is not null.  
-Note: A default RequiredAnnotationBeanPostProcessor will be registered by the "context:annotation-config" and "context:component-scan" XML tags. Remove or turn off the default annotation configuration there if you intend to specify a custom RequiredAnnotationBeanPostProcessor bean definition.
+##### @Autowired @Inject @Resource
 
 [SPRING INJECTION WITH @RESOURCE, @AUTOWIRED AND @INJECT][spring_annotation_1]
-
 
 ANNOTATION|PACKAGE|SOURCE
 :----------|:-------|------
@@ -699,13 +698,71 @@ __@Resource__
 
 While it could be argued that ‘@Resource’ will perform faster by name than ‘@Autowired’ and ‘@Inject’ it would be negligible. This isn’t a sufficient reason to favor one syntax over the others. I do however favor the ‘@Resource’ annotation for it’s concise notation style.
 
+```java
+@Resource(name="person")
+
+@Autowired
+@Qualifier("person")
 
 @Inject
+@Qualifier("person")
+```
 
-@Autowired 默认按类型装配，如果我们想使用按名称装配，可以结合@Qualifier注解一起使用。如下：
-@Autowired @Qualifier("personDaoBean") 存在多个实例配合使用
-@Resource默认按名称装配，当找不到与名称匹配的bean才会按类型装配。
+Spring Annotation Style Best Practices
+1. Explicitly name your component [@Component(“beanName”)]
+2. Use ‘@Resource’ with the ‘name’ attribute [@Resource(name=”beanName”)]
+3. Avoid ‘@Qualifier’ annotations unless you want to create a list of similar beans. For example you may want to mark a set of rules with a specific ‘@Qualifier’ annotation. This approach makes it simple to inject a group of rule classes into a list that can be used for processing data.
+4. Scan specific packages for components [context:component-scan base-package=”com.sourceallies.person”]. While this will result in more component-scan configurations it reduces the chance that you’ll add unnecessary components to your Spring context.
 
+Following these guidelines will increase the readability and stability of your Spring annotation configurations.
+
+>@Inject is part of the Java CDI (Contexts and Dependency Injection) standard introduced in Java EE 6 (JSR-300), read more. Spring has chosen to support using @Inject synonymously with their own @Autowired annotation.  
+In a Spring application, the two annotations works the same way as Spring has decided to support some JSR-300 annotations in addition to their own.
+
+>I agree with you that we dont change the DI frameworks often . However if our source code has multiple packages and if you want to build a common package which you want to share across multiple projects and then going with @Inject JSR annotation is better than using @Autowired which locks your code base with spring DI. – Aditya
+
+
+__@Autowired__  
+
+@Autowired(required=false)
+
+Marks a constructor, field, setter method or config method as to be autowired by Spring's dependency injection facilities. 
+
+@Autowired 标注作用于 Map 类型时，如果 Map 的 key 为 String 类型，则 Spring 会将容器中所有类型符合 Map 的 value 对应的类型的 Bean 增加进来，用 Bean 的 id 或 name 作为 Map 的 key。
+
+@Autowired 还有一个作用就是，如果将其标注在 BeanFactory 类型、ApplicationContext 类型、ResourceLoader 类型、ApplicationEventPublisher 类型、MessageSource 类型上，那么 Spring 会自动注入这些实现类的实例，不需要额外的操作。
+
+##### @Required 
+
+Marks a `method (typically a JavaBean setter method)` as being 'required': that is, the setter method must be configured to be dependency-injected with a value. 
+
+@Required注解检查 但他只检查属性是否已经设置而不会测试属性是否非空
+
+@Required 注释应用于 bean 属性的 setter 方法，它表明受影响的 bean 属性在配置时必须放在 XML 配置文件中，否则容器就会抛出一个 BeanInitializationException 异常。
+
+>RequiredAnnotationBeanPostProcessor
+>>Please note that an 'init' method may still need to implemented (and may still be desirable), because all that this class does is enforce that a 'required' property has actually been configured with a value. It does not check anything else... In particular, it does not check that a configured value is not null.  
+Note: A default RequiredAnnotationBeanPostProcessor will be registered by the "context:annotation-config" and "context:component-scan" XML tags. Remove or turn off the default annotation configuration there if you intend to specify a custom RequiredAnnotationBeanPostProcessor bean definition.
+
+To support @Required 接着我们需要在 配置文件中加上这样一句话
+```xml
+<bean class="org.springframework.beans.factory.annotation.    
+    RequiredAnnotationBeanPostProcessor"/>   
+```
+
+
+
+##### context:annotation-config
+
+<context:annotation-config /> 将隐式地向spring 容器注册AutowiredAnnotationBeanPostProcessor 、CommonAnnotationBeanPostProcessor 、 PersistenceAnnotationBeanPostProcessor 以及RequiredAnnotationBeanPostProcessor 这4个BeanPostProcessor, so that @Autowired and @Required are supported.
+
+To do it separatedly, 
+* Config AutowiredAnnotationBeanPostProcessor to support @Autowired
+* To support @Required 接着我们需要在 配置文件中加上这样一句话
+```xml
+<bean class="org.springframework.beans.factory.annotation.    
+    RequiredAnnotationBeanPostProcessor"/>   
+```
 
 #### Spring Aspect
 
@@ -834,17 +891,30 @@ In the example above, <context:annotation-config/> is required in order to enabl
 
 3. <context:component-scan />
 
-##### context:annotation-config
+##### Struts MVC vs Spring MVC
 
-<context:annotation-config /> 将隐式地向spring 容器注册AutowiredAnnotationBeanPostProcessor 、CommonAnnotationBeanPostProcessor 、 PersistenceAnnotationBeanPostProcessor 以及RequiredAnnotationBeanPostProcessor 这4个BeanPostProcessor, so that @Autowired and @Required are supported.
+1. Spring provides a very clean division between controllers, JavaBean models, and views.
 
-To do it separatedly, 
-* 通过在配置文件中配置AutowiredAnnotationBeanPostProcessor 达到支持@Autowired
-* For @Required 接着我们需要在 配置文件中加上这样一句话
-```xml
-<bean class="org.springframework.beans.factory.annotation.    
-    RequiredAnnotationBeanPostProcessor"/>   
-```
+2. Spring's MVC is very flexible. Unlike Struts, which `forces your Action and Form objects into concrete inheritance` (thus taking away your single shot at concrete inheritance in Java), Spring MVC is entirely based on interfaces. Furthermore, just about every part of the Spring MVC framework is configurable via plugging in your own interface. Of course we also provide convenience classes as an implementation option.
+
+3. Spring, like WebWork, provides interceptors as well as controllers, making it easy to factor out behavior common to the handling of many requests.
+
+4. Spring MVC is truly **view-agnostic**. You don't get pushed to use JSP if you don't want to; you can use Velocity, XLST or other view technologies. If you want to use a custom view mechanism - for example, your own templating language - you can easily implement the Spring View interface to integrate it.
+
+5. Spring Controllers are configured via IoC like any other objects. This makes them **easy to test**, and beautifully integrated with other objects managed by Spring.
+
+6. Spring MVC web tiers are typically easier to test than Struts web tiers, due to the avoidance of forced concrete inheritance and explicit dependence of controllers on the dispatcher servlet.
+
+7. The web tier becomes a thin layer on top of a business object layer. This encourages good practice. Struts and other dedicated web frameworks leave you on your own in implementing your business objects; `Spring provides an integrated framework for all tiers of your application`.
+
+##### Spring's traits
+
+Spring是一个轻量级的`控制反转(IoC)`和`面向切面(AOP)`的容器框架。 
+* 轻量——从大小与开销两方面而言Spring都是轻量的。此外，Spring是非侵入式的：典型地，Spring应用中的对象不依赖于Spring的特定类。 
+* 控制反转——Spring通过一种称作控制反转（IoC）的技术促进了松耦合。
+* 面向切面——Spring提供了面向切面编程的丰富支持，允许通过分离应用的业务逻辑与系统级服务（例如审计（auditing）和事务（）管理）进行内聚性的开发。应用对象只实现它们应该做的——完成业务逻辑——仅此而已。它们并不负责（甚至是意识）其它的系统级关注点，例如日志或事务支持
+* 容器——Spring包含并管理应用对象的配置和生命周期，在这个意义上它是一种容器，你可以配置你的每个bean如何被创建——基于一个可配置原型（prototype），你的bean可以创建一个单独的实例或者每次需要时都生成一个新的实例——以及它们是如何相互关联的
+* 框架——Spring可以将简单的组件配置、组合成为复杂的应用。在Spring中，应用对象被声明式地组合，典型地是在一个XML文件里。Spring也提供了很多基础功能（事务管理、持久化框架集成等等），将应用逻辑的开发留给了你
 
 ### Miscellaneous
 
