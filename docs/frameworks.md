@@ -29,7 +29,11 @@
     - [Misc](#spring-misc)
         + [Bean Bootstrapping ways](#bean-bootstrapping-ways)
         + [Struts MVC vs Spring MVC](#struts-mvc-vs-spring-mvc)
-        + [Spring's traits](#spring-s-traits)
+        + [Spring's traits](#springs-traits)
+        + [Spring Scope](#spring-scope)
+        + [Differences between singleton and Spring's singleton](#differences-between-singleton-and-springs-singleton)
+        + [Bean automatic assembling process](#bean-automatic-assembling-process)
+        + [Integrate Hibernate](#integrate-hibernate)
 * [Miscellaneous](#miscellaneous)
 
 
@@ -451,6 +455,7 @@ ConfigurableBeanFactory.SCOPE_SINGLETON
 ConfigurableBeanFactory.SCOPE_PROTOTYPE
 org.springframework.web.context.WebApplicationContext.SCOPE_REQUEST
 org.springframework.web.context.WebApplicationContext.SCOPE_SESSION
+org.springframework.web.context.WebApplicationContext.SCOPE_GLOBAL_SESSION ??
 ```
 To register additional custom scopes, see CustomScopeConfigurer.
 
@@ -915,6 +920,86 @@ Spring是一个轻量级的`控制反转(IoC)`和`面向切面(AOP)`的容器框
 * 面向切面——Spring提供了面向切面编程的丰富支持，允许通过分离应用的业务逻辑与系统级服务（例如审计（auditing）和事务（）管理）进行内聚性的开发。应用对象只实现它们应该做的——完成业务逻辑——仅此而已。它们并不负责（甚至是意识）其它的系统级关注点，例如日志或事务支持
 * 容器——Spring包含并管理应用对象的配置和生命周期，在这个意义上它是一种容器，你可以配置你的每个bean如何被创建——基于一个可配置原型（prototype），你的bean可以创建一个单独的实例或者每次需要时都生成一个新的实例——以及它们是如何相互关联的
 * 框架——Spring可以将简单的组件配置、组合成为复杂的应用。在Spring中，应用对象被声明式地组合，典型地是在一个XML文件里。Spring也提供了很多基础功能（事务管理、持久化框架集成等等），将应用逻辑的开发留给了你
+
+##### Spring Scope
+
+Scope用来声明容器中的对象的存货时间。即容器在对象在进入其相应的scope之前，生成并装配这些对象，在该对象不再处于这些scope的限定之后，容器通常会销毁这些对象。
+
+Sprign容器最初提供了两种bean的scope类型：singletoon和prototype。自Spring2.0之后，引入了另外三种scope类型，即request、session和global session类型。这三种类型只能再web中使用。Moreover, Spring supports customized scope
+
+ConfigurableBeanFactory.SCOPE_SINGLETON
+ConfigurableBeanFactory.SCOPE_PROTOTYPE
+org.springframework.web.context.WebApplicationContext.SCOPE_REQUEST
+org.springframework.web.context.WebApplicationContext.SCOPE_SESSION
+org.springframework.web.context.WebApplicationContext.SCOPE_GLOBAL_SESSION
+
+1. singleton
+特性：  
+* 对象实例数量：容器中只存在一个实例，所有对该类型bean的依赖都引用这单一实例。
+* 对象存活时间：从容器启动，到第一次因请求而实例化开始，只要容器不销毁或退出，该实例一直存在。
+
+配置形式：
+```xml
+<bean id="mockObject1" class="...MockBusinessObject" />
+<bean id="mockObject1" class="...MockBusinessObject" singleton="true" />
+<bean id="mockObject1" class="...MockBusinessObject" scope="singleton" />
+```
+
+2. prototype
+容器在接到标有prototype类型对象的请求后，会每次重新生成一个新的对象实例给请求方。`请求方负责当前返回对象的后继生命周期工作`，包括对象的销毁。
+一般声明此类型的bean都是一些有状态的。比如保存每个顾客信息的对象。
+
+配置形式：
+```xml
+<bean id="mockObject1" class="...MockBusinessObject" singleton="false" />
+<bean id="mockObject1" class="...MockBusinessObject" scope="prototype" />
+```
+
+3. request, session, globle session
+它们只适用于Web应用程序，通常是与XmlWebApplicationContext共同使用
+
+* request
+配置形式：<bean id="userManager" class="... " scope="request" />
+Spring容器，即XmlWebApplicationContext会为每个Http请求创建一个新的requestProcessor对象供当前对象使用，当请求结束后，该对象实例的生命周期即告结束。当同时有10个Http请求进来，容器会分别为这10个请求返回10个全新的实例，且它们之间互不干扰。
+
+* session   
+配置形式： <bean id="userManager" class="...userManager" scope="session"/>
+Spring容器会为每个独立的session创建属于它们自己的全新的userManager对象实例。存活时间大于request。
+
+* global session
+配置形式： <bean id="userManager" class="...userManager" scope="globalSession"/>
+global session只有应用在基于portlet的Web应用程序中才有意义，它映射到portlet的global范围的session。如果在普通的基于servlet的Web应用中使用了这个类型的scope，容器会将其作为普通的session类型的scope对待。
+
+4. customized scope
+用户可以根据自己的需要，添加自定义的scope类型。除了默认的singleton和prototype之外，其他三种类型，包括自定义类型都实现了org.springframework.beans.factory.config.Scope接口。该接口定义如下：
+```java
+public interface Scope {
+    Object get(String name, ObjectFactory objectFactory); 
+    Object remove(String name);
+    void registerDestructionCallback(String name, Runnable callback);
+    String getConversationId();
+}
+```
+要实现自己的scope类型，首先需要给出一个Scope接口的实现类，接口定义中的4个方法并非都是必须的，但get和remove方法必须实现。
+
+##### Differences between singleton and Spring's singleton
+
+* Spring标记Singleton的bean代表这种类型的bean在容器中只存在一个共享实例，
+* Singleton模式则是保证在同一个classloader中只存在一个这种类型的实例。
+
+##### Bean automatic assembling process
+我们对XML配置文件装配Bean的方式都很熟悉了，但是随着业务的复杂性，我们可能编写越来越复杂的XML配置。
+
+Spring提供了4种类型的自动装配的方式，帮助我们减少XML的配置数量。如下： 
+
+byName：根据与bean的属性具有相同名字（或者ID）的其他bean进行注入
+byType:   根据与bean的属性具有相同类型的其他bean进行注入
+constructor：根据与bean的构造函数参数有相同类型的bean进行注入
+autodetect :  首先尝试使用constructor进行注入，失败则尝试使用byType
+
+##### Integrate Hibernate
+
+
 
 ### Miscellaneous
 
