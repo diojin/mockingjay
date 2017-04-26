@@ -33,6 +33,7 @@
         + [Spring Scope](#spring-scope)
         + [Differences between singleton and Spring's singleton](#differences-between-singleton-and-springs-singleton)
         + [Bean automatic assembling process](#bean-automatic-assembling-process)
+        + [Ways to initializing a bean](#ways-to-initializing-a-bean)
         + [Spring injections types](#spring-injections-types)
         + [Differences between Setter Inject and Constructor Inject](#differences-between-setter-inject-and-constructor-inject)
         + [Integrate Hibernate](#integrate-hibernate)
@@ -41,6 +42,11 @@
         + [ApplicationContext implementations](#applicationcontext-implementations)
         + [Get ApplicationContext in web application](#get-applicationcontext-in-web-application)
         + [BeanFactory vs ApplicationContext](#beanfactory-vs-applicationcontext)
+        + [Design pattern in Spring](#design-pattern-in-spring)
+        + [Spring inner bean](#spring-inner-bean)
+        + [Factory Bean](#factory-bean)
+        + [Different aop sample codes](#different-aop-sample-codes)
+        + [Spring MVC](#spring-mvc)
 * [Miscellaneous](#miscellaneous)
 
 
@@ -96,7 +102,7 @@ The spring-test module supports the unit testing and integration testing of Spri
 ##### Bean Lifecycle
 
 
-![spring_bean_lifecycle_1]
+![spring_bean_lifecycle_2]
 
 ```java
 public abstract interface BeanPostProcessor{
@@ -1004,6 +1010,12 @@ byType:   根据与bean的属性具有相同类型的其他bean进行注入
 constructor：根据与bean的构造函数参数有相同类型的bean进行注入
 autodetect :  首先尝试使用constructor进行注入，失败则尝试使用byType
 
+##### Ways to initializing a bean
+
+1. constructor
+2. static factory method
+3. instance factory method
+
 ##### Spring injections types
 __不同类型的IOC（依赖注入）方式__  
 
@@ -1196,6 +1208,176 @@ Apparently prior to Servlet API 2.4 the order in which listeners versus servlets
 
 The Context module **inherits its features from the Beans module** and adds support for **internationalization** (using, for example, resource bundles), **event propagation**, **resource loading**, and **the transparent creation of contexts** by, for example, a Servlet container. The Context module **also supports Java EE features such as EJB, JMX, and basic remoting**. The **ApplicationContext** interface is the focal point of the Context module. **spring-context-support**provides support for `integrating common third-party libraries` into a Spring application context for caching (EhCache, Guava, JCache), mailing (JavaMail), scheduling (CommonJ, Quartz) and template engines (FreeMarker,JasperReports,Velocity).
 
+##### Design pattern in Spring
+* 代理模式—在AOP和remoting中被用的比较多
+* 单例模式—在spring配置文件中定义的bean默认为单例模式
+* 模板方法—用来解决代码重复的问题。比如. RestTemplate, JmsTemplate, JpaTemplate。
+* 工厂模式—BeanFactory用来创建对象的实例。
+
+J2EE design pattern
+* 前端控制器—Spring提供了DispatcherServlet来对请求进行分发。???
+* 视图帮助(View Helper) Spring提供了一系列的JSP标签，高效宏来辅助将分散的代码整合在视图里。??
+* 依赖注入—贯穿于BeanFactory / ApplicationContext接口的核心理念。???
+
+##### Spring inner bean
+
+当一个bean仅被用作另一个bean的属性时，它能被声明为一个内部bean，为了定义inner bean，在Spring 的 基于XML的 配置元数据中，可以在 <property/>或 <constructor-arg/> 元素内使用<bean/> 元素，内部bean通常是匿名的，它们的Scope一般是prototype。
+
+##### Factory Bean
+A factory bean is a bean that serves as a factory for creating other beans within the IoC container.Conceptually, a factory bean is very similar to a factory method, but it is a Spring-specific bean that can be identified by the Spring IoC container during bean construction and can be used by container to instantiate other beans.
+
+To create a factory bean, all you have to do is to implement the **FactoryBean** interface by your creator bean class which will be creating actual other beans. Or to keep it simple, you can extend **AbstractFactoryBean** class.
+
+By extending the AbstractFactoryBean class, your factory bean can simply override the **createInstance()** method to create the target bean instance. In addition, you have to return the target bean’s type in the getObjectType() method for the auto-wiring feature to work properly.
+
+Factory beans are mostly used to implement framework facilities. Here are some examples:
+1. When looking up an object (such as a data source) from JNDI, you can use JndiObjectFactoryBean.
+2. When using classic Spring AOP to create a proxy for a bean, you can use ProxyFactoryBean.
+3. When creating a Hibernate session factory in the IoC container, you can use LocalSessionFactoryBean.
+
+In most cases, you **rarely** have to write any custom factory beans, because they are framework-specific and `cannot be used outside the scope of the Spring IoC container`.
+
+If you want to get the instance of EmployeeFactoryBean itself, then you can add an `“&” before the bean name`.
+
+```java
+public class EmployeeDTO {
+    private Integer id;
+}
+
+public class EmployeeFactoryBean extends AbstractFactoryBean<Object> {
+    private String designation;
+    //This method will be called by container to create new instances
+    @Override
+    protected Object createInstance() throws Exception {
+        EmployeeDTO employee = new EmployeeDTO();
+        return employee;
+    }
+     //This method is required for autowiring to work correctly
+    @Override
+    public Class<EmployeeDTO> getObjectType() {
+        return EmployeeDTO.class;
+    }
+}
+
+// test codes
+EmployeeDTO manager = (EmployeeDTO) context.getBean("manager"); 
+EmployeeDTO director = (EmployeeDTO) context.getBean("director");
+
+EmployeeFactoryBean factory = (EmployeeFactoryBean) context.getBean("&director");
+
+```
+
+```xml
+<bean id="manager"  class="com.howtodoinjava.demo.factory.EmployeeFactoryBean">
+    <property name="designation" value="Manager" />
+</bean>
+ 
+<bean id="director"  class="com.howtodoinjava.demo.factory.EmployeeFactoryBean">
+    <property name="designation" value="Director" />
+</bean>
+```
+##### Different aop sample codes
+__不同类型的自动代理__  
+
+So far we have created our proxy objects using the **ProxyFactoryBean** class. This works `fine for small applications` since there are not that many classes we want to advise. But when we have several, sometimes dozens of classes we want to advise, it becomes cumbersome to explicitly create every proxy.
+
+Luckily, Spring has an autoproxy facility that enables the container to generate proxies for us. We do so in a very Springy way—we configure a bean to do the dirty work for us. Specifically, we create autoproxy creator beans. 
+
+Spring comes with two classes that provide this support: BeanNameAutoProxyCreator and DefaultAdvisorAutoProxyCreator.
+
+* BeanNameAutoProxyCreator
+    Wild card match bean name
+
+* DefaultAdvisorAutoProxyCreator
+    It is important to point out this proxy creator only works with advisors. If you remember, an advisor is a construct that combines a pointcut and advice. The DefaultAdvisorAutoProxyCreator needs the advisors to let it know what beans it should advise.
+
+* AspectJAwareAdvisorAutoProxyCreator
+
+__Examples of different proxy creating methods:__  
+
+Common codes:
+```java
+public class CustomerService
+{
+    private String name;
+    private String url;
+    public void printName(){
+        System.out.println("Customer name : " + this.name);
+    }
+    // ...
+}
+```
+
+```xml
+<bean id="customerService" class="com.mkyong.customer.services.CustomerService" />
+
+<bean id="hijackAroundMethodBeanAdvice" class="com.mkyong.aop.HijackAroundMethod" />
+
+<bean id="customerAdvisor"
+    class="org.springframework.aop.support.NameMatchMethodPointcutAdvisor">
+    <property name="mappedName" value="printName" />
+    <property name="advice" ref="hijackAroundMethodBeanAdvice" />
+</bean>
+```
+
+1. use ProxyFactoryBean
+get the **proxied bean instance explicitly** by proxy bean name “customerServiceProxy”, but rather by bean name itself "customerService"
+```xml
+<bean id="customerServiceProxy"
+    class="org.springframework.aop.framework.ProxyFactoryBean">
+    <property name="target" ref="customerService" />
+    <property name="interceptorNames">
+        <list>
+            <value>customerAdvisor</value>
+        </list>
+    </property>
+</bean>
+```
+
+```java
+CustomerService cust = (CustomerService)appContext.getBean("customerServiceProxy");
+cust.printName();
+```
+2. BeanNameAutoProxyCreator
+include all your beans (via bean name, or regular expression name)
+```java
+CustomerService cust = (CustomerService)appContext.getBean("customerService");
+cust.printName();
+```
+
+```xml
+<bean class="org.springframework.aop.framework.autoproxy.BeanNameAutoProxyCreator">
+    <property name="beanNames">
+        <list>
+        <value>*Service</value>
+        </list>
+    </property>
+    <property name="interceptorNames">
+        <list>
+            <value>customerAdvisor</value>
+        </list>
+    </property>
+</bean>
+```
+
+3. DefaultAdvisorAutoProxyCreator
+```java
+CustomerService cust = (CustomerService)appContext.getBean("customerService");
+cust.printName();
+```
+
+```xml
+<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" />
+```
+
+__Metadata autoproxying__  
+Spring also supports auto proxying driven by metadata. In this type of autoproxying, the proxy configuration is determined by source-level attributes as opposed to external configuration (e.g., an XML file). This is quite powerful since it keeps the AOP metadata with the source code that is being advised, letting you keep your code and configuration metadata in one place.
+
+##### Spring MVC
+![spring_mvc_1]
+
+
+
 
 ### Miscellaneous
 
@@ -1206,3 +1388,4 @@ The Context module **inherits its features from the Beans module** and adds supp
 [spring_annotation_1]:https://blogs.sourceallies.com/2011/08/spring-injection-with-resource-and-autowired/#more-2350 "SPRING INJECTION WITH @RESOURCE, @AUTOWIRED AND @INJECT"
 [spring-orm-hibernate-1]:http://docs.spring.io/spring/docs/3.0.x/spring-framework-reference/html/orm.html#orm-hibernate-straight "Implementing DAOs based on plain Hibernate 3 API"
 [spring-misc-injection-1]:http://vojtechruzicka.com/field-dependency-injection-considered-harmful/ "3 types of injection"
+[spring_mvc_1]:/resources/img/java/spring_mvc_1.png "Spring MVC flowchart"

@@ -676,10 +676,10 @@ Java IO的各种流是阻塞的。这意味着，当一个线程调用read() 或
 #### Eclipse Shortcuts
 
 全局 打开外部javadoc Shift+F2 
-Java编辑器 打开结构 Ctrl+F3 
+Java编辑器 打开结构(all inheritant properties) Ctrl+F3 
 全局 打开资源 Ctrl+Shift+R 
 全局 打开类型 Ctrl+Shift+T 
-全局 打开类型层次结构 F4 
+全局 打开类型层次结构 F4 / Ctrl + T
 全局 打开声明 F3 
 全局 在层次结构中打开类型 Ctrl+Shift+H 
 
