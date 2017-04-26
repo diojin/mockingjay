@@ -33,7 +33,14 @@
         + [Spring Scope](#spring-scope)
         + [Differences between singleton and Spring's singleton](#differences-between-singleton-and-springs-singleton)
         + [Bean automatic assembling process](#bean-automatic-assembling-process)
+        + [Spring injections types](#spring-injections-types)
+        + [Differences between Setter Inject and Constructor Inject](#differences-between-setter-inject-and-constructor-inject)
         + [Integrate Hibernate](#integrate-hibernate)
+        + [OpenSessionInView For Hibernate](#opensessioninview-for-hibernate)
+        + [Benifit of IOC](#benifit-of-ioc)
+        + [ApplicationContext implementations](#applicationcontext-implementations)
+        + [Get ApplicationContext in web application](#get-applicationcontext-in-web-application)
+        + [BeanFactory vs ApplicationContext](#beanfactory-vs-applicationcontext)
 * [Miscellaneous](#miscellaneous)
 
 
@@ -997,8 +1004,197 @@ byType:   根据与bean的属性具有相同类型的其他bean进行注入
 constructor：根据与bean的构造函数参数有相同类型的bean进行注入
 autodetect :  首先尝试使用constructor进行注入，失败则尝试使用byType
 
+##### Spring injections types
+__不同类型的IOC（依赖注入）方式__  
+
+1. 构造器依赖注入
+    构造器依赖注入通过容器触发一个类的构造器来实现的，该类有一系列参数，每个参数代表一个对其他类的依赖。 
+    用构造器参数实现强制依赖
+```java
+private DependencyA dependencyA;
+private DependencyB dependencyB;
+
+@Autowired
+public DI(DependencyA dependencyA, DependencyB dependencyB) {
+    this.dependencyA = dependencyA;
+    this.dependencyB = dependencyB;
+}
+```
+2. Setter方法注入
+    Setter方法注入是容器通过调用无参构造器或无参static工厂 方法实例化bean之后，调用该bean的setter方法，即实现了基于setter的依赖注入。
+
+    setter方法实现可选依赖
+```java
+private DependencyA dependencyA;
+private DependencyB dependencyB;
+ 
+@Autowired
+public void setDependencyA(DependencyA dependencyA) {
+    this.dependencyA = dependencyA;
+}
+ 
+@Autowired
+public void setDependencyB(DependencyB dependencyB) {
+    this.dependencyB = dependencyB;
+}
+```
+
+3. Field Injection
+```java
+@Autowired
+private DependencyA dependencyA;
+ 
+@Autowired
+private DependencyB dependencyB;
+```
+
+[For more information][spring-misc-injection-1]
+
+##### Differences between Setter Inject and Constructor Inject
+__构造方法注入和设值注入有什么区别__  
+
+Setters should be used to inject optional dependencies.
+Constructor injection is good for mandatory dependencies.
+
+1. Partial dependency: can be injected using setter injection but it is not possible by constructor. Suppose there are 3 properties in a class, having 3 arg constructor and setters methods. In such case, if you want to pass information for only one property, it is possible by setter method only.
+2. Overriding: Setter injection overrides the constructor injection. .
+3. Changes: We can easily change the value by setter injection. It doesn't create a new bean instance always like constructor. So setter injection is flexible than constructor injection
+4. Required dependency. By using Constructor Injection, you assert the requirement for the dependency in a `container-agnostic` manner
+A class that takes a required dependency as a constructor argument can only be instantiated if that argument is provided (you should have a guard clause to make sure the argument is not null.) A constructor therefore enforces the dependency requirement whether or not you're using Spring, making it container-agnostic.
+
+If you use setter injection, the setter may or may not be called, so the instance may never be provided with its dependency. The only way to force the setter to be called is using @Required or @Autowired , which is specific to Spring and is therefore not container-agnostic.
+
+So to keep your code independent of Spring, use constructor arguments for injection.
+
+Update: Spring 4.3 will perform `implicit injection in single-constructor scenarios`, making your code more independent of Spring by potentially not requiring an @Autowired annotation at all.
+
+__Implicit constructor injection for single-constructor scenarios__  
+```java
+// this can be injected properly
+public class FooService {
+    private final FooRepository repository;
+    public FooService(FooRepository repository){
+        this.repository = repository;
+    }
+}
+```
+
+5. circular dependencies
+
+
 ##### Integrate Hibernate
 
+1. 定义DataSource
+2. 创建SessionFactory
+3. implement DAO class
+    1. DAO类继承HibernateDaoSupport，从中获得HibernateTemplate进行具体操作
+Using HibernateDaoSupport/HibernateTemplate is not recommended since it unnecessarily ties your code to Spring classes.
+
+Using these classes was inevitable with older versions of Hibernate in order to integrate support of Spring-managed transactions.
+
+However, since Hibernate 3.0.1 you don't need it any more - you can write a code against a plain Hibernate API while using Spring-managed transactions. All you need is to configure Spring transaction support, inject SessionFactory and call getCurrentSession() on it when you need to work with session.
+
+Another benefit of HibernateTemplate is exception translation. Without HibernateTemplate the same functionality can be achieved by using @Repository annotation, as shown in Gareth Davis's answer.
+
+**See also:**  
+[Implementing DAOs based on plain Hibernate 3 API][spring-orm-hibernate-1]
+
+    2. Hibernate access code can also be coded in plain Hibernate style
+for example:
+```java
+getSessionFactory().getCurrentSession().save(customer);
+```
+
+
+##### OpenSessionInView For Hibernate
+
+在使用Hibernate时遇到OpenSessionInView的问题，可以添加OpenSessionInViewFilter或OpenSessionInViewInterceptor
+
+它有两种配置方式OpenSessionInViewInterceptor和OpenSessionInViewFilter(具体参看SpringSide)，功能相同，只是一个在web.xml配置，另一个在application.xml配置而已。 
+
+Open Session In View在request把session绑定到当前thread期间一直保持hibernate session在open状态，使session在request的整个期间都可以使用，如在View层里PO也可以lazy loading数据，如 ${company.employees}。当View 层逻辑完成后，才会通过Filter的doFilter方法或Interceptor的postHandle方法自动关闭session。 
+1. web.xml配置OpenSessionInViewFilter 
+2. applicationContext.xml配置OpenSessionInViewInterceptor 
+
+
+request(请求)->open session并开始transaction->controller->View(Jsp)->结束transaction并 close session. 
+
+但试想下如果对于大量连接, 流程中的某一步被阻塞的话, 就有连接池连接不足，造成页面假死现象
+
+Open Session In View是个双刃剑，放在公网上内容多流量大的网站请慎用 
+
+##### Benifit of IOC
+* Makes it easier to **test your code**. Without it, the code you are testing is hard to isolate as it will be highly coupled to the rest of the system.
+* 最小的代价和最小的侵入性使`松散耦合`得以实现. Useful when `developing modular systems`. You can replace components without requiring recompilation.
+* IOC容器支持加载服务时的饿汉式初始化和懒加载
+
+##### ApplicationContext implementations
+* **FileSystemXmlApplicationContext**: 此容器从一个XML文件中加载beans的定义，XML Bean 配置文件的全路径名必须提供给它的构造函数。
+* **ClassPathXmlApplicationContext**：此容器也从一个XML文件中加载beans的定义，这里，你需要正确设置classpath因为这个容器将在classpath里找bean配置。
+* **XmlWebApplicationContext**: 此容器加载一个XML文件，此文件定义了一个WEB应用的所有bean
+* **AnnotationConfigApplicationContext** or its web-capable variant, **AnnotationConfigWebApplicationContext**
+
+##### Get ApplicationContext in web application
+**WebApplicationContextUtils**：Convenience methods for retrieving the root WebApplicationContext for a given ServletContext. This is useful for programmatically accessing a Spring application context from within custom web views or MVC actions. 
+
+**WebApplicationContextUtils**：从web应用的根目录读取配置文件，需要先在web.xml中配置，可以配置监听器或者servlet来实现 
+
+1. ContextLoaderListener
+```xml
+<listener> 
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class> 
+</listener>
+```
+
+2. ContextLoaderServlet
+```xml
+<servlet> 
+    <servlet-name>context</servlet-name> 
+    <servlet-class>org.springframework.web.context.ContextLoaderServlet</servlet-class>
+    <load-on-startup>1</load-on-startup> 
+</servlet> 
+```
+>The javadoc for ContextLoaderServlet says it all:
+>>Note that this class has been deprecated for containers implementing Servlet API 2.4 or higher, in favor of ContextLoaderListener.
+
+Apparently prior to Servlet API 2.4 the order in which listeners versus servlets are initialized is not mandated by the specification. So to ensure that the Spring context is correctly loaded before any other servlets in a Servlet 2.3 and lower container, you would need to use ContextLoaderServlet and put it as the first to load on startup.
+
+这两种方式都默认配置文件为WEB-INF/applicationContext.xml，也可使用context-param指定配置文件
+```xml 
+<context-param>
+    <param-name>contextConfigLocation</param-name>
+    <param-value>/WEB-INF/dispatcher-servlet.xml</param-value>
+</context-param>
+<listener>
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+</listener>
+```
+
+3. for MVC, use DispatchServlet directly
+```xml
+<servlet>
+    <servlet-name>spring</servlet-name>
+    <servlet-class>
+        org.springframework.web.servlet.DispatcherServlet
+    </servlet-class>
+    <init-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>classpath:applicationContext.xml,WEB-INF/spring-security.xml</param-value>
+    </init-param>
+    <load-on-startup>1</load-on-startup>
+</servlet>
+<servlet-mapping>
+        <servlet-name>spring</servlet-name>
+        <url-pattern>URL_PATTERN</url-pattern>
+</servlet-mapping>
+```
+
+##### BeanFactory vs ApplicationContext
+
+* BeanFactory负责读取bean配置文档，管理bean的加载，实例化，维护bean之间的依赖关系，负责bean的声明周期。 
+* ApplicationContext除了提供上述BeanFactory所能提供的功能之外，还提供了更完整的框架功能
+
+The Context module **inherits its features from the Beans module** and adds support for **internationalization** (using, for example, resource bundles), **event propagation**, **resource loading**, and **the transparent creation of contexts** by, for example, a Servlet container. The Context module **also supports Java EE features such as EJB, JMX, and basic remoting**. The **ApplicationContext** interface is the focal point of the Context module. **spring-context-support**provides support for `integrating common third-party libraries` into a Spring application context for caching (EhCache, Guava, JCache), mailing (JavaMail), scheduling (CommonJ, Quartz) and template engines (FreeMarker,JasperReports,Velocity).
 
 
 ### Miscellaneous
@@ -1008,3 +1204,5 @@ autodetect :  首先尝试使用constructor进行注入，失败则尝试使用b
 [spring_bean_lifecycle_1]:/resources/img/java/spring_bean_lifecycle_1.png "spring bean lifecycle in bean factory"
 [spring_bean_lifecycle_2]:/resources/img/java/spring_bean_lifecycle_2.png "spring bean lifecycle in application context"
 [spring_annotation_1]:https://blogs.sourceallies.com/2011/08/spring-injection-with-resource-and-autowired/#more-2350 "SPRING INJECTION WITH @RESOURCE, @AUTOWIRED AND @INJECT"
+[spring-orm-hibernate-1]:http://docs.spring.io/spring/docs/3.0.x/spring-framework-reference/html/orm.html#orm-hibernate-straight "Implementing DAOs based on plain Hibernate 3 API"
+[spring-misc-injection-1]:http://vojtechruzicka.com/field-dependency-injection-considered-harmful/ "3 types of injection"

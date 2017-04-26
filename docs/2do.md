@@ -12,8 +12,8 @@ ___
 
 - [ ] :heart_eyes_cat: keep pratising, long run and belly practise, arm massage
 
+- [ ] :kissing_cat: :one: bring darling to 美食街
 - [ ] :kissing_cat: :one: transfer and revise Interview.doc to md document
-
 - [ ] :kissing_cat: :two: review coupang projects and techniques
     - [ ] :arrow_right_hook: coupang development toolkits
     - [ ] :arrow_right_hook: coupang projects review
@@ -21,10 +21,10 @@ ___
 - [ ] :kissing_cat: :two: go through other review preparation materials
     - [ ] :arrow_right_hook: algorithm
     - [ ] :arrow_right_hook: a few small pdfs
+    - [ ] :arrow_right_hook: design pattern
     - [ ] :arrow_right_hook: books, such as concurrent in practise, jvm
 - [ ] :kissing_cat: :two: changes in JDK 8 and previous versions
 - [ ] :kissing_cat: :two: update cv
-
 
     - [ ] :smiley_cat: :one: annotation details + spring mvc annotations
 
