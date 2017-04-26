@@ -47,6 +47,13 @@
         + [Factory Bean](#factory-bean)
         + [Different aop sample codes](#different-aop-sample-codes)
         + [Spring MVC](#spring-mvc)
+* [Hibernate](#hibernate)
+    - [Hibernate architecture and key components](#hibernate-architecture-and-key-components)
+    - [Hibernate Tuning](#hibernate-tuning)
+    - [Hibernate APIs](#hibernate-apis)
+        + [Session#load vs Session#get](#sessionload-vs-sessionget)
+    - [Misc](#hibernate-misc)
+        + [Object states of hibernate](#object-states-of-hibernate)
 * [Miscellaneous](#miscellaneous)
 
 
@@ -1376,8 +1383,207 @@ Spring also supports auto proxying driven by metadata. In this type of autoproxy
 ##### Spring MVC
 ![spring_mvc_1]
 
+* The process starts when a client (typically a web browser) sends a request (1). The first component to receive the request is Spring’s DispatcherServlet. Like most Java-based MVC frameworks, Spring MVC funnels requests through a single front controller servlet. A **front controller** is a common web-application pattern where a single servlet delegates responsibility for a request to other components of an application to perform the actual processing. In the case of Spring MVC, **DispatcherServlet** is the front controller.
+
+* The Spring MVC component that is responsible for handling the request is a
+Controller. To figure out which controller should handle the request, DispatcherServlet starts by querying one or more **HandlerMappings** (2). A HandlerMapping typically performs its job by mapping URL patterns to Controller objects.
+
+* Once the DispatcherServlet has a **Controller** object, it dispatches the request to the Controller to perform whatever business logic it was designed to do (3). (Actually, a well-designed Controller performs little or no business logic itself and instead delegates responsibility for the business logic to one or more service objects.) Upon completion of business logic, the Controller returns a ModelAndView object(4) to the DispatcherServlet. 
+
+* The **ModelAndView** can either contain a View object or a logical name of a View object. If the ModelAndView object contains the logical name of a View, the Dispatcher-Servlet queries a **ViewResolver** (5) to look up the View object that will render the response. 
+
+* Finally, the DispatcherServlet dispatches the request to the View
+object (6) indicated by the ModelAndView object. The View object is responsible for rendering a response back to the client.
+
+### Hibernate
+
+#### Hibernate architecture and key components
+![hibernate-architecture-1]
+
+#### Hibernate Tuning
+
+Top 10 Hibernate Performance Tuning Tips
+ 
+(1) Avoid join duplicates (AKA cartesian products) due to joins along two or more parallel to-many associations; use Exists-subqueries, multiple queries or fetch="subselect" (see (2)) instead - whatever is most appropriate in the specific situation. Join duplicates are already pretty bad in plain SQL, but things get even worse when they occur within Hibernate, because of unnecessary mapping workload and child collections containing duplicates.
+ 
+(2) Define lazy loading as the preferred association loading strategy, and consider applying fetch="subselect" rather than "select" resp. "batch-size". Configure eager loading only for special associations, but join-fetch selectively on a per-query basis.
+ 
+(3) In case of read-only services with huge query resultsets, use projections and fetch into flat DTOs (e.g. via AliasToBean-ResultTransformer), instead of loading thousands of mapped objects into the Session.
+ 
+(4) Take advantage of HQL Bulk Update and Delete statements, as well as Insert-By-Select (supported by HQL as well).
+ 
+(5) Set FlushMode to "Never" on Queries and Criteria, when flushing is not necessary at this point.
+ 
+(6) Set ReadOnly to "true" on Queries and Criteria, when objects returned will never be modified.
+ 
+(7) Consider clearing the whole Session after flushing, or evict on a per-object basis, once objects are not longer needed.
+ 
+(8) Define a suitable value for jdbc.batch_size (resp. adonet.batch_size under NHibernate).
+ 
+(9) Use Hibernate Query-Cache and Second Level Caching where appropriate (but go sure you are aware of the consequences).
+ 
+(10) Set hibernate.show_sql to "false" and ensure that Hibernate logging is running at the lowest possible loglevel (also check log4j/log4net root logger configuration).
+
+#### Hibernate APIs
+
+##### Session#load vs Session#get
+
+__Hibernate3.2 Session加载数据时get和load方法的区别__  
+
+1. get方法, hibernate会确认一下该id对应的数据是否存在，首先在session缓存中查找，然后在二级缓存中查找，还没有就查询数据库，数据库中没有就返回null。主要要说明的一点就是在这个版本中get方法也会查找二级缓存！
+ 
+2. load方法, 加载实体对象的时候，根据映射文件上类级别的lazy属性的配置(默认为true)，分情况讨论：
+(1)若为true,则首先在Session缓存中查找，看看该id对应的对象是否存在，不存在则使用延迟加载，返回实体的代理类对象(该代理类为实体类的子类，由CGLIB动态生成)。等到具体使用该对象(除获取OID以外)的时候，再查询二级缓存和数据库，若仍没发现符合条件的记录，则会抛出一个ObjectNotFoundException。
+(2)若为false,就跟get方法查找顺序一样，只是最终若没发现符合条件的记录，则会抛出一个ObjectNotFoundException。
+ 
+这里get和load有两个重要区别:
+1. 如果未能发现符合条件的记录，get方法返回null，而load方法会抛出一个ObjectNotFoundException。
+2. load方法可返回没有加载实体数据的代理类实例，而`get方法永远返回有实体数据的对象`。(对于load和get方法返回类型：好多书中都说：“get方法永远只返回实体类”，实际上并不正确，get方法如果在session缓存中找到了该id对应的对象，如果刚好该对象前面是被代理过的，如被load方法使用过，或者被其他关联对象延迟加载过，那么返回的还是原先的代理对象，而不是实体类对象，如果该代理对象还没有加载实体数据（就是id以外的其他属性数据），那么它会查询二级缓存或者数据库来加载数据，但是返回的还是代理对象，只不过已经加载了实体数据。)
+ 
+总之对于get和load的根本区别，一句话，hibernate对于load方法认为该数据在数据库中一定存在，可以放心的使用代理来延迟加载，如果在使用过程中发现了问题，只能抛异常；而对于get方法，hibernate一定要获取到真实的数据，否则返回null。
 
 
+• persist() makes a transient instance persistent. However, it does not guarantee that the
+identifier value will be assigned to the persistent instance immediately, the assignment might
+happen at flush time. persist() also guarantees that it will not execute an INSERT statement
+if it is called outside of transaction boundaries. This is useful in long-running conversations with
+an extended Session/persistence context.
+
+• save() does guarantee to return an identifier. If an INSERT has to be executed to get the
+identifier ( e.g. "identity" generator, not "sequence"), this INSERT happens immediately, no
+matter if you are inside or outside of a transaction. This is problematic in a long-running
+conversation with an extended Session/persistence context.
+
+
+Hibernate supports this model by providing for reattachment of detached instances using the
+Session.update() or Session.merge() methods:
+
+Use update() if you are certain that the session does not contain an already persistent instance
+with the same identifier. Use merge() if you want to merge your modifications at any time without
+consideration of the state of the session. In other words, update() is usually the first method you
+would call in a fresh session, ensuring that the reattachment of your detached instances is the
+first operation that is executed.
+
+The lock() method also allows an application to reassociate an object with a new session.
+However, the detached instance has to be unmodified.
+
+Deprecated. instead call buildLockRequest(LockMode).lock(object)
+Obtain the specified lock level upon the given object. This may be used to perform a version check (LockMode.READ), to upgrade to a pessimistic lock (LockMode.PESSIMISTIC_WRITE), or to simply reassociate a transient instance with a session (LockMode.NONE). This operation cascades to associated instances if the association is mapped with cascade="lock".
+
+
+
+Usually update() or saveOrUpdate() are used in the following scenario:
+• the application loads an object in the first session
+• the object is passed up to the UI tier
+• some modifications are made to the object
+• the object is passed back down to the business logic tier
+• the application persists these modifications by calling update() in a second session
+可以把映射文件中<class>元素的select-before-update设为true,默认false,修改后会先执行select进行比较.
+
+
+void update(Object object)
+
+Update the persistent instance with the identifier of the given detached instance. If there is a persistent instance with the same identifier, an exception is thrown. This operation cascades to associated instances if the association is mapped with cascade="save-update"
+
+
+saveOrUpdate() does the following:
+• if the object is already persistent in this session, do nothing
+• if another object associated with the session has the same identifier, throw an exception
+• if the object has no identifier property, save() it
+• if the object's identifier has the value assigned to a newly instantiated object, save() it
+• if the object is versioned by a <version> or <timestamp>, and the version property value is the
+same value assigned to a newly instantiated object, save() it
+• otherwise update() the object
+
+and merge() is very different:
+• if there is a persistent instance with the same identifier currently associated with the session,
+copy the state of the given object onto the persistent instance
+• if there is no persistent instance currently associated with the session, try to load it from the
+database, or create a new persistent instance
+• the persistent instance is returned
+• the given instance does not become associated with the session, it remains detached
+
+merge()方法处理流程:
+1.根据游离对象的OID到session缓存中查找匹配的持久化对象.
+2.如果在缓存中没有找到与游离对象的OID一致的持久化对象,就根据这个OID从数据库中加载持久化对象.如果在数据库中存在这样的持久化对象,就把游离对象的属性复制到这个刚加载的持久化对象中,计划执行一条update语句,再返回这个持久化对象的引用.
+3.如果merge()方法的参数是一个临时对象,那么也会创建一个新的对象,把临时对象的属性复制到这个新建的对象中,再调用save()方法持久化这个独享,最后返回这个持久化对象的引用.
+
+
+Object merge(Object object)
+Copy the state of the given object onto the persistent object with the same identifier. If there is no persistent instance currently associated with the session, it will be loaded. Return the persistent instance. If the given instance is unsaved, save a copy of and return it as a newly persistent instance. The given instance does not become associated with the session. This operation cascades to associated instances if the association is mapped with cascade="merge"
+The semantics of this method are defined by JSR-220.
+Parameters:
+object - a detached instance with state to be copied
+Returns:
+an updated persistent instance
+
+
+Session.delete() will remove an object's state from the database. Your application, however,
+can still hold a reference to a deleted object. It is best to think of delete() as making a persistent
+instance, transient.
+
+
+void delete(Object object)
+Remove a persistent instance from the datastore. The argument may be an instance associated with the receiving Session or a transient instance with an identifier associated with existing persistent state. This operation cascades to associated instances if the association is mapped with cascade="delete"
+
+delete()方法处理过程:
+1.如果参数是游离对象,先使游离对象被当前session关联,使它变为持久化对象.??????如果参数是持久化对象则忽略这一步.此步骤确保使用拦截器的场合下,拦截器能正常工作.
+2.计划执行一个delete语句
+3.把对象从Session缓存中删除,该对象进入删除状态.
+如果设置hibernate.use_identifier_rollback为true,delete()方法会把持久化对象或游离对象的OID置为null,使它们转变为临时对象,这样程序就可以重复使用这些临时对象了.
+
+
+replicate()
+
+It is sometimes useful to be able to take a graph of persistent instances and make them persistent
+in a different datastore, without regenerating identifier values.
+
+The ReplicationMode determines how replicate() will deal with conflicts with existing rows in
+the database:
+• ReplicationMode.IGNORE: ignores the object when there is an existing database row with the
+same identifier
+• ReplicationMode.OVERWRITE: overwrites any existing database row with the same identifier
+• ReplicationMode.EXCEPTION: throws an exception if there is an existing database row with
+the same identifier
+• ReplicationMode.LATEST_VERSION: overwrites the row if its version number is earlier than the
+version number of the object, or ignore the object otherwise
+
+
+#### Hibernate Misc
+
+##### Object states of hibernate
+
+![hibernate-object-state-1]
+
+Hibernate的对象有3种状态,分别为:瞬时态(Transient)、持久态(Persistent)、脱管态(Detached).处于持久态的对象也称为PO(PersistenceObject),瞬时对象和脱管对象也称为VO(ValueObject).
+
+* 瞬时态
+由new命令开辟内存空间的java对象,
+eg.Person person=new Person("xiaoxiao","女");
+如果没有变量对该对象进行引用,它将被java虚拟机回收.
+瞬时对象在内存孤立存在,它是携带信息的载体,不和数据库的数据有任何关联关系,在Hibernate中,可通过session的save()或saveOrUpdate()方法将瞬时对象与数据库相关联,并将数据对应的插入数据库中,此时该瞬时对象转变成持久化对象.
+
+持久对象具有如下特点:
+1.和session实例关联;
+2.在数据库中有与之关联的记录.
+
+* 持久态
+处于该状态的对象在数据库中具有对应的记录,并拥有一个持久化标识.如果是用hibernate的delete()方法,对应的持久对象就变成瞬时对象,因数据库中的对应数据已被删除,该对象不再与数据库的记录关联.
+
+* 脱管态
+当一个session执行close()或clear()、evict()之后,持久对象变成脱管对象,此时持久对象会变成脱管对象,此时`该对象虽然具有数据库识别值`,但它已不在HIbernate持久层的管理之下.
+
+脱管态
+当与某持久对象关联的session被关闭后,该持久对象转变为脱管对象.当脱管对象被重新关联到session上时,并再次转变成持久对象.
+脱管对象拥有数据库的识别值,可通过update()、saveOrUpdate()等方法,转变成持久对象.
+脱管对象具有如下特点:
+1.本质上与瞬时对象相同,在没有任何变量引用它时,JVM会在适当的时候将它回收;
+2.比瞬时对象多了一个数据库记录标识值.
+
+__Distinguishing between transient and detached instances__  
+* either identifier/version property (if it exists) is null or matches unsave-value
+* You supply a Hibernate Interceptor and return Boolean.TRUE from Interceptor.
+isUnsaved() after checking the instance in your code.
 
 ### Miscellaneous
 
@@ -1389,3 +1595,5 @@ Spring also supports auto proxying driven by metadata. In this type of autoproxy
 [spring-orm-hibernate-1]:http://docs.spring.io/spring/docs/3.0.x/spring-framework-reference/html/orm.html#orm-hibernate-straight "Implementing DAOs based on plain Hibernate 3 API"
 [spring-misc-injection-1]:http://vojtechruzicka.com/field-dependency-injection-considered-harmful/ "3 types of injection"
 [spring_mvc_1]:/resources/img/java/spring_mvc_1.png "Spring MVC flowchart"
+[hibernate-object-state-1]:/resources/img/java/hibernate-object-state-transitions-1.png "Hibernate Object State Transition"
+[hibernate-architecture-1]:/resources/img/java/hibernate-architecture-1.png "Hibernate Architecture Diagram"
