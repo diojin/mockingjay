@@ -52,8 +52,16 @@
     - [Hibernate Tuning](#hibernate-tuning)
     - [Hibernate APIs](#hibernate-apis)
         + [Session#load vs Session#get](#sessionload-vs-sessionget)
+        + [Session#persist](#sessionpersist)
+        + [Session#save](#sessionsave)
+        + [Session#update vs Session#merge vs Session#lock](#sessionupdate-vs-sessionmerge-vs-sessionlock)
+        + [Session#saveOrUpdate](#sessionsaveorupdate)
+        + [Session#delete](#sessiondelete)
+        + [Session#replicate](#sessionreplicate)
+        + [Query#list vs Query#iterate](#querylist-vs-queryiterate)
     - [Misc](#hibernate-misc)
         + [Object states of hibernate](#object-states-of-hibernate)
+        + [pros and cons of Hibernate](#pros-and-cons-of-hibernate)
 * [Miscellaneous](#miscellaneous)
 
 
@@ -1442,35 +1450,17 @@ __Hibernate3.2 Session加载数据时get和load方法的区别__
  
 总之对于get和load的根本区别，一句话，hibernate对于load方法认为该数据在数据库中一定存在，可以放心的使用代理来延迟加载，如果在使用过程中发现了问题，只能抛异常；而对于get方法，hibernate一定要获取到真实的数据，否则返回null。
 
+##### Session#persist
 
-• persist() makes a transient instance persistent. However, it does not guarantee that the
-identifier value will be assigned to the persistent instance immediately, the assignment might
-happen at flush time. persist() also guarantees that it will not execute an INSERT statement
-if it is called outside of transaction boundaries. This is useful in long-running conversations with
-an extended Session/persistence context.
+persist() makes a transient instance persistent. However, `it does not guarantee that the identifier value will be assigned to the persistent instance immediately`, the assignment might happen at flush time. `persist() also guarantees that it will not execute an INSERT statement if it is called outside of transaction boundaries`. This is useful in long-running conversations with an extended Session/persistence context.
 
-• save() does guarantee to return an identifier. If an INSERT has to be executed to get the
-identifier ( e.g. "identity" generator, not "sequence"), this INSERT happens immediately, no
-matter if you are inside or outside of a transaction. This is problematic in a long-running
-conversation with an extended Session/persistence context.
+##### Session#save
+`save() does guarantee to return an identifier`. If an INSERT has to be executed to get the identifier ( e.g. "identity" generator, not "sequence"), `this INSERT happens immediately, no matter if you are inside or outside of a transaction`. This is problematic in a long-running conversation with an extended Session/persistence context.
 
+##### Session#update vs Session#merge vs Session#lock
+Hibernate supports this model by providing for reattachment of detached instances using the **Session.update()** or **Session.merge()** methods (**Session.lock()** as well)
 
-Hibernate supports this model by providing for reattachment of detached instances using the
-Session.update() or Session.merge() methods:
-
-Use update() if you are certain that the session does not contain an already persistent instance
-with the same identifier. Use merge() if you want to merge your modifications at any time without
-consideration of the state of the session. In other words, update() is usually the first method you
-would call in a fresh session, ensuring that the reattachment of your detached instances is the
-first operation that is executed.
-
-The lock() method also allows an application to reassociate an object with a new session.
-However, the detached instance has to be unmodified.
-
-Deprecated. instead call buildLockRequest(LockMode).lock(object)
-Obtain the specified lock level upon the given object. This may be used to perform a version check (LockMode.READ), to upgrade to a pessimistic lock (LockMode.PESSIMISTIC_WRITE), or to simply reassociate a transient instance with a session (LockMode.NONE). This operation cascades to associated instances if the association is mapped with cascade="lock".
-
-
+Use update() if you are certain that the session does not contain an already persistent instance with the same identifier. Use merge() if you want to merge your modifications at any time without consideration of the state of the session. In other words, update() is usually the first method you would call in a fresh session, ensuring that the reattachment of your detached instances is the first operation that is executed.
 
 Usually update() or saveOrUpdate() are used in the following scenario:
 • the application loads an object in the first session
@@ -1480,73 +1470,100 @@ Usually update() or saveOrUpdate() are used in the following scenario:
 • the application persists these modifications by calling update() in a second session
 可以把映射文件中<class>元素的select-before-update设为true,默认false,修改后会先执行select进行比较.
 
+__Session.update__  
+Update the persistent instance with the identifier of the given detached instance. If there is a persistent instance with the same identifier, an exception is thrown. 
 
-void update(Object object)
+This operation cascades to associated instances if the association is mapped with cascade="save-update"
 
-Update the persistent instance with the identifier of the given detached instance. If there is a persistent instance with the same identifier, an exception is thrown. This operation cascades to associated instances if the association is mapped with cascade="save-update"
-
-
-saveOrUpdate() does the following:
-• if the object is already persistent in this session, do nothing
-• if another object associated with the session has the same identifier, throw an exception
-• if the object has no identifier property, save() it
-• if the object's identifier has the value assigned to a newly instantiated object, save() it
-• if the object is versioned by a <version> or <timestamp>, and the version property value is the
-same value assigned to a newly instantiated object, save() it
-• otherwise update() the object
-
+__Session.merge__  
 and merge() is very different:
-• if there is a persistent instance with the same identifier currently associated with the session,
-copy the state of the given object onto the persistent instance
-• if there is no persistent instance currently associated with the session, try to load it from the
-database, or create a new persistent instance
-• the persistent instance is returned
-• the given instance does not become associated with the session, it remains detached
+* if there is a persistent instance with the same identifier currently associated with the session, copy the state of the given object onto the persistent instance
+* if there is no persistent instance currently associated with the session, try to load it from the database, or create a new persistent instance
+* the persistent instance is returned
+* the given instance does not become associated with the session, it remains detached
 
 merge()方法处理流程:
 1.根据游离对象的OID到session缓存中查找匹配的持久化对象.
 2.如果在缓存中没有找到与游离对象的OID一致的持久化对象,就根据这个OID从数据库中加载持久化对象.如果在数据库中存在这样的持久化对象,就把游离对象的属性复制到这个刚加载的持久化对象中,计划执行一条update语句,再返回这个持久化对象的引用.
 3.如果merge()方法的参数是一个临时对象,那么也会创建一个新的对象,把临时对象的属性复制到这个新建的对象中,再调用save()方法持久化这个独享,最后返回这个持久化对象的引用.
 
+This operation cascades to associated instances if the association is mapped with cascade="merge"
 
-Object merge(Object object)
-Copy the state of the given object onto the persistent object with the same identifier. If there is no persistent instance currently associated with the session, it will be loaded. Return the persistent instance. If the given instance is unsaved, save a copy of and return it as a newly persistent instance. The given instance does not become associated with the session. This operation cascades to associated instances if the association is mapped with cascade="merge"
 The semantics of this method are defined by JSR-220.
-Parameters:
-object - a detached instance with state to be copied
-Returns:
-an updated persistent instance
 
+__Session.lock()__  
+The lock() method also allows an application to reassociate an object with a new session. However, the detached instance has to be `unmodified`.
 
-Session.delete() will remove an object's state from the database. Your application, however,
-can still hold a reference to a deleted object. It is best to think of delete() as making a persistent
-instance, transient.
+Deprecated. instead call Session.buildLockRequest(LockMode).lock(object)
+Obtain the specified lock level upon the given object. 
 
+This may be used to 
+* perform a version check (**LockMode.READ**) 
+* to upgrade to a pessimistic lock (**LockMode.PESSIMISTIC_WRITE**)
+* to simply reassociate a transient instance with a session (**LockMode.NONE**)
+ 
+This operation cascades to associated instances if the association is mapped with cascade="lock".
+
+##### Session#saveOrUpdate
+saveOrUpdate() does the following:
+* if the object is already persistent in this session, do nothing
+* if another object associated with the session has the same identifier, throw an exception
+* if it is a new object, save it
+    - if the object has no identifier property
+    - if the object's identifier has the value assigned to a newly instantiated object
+    - if the object is versioned by a <version> or <timestamp>, and the version property value is the same value assigned to a newly instantiated object
+* otherwise update() the object
+
+##### Session#delete
+Session.delete() will remove an object's state from the database. Your application, however, can still hold a reference to a deleted object. It is best to think of delete() as making a persistent instance transient.
 
 void delete(Object object)
-Remove a persistent instance from the datastore. The argument may be an instance associated with the receiving Session or a transient instance with an identifier associated with existing persistent state. This operation cascades to associated instances if the association is mapped with cascade="delete"
+Remove a persistent instance from the datastore. The argument may be an instance associated with the receiving Session or a transient instance with an identifier associated with existing persistent state. 
+
+This operation cascades to associated instances if the association is mapped with cascade="delete"
 
 delete()方法处理过程:
-1.如果参数是游离对象,先使游离对象被当前session关联,使它变为持久化对象.??????如果参数是持久化对象则忽略这一步.此步骤确保使用拦截器的场合下,拦截器能正常工作.
+1.如果参数是游离态对象,先使游离态对象被当前session关联,使它变为持久态对象.如果参数是持久态对象则忽略这一步.此步骤确保使用拦截器的场合下,拦截器能正常工作.
 2.计划执行一个delete语句
-3.把对象从Session缓存中删除,该对象进入删除状态.
-如果设置hibernate.use_identifier_rollback为true,delete()方法会把持久化对象或游离对象的OID置为null,使它们转变为临时对象,这样程序就可以重复使用这些临时对象了.
+3.把对象从Session缓存中删除,该对象进入transient状态.
 
+##### Session#replicate
+It is sometimes useful to be able to take a graph of persistent instances and make them persistent in a different datastore, `without regenerating identifier values`.
 
-replicate()
-
-It is sometimes useful to be able to take a graph of persistent instances and make them persistent
-in a different datastore, without regenerating identifier values.
-
-The ReplicationMode determines how replicate() will deal with conflicts with existing rows in
-the database:
-• ReplicationMode.IGNORE: ignores the object when there is an existing database row with the
-same identifier
+The ReplicationMode determines how replicate() will deal with conflicts with existing rows in the database:
+• ReplicationMode.IGNORE: ignores the object when there is an existing database row with the same identifier
 • ReplicationMode.OVERWRITE: overwrites any existing database row with the same identifier
-• ReplicationMode.EXCEPTION: throws an exception if there is an existing database row with
-the same identifier
-• ReplicationMode.LATEST_VERSION: overwrites the row if its version number is earlier than the
-version number of the object, or ignore the object otherwise
+• ReplicationMode.EXCEPTION: throws an exception if there is an existing database row with the same identifier
+• ReplicationMode.LATEST_VERSION: overwrites the row if its version number is earlier than the version number of the object, or ignore the object otherwise
+
+##### Query#list vs Query#iterate
+
+__list()__  
+>public List list() throws HibernateException
+>>Return the query results as a List. If the query contains multiple results pre row, the results are returned in an instance of Object[].
+
+* With one database hit, all the records are loaded
+* if no cache data is available, this is faster, or else, it is slower
+* Eager loading
+
+在执行Query.list时，Hibernate的做法是首先检查是否配置了`查询缓存`，如配置了则从查询缓存中查找key为查询语句+查询参数+分页条件的值，如获取不到则从数据库中进行获取，从数据库获取到后Hibernate将会相应的`填充一级、二级和查询缓存`，如获取到的为直接的结果集，则直接返回，如获取到的为一堆id的值，则再根据id获取相应的值(Session.load)，最后形成结果集返回，可以看到，在这样的情况下，`list也是有可能造成N次的查询的`。
+
+查询缓存在数据发生任何变化的情况下都会被自动的清空。
+
+list只能利用查询缓存(但在交易系统中查询缓存作用不大)，无法利用二级缓存中的单个实体，但list查出的对象会写入二级缓存
+
+__iterate()__  
+>public Iterator iterate() throws HibernateException
+>>Return the query results as an Iterator. If the query contains multiple results pre row, the results are returned in an instance of Object[].  
+Entities returned as results are `initialized on demand`.` The first SQL query returns identifiers only.`
+
+* The first SQL query returns identifiers only, and for each record, one database hit is made, "N+1 problem"
+* if no chache data is available, this is very slower, or else, it is faster
+* Lazy loading
+
+From P109/117 Hibernate Reference Documentation Version: 3.1 rc3
+Occasionally, you might be able to achieve better performance by executing the query using the iterate() method. This will only usually be the case if you expect that the actual entity instances returned by the query will already be in the session or second-level cache. If they are not already cached, iterate() will be slower than list() and might require many database hits for a simple query, usually 1 for the initial select which only returns identifiers, and n additional selects to initialize the actual instances.
+
 
 
 #### Hibernate Misc
@@ -1584,6 +1601,20 @@ __Distinguishing between transient and detached instances__
 * either identifier/version property (if it exists) is null or matches unsave-value
 * You supply a Hibernate Interceptor and return Boolean.TRUE from Interceptor.
 isUnsaved() after checking the instance in your code.
+
+##### pros and cons of Hibernate
+* 内存消耗
+* 运行效率
+* 开发效率
+* Learning curve
+* OLTP vs OLAP
+
+__pros:__ 
+
+__cons:__  
+1. Hibernate在批量数据处理的时候是有弱势。针对某一对象(单个对象)简单的查\改\删\增，不是批量修改、删除，适合用Hibernate；而对于批量修改、删除，不适合用Hibernate，这也是OR框架的弱点
+2. 要使用数据库的特定优化机制的时候，不适合用Hibernate
+
 
 ### Miscellaneous
 
