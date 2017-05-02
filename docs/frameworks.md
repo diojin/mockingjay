@@ -59,9 +59,22 @@
         + [Session#delete](#sessiondelete)
         + [Session#replicate](#sessionreplicate)
         + [Query#list vs Query#iterate](#querylist-vs-queryiterate)
+        + [SessionFactory#getCurrentSession](#sessionfactorygetcurrentsession)
+        + [Session#createFilter](#sessioncreatefilter)
+        + [Hibernate#initialize](#hibernateinitialize)
     - [Misc](#hibernate-misc)
         + [Object states of hibernate](#object-states-of-hibernate)
         + [pros and cons of Hibernate](#pros-and-cons-of-hibernate)
+        + [Process of loading entity in Session](#process-of-loading-entity-in-session)
+        + [Primary key generation in Hibernate](#primary-key-generation-in-hibernate)
+        + [Stateless session](#stateless-session)
+        + [Open Session In View](#open-session-in-view)
+        + [Fecthing strategy and timing](#fecthing-strategy-and-timing)
+        + [Lazy and implementation](#hibernate-lazy-and-implementation)
+        + [lazy fetching of individual properties](#lazy-fetching-of-individual-properties)
+        + [Understanding Hibernate Collection performance](#understanding-hibernate-collection-performance)
+        + [Hibernate one shot delete](#hibernate-one-shot-delete)
+        + [inverse attribute in mapping](#inverse-attribute-in-mapping)
 * [Miscellaneous](#miscellaneous)
 
 
@@ -1564,7 +1577,30 @@ Entities returned as results are `initialized on demand`.` The first SQL query r
 From P109/117 Hibernate Reference Documentation Version: 3.1 rc3
 Occasionally, you might be able to achieve better performance by executing the query using the iterate() method. This will only usually be the case if you expect that the actual entity instances returned by the query will already be in the session or second-level cache. If they are not already cached, iterate() will be slower than list() and might require many database hits for a simple query, usually 1 for the initial select which only returns identifiers, and n additional selects to initialize the actual instances.
 
+##### SessionFactory#getCurrentSession
+From P8/16 Hibernate Reference Documentation Version: 3.1 rc3
 
+```xml
+<!-- Enable Hibernate's automatic session context management -->
+<property name="current_session_context_class">thread</property>
+```
+
+What does sessionFactory.getCurrentSession() do? First, you can call it as many times and anywhere you like, once you get hold of your SessionFactory (easy thanks to HibernateUtil). The getCurrentSession() method always returns the "current" unit of work. Remember that we switched the configuration option for this mechanism to "thread" in hibernate.cfg.xml? Hence, the scope of the current unit of work is the current Java thread that executes our application. However, this is not the full truth. A Session begins when it is first needed, when the first call to getCurrentSession() is made. It is then bound by Hibernate to the current thread. When the transaction ends, either committed or rolled back, `Hibernate also unbinds the Session from the thread and closes it for you`. If you call getCurrentSession() again, you get `a new Session` and can start a new unit of work. This thread-bound programming model is the most popular way of using Hibernate.
+
+##### Session#createFilter
+Sometimes you do not want to initialize a large collection, but still need some information about it, like its size, for example, or a subset of the data.
+You can use a collection filter to get the size of a collection without initializing it:
+
+The createFilter() method is also used to efficiently retrieve subsets of a collection without needing to initialize the whole collection:
+
+```java
+((Integer)s.createFilter(collection, "select count(*)").list().get(0)).intValue();
+
+s.createFilter(lazyCollection, "").setFirstResult(0).setMaxResults(10).list();
+```
+
+##### Hibernate#initialize
+The static methods **Hibernate.initialize()** and Hibernate.isInitialized(), provide the application with a convenient way of working with lazily initialized collections or proxies.
 
 #### Hibernate Misc
 
@@ -1616,6 +1652,424 @@ __cons:__
 2. 要使用数据库的特定优化机制的时候，不适合用Hibernate
 
 
+##### Process of loading entity in Session
+__Session在加载实体对象的过程__  
+1. 首先在第一级缓存中，通过实体类型和id进行查找，如果第一级缓存查找命中，且数据状态合法，则直接返回。
+2. 之后，Session会在当前`“NonExists”`记录中进行查找，如果“NonExists”记录中存在同样的查询条件，则返回null。
+3. 对于load方法而言，如果内部缓存中未发现有效数据，则查询第二级缓存，如果第二级缓存命中，则返回。
+4. 如在缓存中未发现有效数据，则发起数据库查询操作（Select SQL），如经过查询未发现对应记录，则将此次查询的信息在“NonExists”中加以记录，并返回null。
+5. 根据映射配置和Select SQL得到的ResultSet，创建对应的数据对象。
+6. 将其数据对象纳入当前Session实体管理容器（一级缓存）。
+7. 执行Interceptor.onLoad方法（如果有对应的Interceptor）。
+8. 将数据对象纳入二级缓存。
+9. 如果数据对象实现了LifeCycle接口，则调用数据对象的onLoad方法。
+10. 返回数据对象。
+
+##### Primary key generation in Hibernate
+
+1. assigned
+主键由外部程序负责生成，无需Hibernate参与。
+2. hilo
+通过hi/lo 算法实现的主键生成机制，需要额外的数据库表保存主键生成历史状态。
+3. seqhilo
+与hilo 类似，通过hi/lo 算法实现的主键生成机制，只是主键历史状态保存在Sequence中，适用于支持Sequence的数据库，如Oracle。
+4. increment
+主键按数值顺序递增。此方式的实现机制为在当前应用实例中维持一个变量，以保存着当前的最大值，之后每次需要生成主键的时候将此值加1作为主键。这种方式可能产生的问题是：如果当前有多个实例访问同一个数据库，那么由于各个实例各自维护主键状态，不同实例可能生成同样的主键，从而造成主键重复异常。因此，如果同一数据库有多个实例访问，此方式必须避免使用。
+5. identity
+采用数据库提供的主键生成机制。如DB2、SQL Server、MySQL中的主键生成机制。
+6. sequence
+采用数据库提供的sequence 机制生成主键。如Oralce 中的Sequence。
+7. native
+由Hibernate根据底层数据库自行判断采用identity、hilo、sequence其中一种作为主键生成方式
+8. uuid.hex
+由Hibernate基于128 位唯一值产生算法生成16进制数值（编码后以长度32 的字符串表示）作为主键。
+9. uuid.string
+与uuid.hex 类似，只是生成的主键未进行编码（长度16）。在某些数据库中可能出现问题（如PostgreSQL）。
+10. foreign
+使用外部表的字段作为主键。
+
+* 一般而言，利用`uuid.hex`方式生成主键将提供最好的性能和数据库平台适应性。
+* increment 比较常用,把标识符生成的权力交给Hibernate处理.
+* 但是当同时多个Hibernate应用操作同一个数据库,甚至同一张表的时候.就推荐使用identity 依赖底层数据库实现,但是数据库必须支持自动增长
+* 当然针对不同的数据库选择不同的方法.如果你不能确定你使用的数据库具体支持什么的情况下.可以选择用native 让Hibernate来帮选择identity,sequence,或hilo.
+另外由于常用的数据库，如Oracle、DB2、SQLServer、MySql 等，都提供了易用的主键生成机制（Auto-Increase 字段或者Sequence）。我们可以在数据库提供的主键生成机制上，采用generator-class=native的主键生成方式。
+
+不过值得注意的是，一些数据库提供的主键生成机制在效率上未必最佳，大量并发insert数据时可能会引起表之间的互锁。数据库提供的主键生成机制，往往是通过在一个内部表中保存当前主键状态（如对于自增型主键而言，此内部表中就维护着当前的最大值和递增量），之后每次插入数据会读取这个最大值，然后加上递增量作为新记录的主键，之后再把这个新的最大值更新回内部表中，这样，一次Insert操作可能导致数据库内部多次表读写操作，同时伴随的还有数据的加锁解锁操作，这对性能产生了较大影响。`因此，对于并发Insert要求较高的系统，推荐采用uuid.hex 作为主键生成机制`
+
+##### Stateless session
+
+StatelessSession is a command-oriented API provided by Hibernate. Use it to stream data to and from the database in the form of detached objects. A StatelessSession has no persistence context associated with it and does not provide many of the higher-level life cycle semantics. 
+
+__Features and behaviors not provided by StatelessSession__  
+* a first-level cache
+* interaction with any second-level or query cache
+* transactional write-behind or automatic dirty checking
+
+__Limitations of StatelessSession__  
+* Operations performed using a stateless session never cascade to associated instances.
+* Collections are ignored by a stateless session.
+* Operations performed via a stateless session bypass Hibernate's event model and interceptors.
+* Due to the lack of a first-level cache, Stateless sessions are vulnerable to data aliasing effects.
+* A stateless session is a lower-level abstraction that is much closer to the underlying JDBC.
+
+##### Open Session In View
+
+Another option is to keep the Session open until all required collections and proxies have been loaded. In some application architectures, particularly where the code that accesses data using Hibernate, and the code that uses it are in different application layers or different physical processes, it can be a problem to ensure that the Session is open when a collection is initialized.
+
+There are two basic ways to deal with this issue:
+* In a web-based application, a servlet filter can be used to close the Session only at the end of a user request, once the rendering of the view is complete (the Open Session in View pattern). Of course, this places heavy demands on the correctness of the exception handling of your application infrastructure. It is vitally important that the Session is closed and the transaction ended before returning to the user, even when an exception occurs during rendering of the view. See the Hibernate Wiki for examples of this "Open Session in View" pattern.
+
+* In an application with a separate business tier, the business logic must "prepare" all collections that the web tier needs before returning. This means that the business tier should load all the data and return all the data already initialized to the presentation/web tier that is required for a
+particular use case. Usually, the application calls **Hibernate.initialize()** for each collection that will be needed in the web tier (this call must occur before the session is closed) or `retrieves the collection eagerly using a Hibernate query with a FETCH clause or a FetchMode.JOIN in Criteria`. This is usually easier if you adopt the Command pattern instead of a Session Facade.
+
+You can also attach a previously loaded object to a new Session with merge() or lock() before accessing uninitialized collections or other proxies. Hibernate does not, and certainly should not, do this automatically since it would introduce impromptu transaction semantics.
+
+##### Fecthing strategy and timing
+
+We have two orthogonal notions here: `when` is the association fetched and `how` is it fetched. It is important that you do not confuse them. We use fetch to tune performance. We can use lazy to define a contract for what data is always available in any detached instance of a particular class.
+
+__(when) Hibernate also distinguishes between:__  
+* Immediate fetching: an association, collection or attribute is fetched immediately when the owner is loaded.
+* Lazy collection fetching: a collection is fetched when the application invokes an operation upon that collection. This is the default for collections.
+* "Extra-lazy" collection fetching: individual elements of the collection are accessed from the database as needed. Hibernate tries not to fetch the whole collection into memory unless absolutely needed. It is suitable for large collections.
+* Proxy fetching: a single-valued association is fetched when a method other than the identifier getter is invoked upon the associated object.
+* "No-proxy" fetching: a single-valued association is fetched when the instance variable is accessed. Compared to proxy fetching, this approach is less lazy; the association is fetched even when only the identifier is accessed. It is also more transparent, since no proxy is visible to the application. This approach requires buildtime bytecode instrumentation and is rarely necessary.
+* Lazy attribute fetching: an attribute or single valued association is fetched when the instance variable is accessed. This approach requires buildtime bytecode instrumentation and is rarely necessary.
+
+__(how) Hibernate3 defines the following fetching strategies:__
+* Join fetching: Hibernate retrieves the associated instance or collection in the same SELECT,using an OUTER JOIN.
+* Select fetching: a second SELECT is used to retrieve the associated entity or collection. Unless you explicitly disable lazy fetching by specifying lazy="false", this second select will only be executed when you access the association.
+* Subselect fetching: a second SELECT is used to retrieve the associated collections for all entities retrieved in a previous query or fetch. Unless you explicitly disable lazy fetching by specifying lazy="false", this second select will only be executed when you access the association.
+* Batch fetching: an optimization strategy for select fetching. Hibernate retrieves a batch of entity instances or collections in a single SELECT by specifying a list of primary or foreign keys.
+
+* fetch-“join” = Disable the lazy loading, always load all the collections and entities.
+* fetch-“select” (default) = Lazy load all the collections and entities.
+* batch-size=”N” = Fetching up to ‘N’ collections or entities, but *Not N records*.  
+The batch-size fetching strategy is not define how many records inside in the collections are loaded. Instead, it defines how many collections should be loaded.
+* fetch-“subselect” = Group its collection into a sub select statement.
+
+__Examples of different strategies:__  
+Configuration in xml,
+```xml
+<hibernate-mapping>
+    <class name="com.mkyong.common.Stock" table="stock">
+        <set name="stockDailyRecords"  cascade="all" inverse="true" 
+            table="stock_daily_record" batch-size="10" fetch="select">
+            <key>
+                <column name="STOCK_ID" not-null="true" />
+            </key>
+            <one-to-many class="com.mkyong.common.StockDailyRecord" />
+        </set>
+    </class>
+</hibernate-mapping>
+```
+the same configuration by Annotation,
+```java
+@Entity
+@Table(name = "stock", catalog = "mkyong")
+public class Stock implements Serializable{
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "stock")
+    @Cascade(CascadeType.ALL)
+    @Fetch(FetchMode.SELECT)
+        @BatchSize(size = 10)
+    public Set<StockDailyRecord> getStockDailyRecords() {
+        return this.stockDailyRecords;
+    }
+}
+```
+
+Testing codes for strategy 1, 2, 3:
+```java
+Stock stock = (Stock)session.get(Stock.class, 114);
+Set sets = stock.getStockDailyRecords();
+
+for ( Iterator iter = sets.iterator();iter.hasNext(); ) {
+      StockDailyRecord sdr = (StockDailyRecord) iter.next();
+      System.out.println(sdr.getDailyRecordId());
+      System.out.println(sdr.getDate());
+}
+```
+
+1. fetch=”select” or @Fetch(FetchMode.SELECT)
+```sql
+Output:
+1 time:
+    select ...from mkyong.stock
+    where stock0_.STOCK_ID=?
+
+1 times:
+    select ...from mkyong.stock_daily_record
+    where stockdaily0_.STOCK_ID=?
+```
+
+Hibernate generated 2 select statements
+* 1 Select statement to retrieve the Stock records –session.get(Stock.class, 114)
+* 1 Select its related collections – sets.iterator()
+
+2. fetch=”join” or @Fetch(FetchMode.JOIN)
+```sql
+Output:
+1 time: 
+    select ...
+    from
+        mkyong.stock stock0_ 
+    left outer join
+        mkyong.stock_daily_record stockdaily1_ 
+            on stock0_.STOCK_ID=stockdaily1_.STOCK_ID 
+    where
+        stock0_.STOCK_ID=?
+```
+Hibernate generated only 1 select statement, it retrieve all its related collections when the Stock is initialized. –session.get(Stock.class, 114)
+
+3. batch-size=”10″ or @BatchSize(size = 10)
+```sql
+Output:
+1 time:
+    select ...from mkyong.stock
+    where stock0_.STOCK_ID=?
+
+1 times:
+    select ...from mkyong.stock_daily_record
+    where stockdaily0_.STOCK_ID=?
+```
+
+Hibernate generated 2 select statements
+* 1 Select statement to retrieve the Stock records –session.get(Stock.class, 114)
+* 1 Select its related collections – sets.iterator()
+
+__Another example__  
+
+Let see another example, you want to print out all the stock records and its related stock daily records (collections) one by one.
+
+```java
+List<Stock> list = session.createQuery("from Stock").list();
+
+for(Stock stock : list){
+
+    Set sets = stock.getStockDailyRecords();
+
+    for ( Iterator iter = sets.iterator();iter.hasNext(); ) {
+            StockDailyRecord sdr = (StockDailyRecord) iter.next();
+            System.out.println(sdr.getDailyRecordId());
+            System.out.println(sdr.getDate());
+    }
+}
+```
+* No batch-size fetching strategy
+```sql
+Output
+
+1 time:
+    select ...
+    from mkyong.stock stock0_
+
+n times:
+    select ...
+    from mkyong.stock_daily_record stockdaily0_
+    where stockdaily0_.STOCK_ID=?
+
+    select ...
+    from mkyong.stock_daily_record stockdaily0_
+    where stockdaily0_.STOCK_ID=?
+
+    ...
+```
+Keep repeat the select statements....depend how many stock records in your table.
+
+If you have 20 stock records in the database, the Hibernate’s default fetching strategies will generate 20+1 select statements and hit the database.
+
+1. Select statement to retrieve all the Stock records.
+2. Select its related collection
+3. Select its related collection
+4. Select its related collection
+….
+21. Select its related collection
+
+The generated queries are not efficient and caused a serious performance issue.
+
+* Enabled the batch-size=’10’ fetching strategy
+
+Let see another example with batch-size=’10’ is enabled.
+
+```sql
+Output
+
+1 time:
+    select ...
+    from mkyong.stock stock0_
+
+n/batch_size + 1 times:
+    select ...
+    from mkyong.stock_daily_record stockdaily0_
+    where
+        stockdaily0_.STOCK_ID in (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        )
+```
+Now, Hibernate will per-fetch the collections, with a select *in* statement. If you have 20 stock records, it will generate 3 select statements.
+
+* Select statement to retrieve all the Stock records.
+* Select In statement to per-fetch its related collections (10 collections a time)
+* Select In statement to per-fetch its related collections (next 10 collections a time)
+
+With batch-size enabled, it simplify the select statements from 21 select statements to 3 select statements.
+
+4. fetch=”subselect” or @Fetch(FetchMode.SUBSELECT)
+Testing codes:
+```java
+List<Stock> list = session.createQuery("from Stock").list();
+
+for(Stock stock : list){
+    Set sets = stock.getStockDailyRecords();
+    for ( Iterator iter = sets.iterator();iter.hasNext(); ) {
+            StockDailyRecord sdr = (StockDailyRecord) iter.next();
+            System.out.println(sdr.getDailyRecordId());
+            System.out.println(sdr.getDate());
+    }
+}
+```
+
+```sql
+Output:
+1 time:
+    select ...
+    from mkyong.stock stock0_
+
+1 time:
+    select ...
+    from
+        mkyong.stock_daily_record stockdaily0_
+    where
+        stockdaily0_.STOCK_ID in (
+            select
+                stock0_.STOCK_ID
+            from
+                mkyong.stock stock0_
+        )
+```
+
+With “subselect” enabled, it will create 2 select statements.
+* Select statement to retrieve all the Stock records.
+* Select all its related collections in a sub select query.
+
+##### Hibernate Lazy and implementation
+
+Usually, the mapping document is not used to customize fetching. Instead, we keep the default behavior, and override it for a particular transaction, using left join fetch in HQL. This tells Hibernate to fetch the association eagerly in the first select, using an outer join. In the Criteria query API, you would use setFetchMode(FetchMode.JOIN).
+If you want to change the fetching strategy used by get() or load(), you can use a Criteria query. For example:
+```java
+User user = (User) session.createCriteria(User.class)
+.setFetchMode("permissions", FetchMode.JOIN)
+.add( Restrictions.idEq(userId) )
+.uniqueResult();
+```
+
+Lazy fetching for collections is implemented using `Hibernate's own implementation of persistent collections`. However, a different mechanism is needed for lazy behavior in single-ended associations. The target entity of the association must be proxied. Hibernate implements lazy initializing proxies for persistent objects using `runtime bytecode enhancement which is accessed via the CGLIB library.`
+
+At startup, Hibernate3 generates proxies by default for all persistent classes and uses them to enable lazy fetching of many-to-one wand one-to-one associations.
+
+The mapping file may declare an interface to use as the proxy interface for that class, with the proxy attribute. By default, Hibernate uses a subclass of the class. The proxied class must implement a default constructor with at least package visibility. This constructor is recommended for all persistent classes.
+
+Third, you cannot use a CGLIB proxy for a final class or a class with any final methods.
+
+__Certain operations do not require proxy initialization:__  
+* equals(): if the persistent class does not override equals()
+* hashCode(): if the persistent class does not override hashCode()
+* The identifier getter method
+
+`A LazyInitializationException will be thrown by Hibernate if an uninitialized collection or proxy is accessed outside of the scope of the Session`, i.e., when the entity owning the collection or having the reference to the proxy is in the detached state.
+
+Sometimes a proxy or collection needs to be initialized before closing the Session. You can force initialization by calling cat.getSex() or cat.getKittens().size(), for example. However, this can be confusing to readers of the code and it is not convenient for generic code.
+
+The static methods **Hibernate.initialize()** and Hibernate.isInitialized(), provide the application with a convenient way of working with lazily initialized collections or proxies.
+
+Another option is to keep the Session open until all required collections and proxies have been loaded. **PS:** So called "open session in view", which is considered as anti-pattern.
+
+##### lazy fetching of individual properties
+Hibernate3 supports the lazy fetching of individual properties. This optimization technique is also known as fetch groups. Please note that this is mostly a marketing feature; optimizing row reads is much more important than optimization of column reads. However, only loading some properties of a class could be useful in extreme cases. For example, when legacy tables have hundreds of columns and the data model cannot be improved.
+
+A different way of avoiding unnecessary column reads, at least for read-only transactions, is to use the projection features of HQL or Criteria queries. This avoids the need for buildtime bytecode processing and is certainly a preferred solution.
+
+You can force the usual eager fetching of properties using fetch all properties in HQL.
+
+##### Understanding Hibernate Collection performance
+
+Lazy fetching for collections is implemented using `Hibernate's own implementation of persistent collections`. 
+
+__Hibernate defines 3 basic kinds of collections:__  
+* collections of values
+* one-to-many associations
+* many-to-many associations
+
+we must also consider the structure of the primary key that is used by Hibernate to update or delete collection rows. This suggests the following classification:  
+* indexed collections
+* sets
+* bags
+
+`In well-designed Hibernate domain models, most collections are in fact one-to-many associations with inverse="true".`
+
+In conclusion, 
+* For inverse collections 
+Bags and lists are the most efficient inverse collections.
+* For non-inverse collections
+After observing that arrays cannot be lazy, you can conclude that lists, maps and idbags are the most performant (non-inverse) collection types, with sets not far behind. You can expect sets to be the most common kind of collection in Hibernate applications. This is because the "set" semantics are most natural in the relational model.
+
+Bags and lists are the most efficient inverse collections.
+There is a particular case, however, in which bags, and also lists, are much more performant than sets. `For a collection with inverse="true", the standard bidirectional one-to-many relationship idiom, for example, we can add elements to a bag or list without needing to initialize (fetch) the bag elements. This is because, unlike a set, Collection.add() or Collection.addAll() must always return true for a bag or List(PS: in other word, set may return false if it find out that there is any duplication, that's why set nees to initialize its elements before adding new ones).` This can make the following common code much faster:
+
+```java
+Parent p = (Parent) sess.load(Parent.class, id);
+Child c = new Child();
+c.setParent(p);
+p.getChildren().add(c); //no need to fetch the collection!
+sess.flush();
+```
+
+
+`All indexed collections (maps, lists, and arrays)` have a primary key consisting of the <key> and <index> columns. In this case, collection updates are extremely efficient. The primary key can be efficiently indexed and a particular row can be efficiently located when Hibernate tries to update or delete it.
+
+Sets have a primary key consisting of <key> and element columns. This can be less efficient for some types of collection element, particularly composite elements or large text or binary fields, as the database may not be able to index a complex primary key as efficiently. However, for one-to-many or many-to-many associations, particularly in the case of synthetic identifiers, it is likely to be just as efficient. 
+
+<idbag> mappings define a surrogate key, so they are efficient to update. In fact, they are the best case.
+
+Bags are the worst case since they permit duplicate element values and, as they have no index column, no primary key can be defined. Hibernate has no way of distinguishing between duplicate rows. Hibernate resolves this problem by completely removing in a single DELETE and recreating the collection whenever it changes. This can be inefficient.
+
+##### Hibernate one shot delete
+However, suppose that we remove 18 elements, leaving 2 and then add 3 new elements. There are two possible ways to proceed
+* delete eighteen rows one by one and then insert three rows
+* remove the whole collection in one SQL DELETE and insert all five current elements one by one
+
+Hibernate cannot know that the second option is probably quicker. It would probably be undesirable for Hibernate to be that intuitive as such behavior might confuse database triggers, etc.
+
+Fortunately, you can force this behavior (i.e. the second strategy) at any time by discarding (i.e. dereferencing) the original collection and returning a newly instantiated collection with all the current elements.
+One-shot-delete does not apply to collections mapped inverse="true".
+
+##### inverse attribute in mapping
+
+From P15/23 Hibernate Reference Documentation Version: 3.1 rc3
+
+What about the inverse mapping attribute? For you, and for Java, a bi-directional link is simply a matter of setting the references on both sides correctly. Hibernate however doesn't have enough information to correctly arrange SQL INSERT and UPDATE statements (to avoid constraint violations), and needs some help to handle bidirectional associations properly. `Making one side of the association inverse tells Hibernate to basically ignore it, to consider it a mirror of the other side.` That's all that is necessary for Hibernate to work out all of the issues when transformation a directional navigation model to a SQL database schema. 
+
+The rules you have to remember are straightforward: All bi-directional associations need one side as inverse. In a one-to-many association it has to be the many-side, in many-to-many association you can pick either side, there is no difference.
+
+However, in well-designed Hibernate domain models, most collections are in fact one-to-many associations with inverse="true". For these associations, the update is handled by the manyto-one end of the association, and so considerations of collection update performance simply do not apply.
+
+
+`However, in well-designed Hibernate domain models, most collections are in fact one-to-many associations with inverse="true".` For these associations, the update is handled by the many-to-one end of the association, and so considerations of collection update performance simply do not apply.
+
+Bags and lists are the most efficient inverse collections.
+
+There is a particular case, however, in which bags, and also lists, are much more performant than sets. `For a collection with inverse="true", the standard bidirectional one-to-many relationship idiom, for example, we can add elements to a bag or list without needing to initialize (fetch) the bag elements. This is because, unlike a set, Collection.add() or Collection.addAll() must always return true for a bag or List(PS: in other word, set may return false if it find out that there is any duplication, that's why set nees to initialize its elements before adding new ones).` This can make the following common code much faster:
+
+```java
+Parent p = (Parent) sess.load(Parent.class, id);
+Child c = new Child();
+c.setParent(p);
+p.getChildren().add(c); //no need to fetch the collection!
+sess.flush();
+```
+
+One-shot-delete does not apply to collections mapped inverse="true".
+
 ### Miscellaneous
 
 ---
@@ -1628,3 +2082,4 @@ __cons:__
 [spring_mvc_1]:/resources/img/java/spring_mvc_1.png "Spring MVC flowchart"
 [hibernate-object-state-1]:/resources/img/java/hibernate-object-state-transitions-1.png "Hibernate Object State Transition"
 [hibernate-architecture-1]:/resources/img/java/hibernate-architecture-1.png "Hibernate Architecture Diagram"
+[hibernate-fecthing-strategy-1]:http://www.mkyong.com/hibernate/hibernate-fetching-strategies-examples/ "Hibernate – fetching strategies examples"
