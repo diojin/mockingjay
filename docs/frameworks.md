@@ -121,7 +121,7 @@ The spring-jdbc module provides a JDBC-abstraction layer that removes the need t
 The spring-tx module supports programmatic and declarative transaction management for classes that implement special interfaces and for all your POJOs (Plain Old Java Objects).
 
 The spring-orm module provides integration layers for popular object-relational mapping APIs,
-including JPA, JDO, and Hibernate. Using the spring-orm module you can use all of these O/Rmapping frameworks in combination with all of the other features Spring offers, such as the simple declarative transaction management feature mentioned previously.
+including JPA, JDO, and Hibernate. Using the spring-orm module you can use all of these O/R mapping frameworks in combination with all of the other features Spring offers, such as the simple declarative transaction management feature mentioned previously.
 
 The spring-oxm module provides an abstraction layer that supports **Object/XML mapping** implementations such as JAXB, Castor, XMLBeans, JiBX and XStream.
 
@@ -259,7 +259,7 @@ public TaskExecutor threadPoolTaskExecutor() {
 ```
 
 __Bootstrapping @Configuration classes__  
-1. Via AnnotationConfigApplicationContext
+1. Via AnnotationConfigApplicationContext  
 @Configuration classes are typically bootstrapped using either **AnnotationConfigApplicationContext** or its web-capable variant, **AnnotationConfigWebApplicationContext**. A simple example with the former follows: 
 ```java
 AnnotationConfigApplicationContext ctx =
@@ -270,7 +270,7 @@ MyBean myBean = ctx.getBean(MyBean.class);
 // use myBean ...
 ```
 
-2. Via Spring <beans> XML
+2. Via Spring <beans> XML  
 As an alternative to registering @Configuration classes directly against an AnnotationConfigApplicationContext, @Configuration classes may be declared as normal <bean> definitions within Spring XML files: 
 
 ```xml
@@ -281,7 +281,7 @@ As an alternative to registering @Configuration classes directly against an Anno
 ```
 In the example above, <context:annotation-config/> is required in order to enable ConfigurationClassPostProcessor and other annotation-related post processors that facilitate handling @Configuration classes. 
 
-3. Via component scanning
+3. Via component scanning  
 @Configuration is meta-annotated with @Component, therefore @Configuration classes are candidates for component scanning (typically using Spring XML's <context:component-scan/> element) and therefore may also take advantage of @Autowired/@Inject at the field and method level (but not at the constructor level). 
 
 @Configuration classes may not only be bootstrapped using component scanning, but may also themselves configure component scanning using the @ComponentScan annotation: 
@@ -2322,8 +2322,7 @@ __Cons:__
 6. 前端表达式语言方面.Struts集成了JSTL，所以它主要使用JSTL的表达式语言来获取数据。可是JSTL的表达式语言在Collection和索引属性方面处理显得很弱。 
 7. 对Action执行的控制困难. Struts创建一个Action，如果想控制它的执行顺序将会非常困难。甚至你要重新去写Servlet来实现你的这个功能需求
 8. 对Action 执行前和后的处理. Struts处理Action的时候是基于class的hierarchies，很难在action处理前和后进行操作。PS: AOP support 
-9. 对事件支持不够. 在struts中，实际是一个表单Form对应一个Action类(或DispatchAction)，换一句话说：在Struts中实际是一个表单只能对应一个事件，struts这种事件方式称为application event，application event和component event相比是一种粗粒度的事件。 
-Struts重要的表单对象ActionForm是一种对象，它代表了一种应用，这个对象中至少包含几个字段，这些字段是Jsp页面表单中的input字段，因为一个表单对应一个事件，所以，当我们需要将事件粒度细化到表单中这些字段时，也就是说，一个字段对应一个事件时，单纯使用Struts就不太可能，当然通过结合JavaScript也是可以转弯实现的。
+9. 对事件支持不够. 表单对象不支持字段级别的事件, 如果要支持, 要通过结合JavaScript也是可以转弯实现的.
 
 ### Miscellaneous
 
