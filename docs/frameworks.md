@@ -80,8 +80,15 @@
         + [Concurrency concerns](#hibernate-concurrency-concerns)
         + [Hibernate isolation level](#hibernate-isolation-level)
         + [Flushing the Session](#flushing-the-session)
+* [Struts](#struts)
+    - [Struts2](#struts2)
+        + [Misc](#struts2-misc)
+            * [differences between struts 1 and 2](#differences-between-struts-1-and-2)
+            * [Struts2 workflow](#struts2-workflow)
+    - [Misc](#struts-misc)
+        + [Struts action types](#struts-action-types)
+        + [Struts Pros and Cons](#struts-pros-and-cons)
 * [Miscellaneous](#miscellaneous)
-
 
 ### Spring
 #### Spring General
@@ -2229,6 +2236,94 @@ The SQL statements are issued in the following order:
 An exception is that objects using native ID generation are inserted when they are saved.
 
 Except when you explicitly flush(), there are absolutely no guarantees about when the Session executes the JDBC calls, only the order in which they are executed. However, Hibernate does guarantee that the Query.list(..) will never return stale or incorrect data.
+
+### Struts
+
+#### Struts2
+##### Struts2 Misc
+###### differences between struts 1 and 2
+* Framework intrusion
+    - Action 类
+        + Struts1要求Action类继承一个抽象基类。Struts1的一个普遍问题是使用抽象类编程而不是接口
+        + Struts 2 Action类可以实现一个Action接口, 但不是必须的，任何有execute()方法的POJO对象都可以用作Struts2的Action对象. Struts2提供一个ActionSupport基类去实现常用的接口。
+    - Servlet 依赖
+        + Struts1 Action 依赖于Servlet API ,因为当一个Action被调用时HttpServletRequest 和 HttpServletResponse 被传递给execute方法
+        + Struts 2 Action不依赖于容器，允许Action脱离容器单独被测试。如果需要，Struts2 Action仍然可以访问初始的request和response。但是，其他的元素减少或者消除了直接访问HttpServetRequest 和 HttpServletResponse的必要性
+    - 捕获输入
+        + Struts1 使用ActionForm对象捕获输入。所有的ActionForm必须继承一个基类。因为其他JavaBean不能用作ActionForm，开发者经常创建多余的类捕获输入。动态Bean（DynaBeans）可以作为创建传统ActionForm的选择，但是，开发者可能是在重新描述(创建)已经存在的JavaBean（仍然会导致有冗余的javabean）
+        + Struts 2直接使用Action属性作为输入属性，消除了对第二个输入对象的需求。输入属性可能是有自己(子)属性的rich对象类型。Action属性能够通过web页面上的taglibs访问。Struts2也支持ActionForm模式。rich对象类型，包括业务对象，能够用作输入/输出对象。这种ModelDriven 特性简化了taglib对POJO输入对象的引用
+    - 可测性
+        + 测试Struts1 Action的一个主要问题是execute方法暴露了servlet API（这使得测试要依赖于容器）。一个第三方扩展－－Struts TestCase－－提供了一套Struts1的模拟对象（来进行测试）
+        + Struts 2 Action可以通过初始化、设置属性、调用方法来测试，“依赖注入”支持也使测试更容易。
+* 线程模式
+    - Struts1 Action是单例模式并且必须是线程安全的，因为仅有Action的一个实例来处理所有的请求
+    - Struts2 Action对象为每一个请求产生一个实例，因此没有线程安全问题。（实际上，servlet容器给每个请求产生许多可丢弃的对象，并且不会导致性能和垃圾回收问题）
+
+* 表达式语言 OGNL
+    - Struts1 整合了JSTL，因此使用JSTL EL。这种EL有基本对象遍历，但是对集合和索引属性的支持很弱。
+    - Struts 1 ActionForm 属性通常都是String类型。Struts1使用Commons-Beanutils进行类型转换。每个类一个转换器，对每一个实例来说是不可配置的。
+    - Struts2可以使用JSTL，但是也支持一个更强大和灵活的表达式语言－－`"Object Graph Notation Language" (OGNL)`. 
+    - Struts2 使用OGNL进行类型转换。提供基本和常用对象的转换器。 
+
+* 绑定值到页面（view）
+    - Struts 1使用标准JSP机制把对象绑定到页面中来访问
+    - Struts 2 使用 `"ValueStack"`技术，使taglib能够访问值而不需要把你的页面（view）和对象绑定起来。ValueStack策略允许通过一系列名称相同但类型不同的属性重用页面（view）
+
+* 校验
+    - Struts 1支持在ActionForm的validate方法中手动校验，或者通过Commons Validator的扩展来校验。同一个类可以有不同的校验内容，但不能校验子对象。
+    - Struts2支持通过`validate方法和XWork校验框架`来进行校验。XWork校验框架使用为属性类类型定义的校验和内容校验，来支持`chain校验子属性` 
+
+* Action Lifecycle的控制
+    - Struts1支持每一个模块有单独的Request Processors（生命周期），但是模块中的所有Action必须共享相同的生命周期。
+    - Struts2支持通过拦截器堆栈（Interceptor Stacks）为每一个Action创建不同的生命周期。堆栈能够根据需要和不同的Action一起使用。
+
+###### Struts2 workflow
+Struts 2框架本身大致可以分为3个部分：
+* 核心控制器FilterDispatcher
+* 业务控制器Action
+* 用户实现的企业业务逻辑组件
+
+核心控制器FilterDispatcher是Struts 2框架的基础，包含了框架内部的控制流程和处理机制。业务控制器Action和业务逻辑组件是需要用户来自己实现的。用户在开发Action和业务逻辑组件的同时，还需要编写相关的配置文件，供核心控制器FilterDispatcher来使用。
+
+Struts 2的工作流程相对于Struts 1要简单，与WebWork框架基本相同，所以说Struts 2是WebWork的升级版本。基本简要流程如下：
+1. 客户端浏览器发出HTTP请求
+2. 根据web.xml配置，该请求被FilterDispatcher接收
+3. 根据struts.xml配置，找到需要调用的Action类和方法，并通过IoC方式，将值注入给Aciton
+4. Action调用业务逻辑组件处理业务逻辑，这一步包含表单验证
+5. Action执行完毕，根据struts.xml中的配置找到对应的返回结果result，并跳转到相应页面
+6. 返回HTTP响应到客户端浏览器
+
+#### Struts Misc
+
+##### Struts action types
+* DispatchAction: 能同时完成多个Action功能的Action
+    - LookupDispatchAction: DispatchAction 的子类, 根据按钮的key, 控制转发给action的方法
+    - MappingDispatchAction: DispatchAction的子类, 一个action 可映射出多个Action地址
+* ForwardActon: 该类用来整合Struts 和其他业务逻辑组件，通常只对请求作有效 
+性检查
+* IncludeAction: 用于引入其他的资源和页面
+* SwitchAction: 用于从一个模块转换至另一个模块，如果应用分成多个模块时， 
+就可以使用SwitchAction 完成模块之间的切换
+
+##### Struts Pros and Cons
+__Pros:__  
+1. 实现MVC模式，结构清晰,使开发者只关注业务逻辑的实现. 
+2. 有丰富的tag可以用 ,Struts的标记库(Taglib)。
+3. 有效的和其他的开源框架整合, 如Hibernate,spring.
+4. 支持I18N
+5. 页面导航逻辑配置在配置文件中.
+
+__Cons:__  
+1. 转到展示层时，需要配置forward，每一次转到展示层，相信大多数都是直接转到jsp，而涉及到转向，需要配置forward, 注意，每次修改配置之后，要求重新部署整个项目.
+2. Struts 的Action必需是thread－safe方式，它仅仅允许一个实例去处理所有的请求
+3. 测试不方便. Struts的每个Action都同Web层耦合在一起，这样它的测试依赖于Web容器，单元测试也很难实现。不过有一个Junit的扩展工具Struts TestCase可以实现它的单元测试
+4. 类型的转换. Struts的FormBean把所有的数据都作为String类型，它可以使用工具Commons-Beanutils进行类型转化。但它的转化都是在Class级别，而且转化的类型是不可配置的。类型转化时的错误信息返回给用户也是非常困难的
+5. 对Servlet的依赖性过强. Struts处理Action时必需要依赖ServletRequest 和ServletResponse，所有它摆脱不了Servlet容器。
+6. 前端表达式语言方面.Struts集成了JSTL，所以它主要使用JSTL的表达式语言来获取数据。可是JSTL的表达式语言在Collection和索引属性方面处理显得很弱。 
+7. 对Action执行的控制困难. Struts创建一个Action，如果想控制它的执行顺序将会非常困难。甚至你要重新去写Servlet来实现你的这个功能需求
+8. 对Action 执行前和后的处理. Struts处理Action的时候是基于class的hierarchies，很难在action处理前和后进行操作。PS: AOP support 
+9. 对事件支持不够. 在struts中，实际是一个表单Form对应一个Action类(或DispatchAction)，换一句话说：在Struts中实际是一个表单只能对应一个事件，struts这种事件方式称为application event，application event和component event相比是一种粗粒度的事件。 
+Struts重要的表单对象ActionForm是一种对象，它代表了一种应用，这个对象中至少包含几个字段，这些字段是Jsp页面表单中的input字段，因为一个表单对应一个事件，所以，当我们需要将事件粒度细化到表单中这些字段时，也就是说，一个字段对应一个事件时，单纯使用Struts就不太可能，当然通过结合JavaScript也是可以转弯实现的。
 
 ### Miscellaneous
 
