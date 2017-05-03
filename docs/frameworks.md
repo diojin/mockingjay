@@ -73,8 +73,12 @@
         + [Lazy and implementation](#hibernate-lazy-and-implementation)
         + [lazy fetching of individual properties](#lazy-fetching-of-individual-properties)
         + [Understanding Hibernate Collection performance](#understanding-hibernate-collection-performance)
-        + [Hibernate one shot delete](#hibernate-one-shot-delete)
+        + [one shot delete](#hibernate-one-shot-delete)
         + [inverse attribute in mapping](#inverse-attribute-in-mapping)
+        + [Caching](#hibernate-caching)
+        + [Concurrency concerns](#hibernate-concurrency-concerns)
+        + [Hibernate isolation level](#hibernate-isolation-level)
+        + [Flushing the Session](#flushing-the-session)
 * [Miscellaneous](#miscellaneous)
 
 
@@ -1748,7 +1752,10 @@ __(how) Hibernate3 defines the following fetching strategies:__
 The batch-size fetching strategy is not define how many records inside in the collections are loaded. Instead, it defines how many collections should be loaded.
 * fetch-“subselect” = Group its collection into a sub select statement.
 
-__Examples of different strategies:__  
+__Examples of different strategies:__ 
+
+[For more information][hibernate-fecthing-strategy-1]
+
 Configuration in xml,
 ```xml
 <hibernate-mapping>
@@ -1878,12 +1885,12 @@ Keep repeat the select statements....depend how many stock records in your table
 
 If you have 20 stock records in the database, the Hibernate’s default fetching strategies will generate 20+1 select statements and hit the database.
 
-1. Select statement to retrieve all the Stock records.
-2. Select its related collection
-3. Select its related collection
-4. Select its related collection
-….
-21. Select its related collection
+1) Select statement to retrieve all the Stock records.
+2) Select its related collection
+3) Select its related collection
+4) Select its related collection
+…
+21) Select its related collection
 
 The generated queries are not efficient and caused a serious performance issue.
 
@@ -2049,15 +2056,12 @@ From P15/23 Hibernate Reference Documentation Version: 3.1 rc3
 
 What about the inverse mapping attribute? For you, and for Java, a bi-directional link is simply a matter of setting the references on both sides correctly. Hibernate however doesn't have enough information to correctly arrange SQL INSERT and UPDATE statements (to avoid constraint violations), and needs some help to handle bidirectional associations properly. `Making one side of the association inverse tells Hibernate to basically ignore it, to consider it a mirror of the other side.` That's all that is necessary for Hibernate to work out all of the issues when transformation a directional navigation model to a SQL database schema. 
 
-The rules you have to remember are straightforward: All bi-directional associations need one side as inverse. In a one-to-many association it has to be the many-side, in many-to-many association you can pick either side, there is no difference.
+`The rules you have to remember are straightforward: All bi-directional associations need one side as inverse. In a one-to-many association it has to be the many-side, in many-to-many association you can pick either side, there is no difference.`
 
-However, in well-designed Hibernate domain models, most collections are in fact one-to-many associations with inverse="true". For these associations, the update is handled by the manyto-one end of the association, and so considerations of collection update performance simply do not apply.
-
-
+Some other referencing materials: 
 `However, in well-designed Hibernate domain models, most collections are in fact one-to-many associations with inverse="true".` For these associations, the update is handled by the many-to-one end of the association, and so considerations of collection update performance simply do not apply.
 
 Bags and lists are the most efficient inverse collections.
-
 There is a particular case, however, in which bags, and also lists, are much more performant than sets. `For a collection with inverse="true", the standard bidirectional one-to-many relationship idiom, for example, we can add elements to a bag or list without needing to initialize (fetch) the bag elements. This is because, unlike a set, Collection.add() or Collection.addAll() must always return true for a bag or List(PS: in other word, set may return false if it find out that there is any duplication, that's why set nees to initialize its elements before adding new ones).` This can make the following common code much faster:
 
 ```java
@@ -2069,6 +2073,105 @@ sess.flush();
 ```
 
 One-shot-delete does not apply to collections mapped inverse="true".
+
+##### Hibernate Caching
+
+[Fore more information][hibernate-caching-1]
+
+http://www.tutorialspoint.com/hibernate/hibernate_caching.htm
+
+Hibernate Cache can be very useful in gaining fast application performance if used correctly. The idea behind cache is to reduce the number of database queries, hence reducing the throughput time of the application.
+
+* First Level Cache: Hibernate first level cache is `associated with the Session object`. Hibernate first level cache is enabled by default and there is no way to disable it. However hibernate provides methods through which we can delete selected objects from the cache or clear the cache completely.
+Any object cached in a session will not be visible to other sessions and when the session is closed, all the cached objects will also be lost.
+
+* Second Level Cache: Hibernate Second Level cache is disabled by default but we can enable it through configuration. Currently EHCache and Infinispan provides implementation for Hibernate Second level cache and we can use them. 
+
+Second level cache is an optional cache and first-level cache will always be consulted before any attempt is made to locate an object in the second-level cache. The second-level cache can be configured `on a per-class and per-collection basis` and mainly responsible for caching objects across sessions.
+Any third-party cache can be used with Hibernate. An org.hibernate.cache.CacheProvider interface is provided, which must be implemented to provide Hibernate with a handle to the cache implementation
+
+Not all classes benefit from caching, so it's important to be able to disable the second-level cache.
+
+The Hibernate second-level cache is set up in two steps. First, you have to decide which concurrency strategy to use. After that, you configure cache expiration and physical cache attributes using the cache provider.
+
+concurrency strategy: 
+* read-only
+A concurrency strategy suitable for data which never changes. Use it for reference data only.
+* nonstrict-read-writ
+This strategy makes no guarantee of consistency between the cache and the database. Use this strategy if data hardly ever changes and a small likelihood of stale data is not of critical concern.
+* read-write
+Again use this strategy for read-mostly data where it is critical to prevent stale data in concurrent transactions,in the rare case of an update.
+比较普遍的形式，效率一般
+* transactional
+Use this strategy for read-mostly data where it is critical to prevent stale data in concurrent transactions,in the rare case of an update.
+JTA中，且支持的缓存产品较少
+
+* Query Cache: Hibernate can also cache result set of a query. Hibernate Query Cache doesn’t cache the state of the actual entities in the cache; `it caches only identifier values and results of value type`. So it should always be used in conjunction with the second-level cache.
+
+Hibernate also implements a cache for query resultsets that integrates closely with the second-level cache.
+This is an optional feature and requires two additional physical cache regions that hold the cached query results and the timestamps when a table was last updated. This is only useful for queries that are run frequently with the same parameters.
+
+To use the query cache, you must first activate it using the hibernate.cache.use_query_cache="true" property in the configuration file. By setting this property to true, you make Hibernate create the necessary caches in memory to hold the query and identifier sets.
+
+如配置了则从查询缓存中查找key为`查询语句+查询参数+分页条件的值`
+
+Hibernate also supports very fine-grained cache support through the concept of a cache region. A **cache region** is part of the cache that's given a name.
+
+This code uses the method to tell Hibernate to store and look for the query in the employee area of the cache.
+```java
+Session session = SessionFactory.openSession();
+Query query = session.createQuery("FROM EMPLOYEE");
+query.setCacheable(true);
+query.setCacheRegion("employee");
+List users = query.list();
+SessionFactory.closeSession();
+```
+
+The Session caches every object that is in persistent state (watched and checked for dirty state by Hibernate). This means it grows endlessly until you get an OutOfMemoryException, if you keep it open for a long time or simply load too much data. One solution for this is to call clear() and evict() to manage the Session cache, `but you most likely should consider a Stored Procedure if you need mass data operations`. Some solutions are shown in Chapter 13, Batch processing. Keeping a Session open for the duration of a user session also means a high probability of stale data.
+
+##### Hibernate concurrency concerns
+
+From P121/129 Hibernate Reference Documentation Version: 3.1 rc3
+
+A Session is not thread-safe. Things which are supposed to work concurrently, like HTTP requests, session beans, or Swing workers, will cause race conditions if a Session instance would be shared. If you keep your Hibernate Session in your HttpSession (discussed later), you should consider synchronizing access to your Http session. Otherwise, a user that clicks reload fast enough may use the same Session in two concurrently running threads.
+
+##### Hibernate isolation level
+Hibernate directly uses JDBC connections and JTA resources without adding any additional locking behavior. We highly recommend you spend some time with the JDBC, ANSI, and transaction isolation specification of your database management system.
+
+Hibernate does not lock objects in memory. Your application can expect the behavior as defined by the isolation level of your database transactions. 
+
+##### Flushing the Session
+
+Sometimes the Session will execute the SQL statements needed to synchronize the JDBC connection's state with the state of objects held in memory. This process, called flush, occurs by default at the following points:
+* before some query executions
+* from org.hibernate.Transaction.commit()
+* from Session.flush()
+
+默认情况下,session会在以下时间点清理缓存
+* 当应用程序执行一些查询操作时,如果缓存中持久化对象的属性已经发生了变化,就会先清理缓存,使session缓存与数据库同步,保证查询结果正确.
+* 当应用程序调用org.hibernate.Transaction的commit()方法时候,先清理缓存,再向数据库提交事务.
+* 当应用程序显示调用session的flush()方法时.
+ 
+###### 改变清理缓存时间点
+session.setFlushMode(FlushMode.COMMIT)
+清理缓存的模式|各种查询方法|Transaction的commit()|Session的flush()
+---------------------|--------|--------|--------
+FlushMode.AUTO(默认)  |清理    |清理    |清理
+FlushMode.COMMIT      |不清理  |清理    |清理
+FlushMode.NEVER       |不清理  |不清理  |不清理
+
+
+The SQL statements are issued in the following order:
+1. all entity insertions in the same order the corresponding objects were saved using Session.save()
+2. all entity updates
+3. all collection deletions
+4. all collection element deletions, updates and insertions
+5. all collection insertions
+6. all entity deletions in the same order the corresponding objects were deleted using Session.delete()
+
+An exception is that objects using native ID generation are inserted when they are saved.
+
+Except when you explicitly flush(), there are absolutely no guarantees about when the Session executes the JDBC calls, only the order in which they are executed. However, Hibernate does guarantee that the Query.list(..) will never return stale or incorrect data.
 
 ### Miscellaneous
 
@@ -2083,3 +2186,4 @@ One-shot-delete does not apply to collections mapped inverse="true".
 [hibernate-object-state-1]:/resources/img/java/hibernate-object-state-transitions-1.png "Hibernate Object State Transition"
 [hibernate-architecture-1]:/resources/img/java/hibernate-architecture-1.png "Hibernate Architecture Diagram"
 [hibernate-fecthing-strategy-1]:http://www.mkyong.com/hibernate/hibernate-fetching-strategies-examples/ "Hibernate – fetching strategies examples"
+[hibernate-caching-1]:http://www.tutorialspoint.com/hibernate/hibernate_caching.htm "Hibernate - Caching"
