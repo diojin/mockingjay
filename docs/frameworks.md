@@ -143,6 +143,7 @@ The spring-test module supports the unit testing and integration testing of Spri
 
 
 ![spring_bean_lifecycle_2]
+[![spring_bean_lifecycle_3]][spring_bean_lifecycle_4]
 
 ```java
 public abstract interface BeanPostProcessor{
@@ -2330,6 +2331,8 @@ __Cons:__
 [spring-framework-1]:/resources/img/java/spring-framework-runtime.png "Overview of the Spring Framework(from Spring 4.2.6)"
 [spring_bean_lifecycle_1]:/resources/img/java/spring_bean_lifecycle_1.png "spring bean lifecycle in bean factory"
 [spring_bean_lifecycle_2]:/resources/img/java/spring_bean_lifecycle_2.png "spring bean lifecycle in application context"
+[spring_bean_lifecycle_3]:/resources/img/java/spring_bean_lifecycle_3.jpg "spring bean lifecycle in application context more"
+[spring_bean_lifecycle_4]:http://997004049-qq-com.iteye.com/blog/1729793 "spring bean lifecycle in application context more"
 [spring_annotation_1]:https://blogs.sourceallies.com/2011/08/spring-injection-with-resource-and-autowired/#more-2350 "SPRING INJECTION WITH @RESOURCE, @AUTOWIRED AND @INJECT"
 [spring-orm-hibernate-1]:http://docs.spring.io/spring/docs/3.0.x/spring-framework-reference/html/orm.html#orm-hibernate-straight "Implementing DAOs based on plain Hibernate 3 API"
 [spring-misc-injection-1]:http://vojtechruzicka.com/field-dependency-injection-considered-harmful/ "3 types of injection"
