@@ -145,6 +145,22 @@ The spring-test module supports the unit testing and integration testing of Spri
 ![spring_bean_lifecycle_2]
 [![spring_bean_lifecycle_3]][spring_bean_lifecycle_4]
 
+Some highlights,  
+1. 如果配置文件中生明了其他BeanFactoryPostProcessor的实现类(other than InstantiationAwareBeanPostProcessor)，则ApplicationContext在装配配置文件之后初始化bean 之前将调用该接口对配置信息进行加工。
+2. 当调用者通过 getBean（ name ）向 容器寻找Bean 时，如果容器注册了InstantiationAwareBeanPostProcessor接口，在实例 bean 之前，将调用该接口的 postProcessBeforeInstantiation()方法
+3. 根据配置情况调用Bean构造函数或工厂方法实例化bean
+4. 如果容器注册了InstantiationAwareBeanPostProcessor接口，在实例 bean 之后，调用该接口的 postProcessAfterInstantiation()方法，可以在这里对已经实例化的对象进行一些装饰。
+5. 受用依赖注入，Spring 按照 Bean 定义信息配置 Bean 的所有属性 ，在设置每个属性之前将调用 InstantiationAwareBeanPostProcess接口的 postProcessPropertyValues()方法
+...
+6. 如果 BeanPostProcessor 和 Bean 关联，那么 将调用该接口 的postProcessBeforeInitialzation() 方法 对 bean进行加工操作，这个非常重要， spring 的 AOP 就是用它实现的。  
+...
+7. 如果有BeanPsotProcessor 和 Bean 关联，那么它们的 postProcessAfterInitialization() 方法将被调用。 到这个时候， Bean 已经可以被应用系统使用了。
+    1. 如果在<bean> 中指定了该 bean 的作用范围为 scope="prototype", 将 bean 的调用者，调用者管理该 bean 的生命周期，`spring 不在管理该 bean`
+    2. 如果在<bean> 中指定了该 bean 的作用范围为 scope="singleton", 则将该 bean 放入 springIOC 的缓存池中，将触发 spring 对该 bean 的生命周期管理。
+...
+
+PostProcessor配置在 spring 配置文件中就行了，不需要事先声明，Spring 通过接口反射预先知道，当spring 容器创建任何bean时，这些PostProcessor都会发生作用。
+
 ```java
 public abstract interface BeanPostProcessor{
     public abstract java.lang.Object postProcessBeforeInitialization(Object arg0, String arg1) throws BeansException;
