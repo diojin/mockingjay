@@ -784,14 +784,14 @@ Spring Annotation Style Best Practices
 1. Explicitly name your component [@Component(“beanName”)]
 2. Use ‘@Resource’ with the ‘name’ attribute [@Resource(name=”beanName”)]
 3. Avoid ‘@Qualifier’ annotations unless you want to create a list of similar beans. For example you may want to mark a set of rules with a specific ‘@Qualifier’ annotation. This approach makes it simple to inject a group of rule classes into a list that can be used for processing data.
-4. Scan specific packages for components [context:component-scan base-package=”com.sourceallies.person”]. While this will result in more component-scan configurations it reduces the chance that you’ll add unnecessary components to your Spring context.
+4. Scan specific packages for components <context:component-scan base-package=”com.sourceallies.person” />. While this will result in more component-scan configurations, it reduces the chance that you’ll add unnecessary components to your Spring context.
 
 Following these guidelines will increase the readability and stability of your Spring annotation configurations.
 
->@Inject is part of the Java CDI (Contexts and Dependency Injection) standard introduced in Java EE 6 (JSR-300), read more. Spring has chosen to support using @Inject synonymously with their own @Autowired annotation.  
+>@Inject is part of the Java CDI (Contexts and Dependency Injection) standard introduced in Java EE 6 (JSR-300). Spring has chosen to support using @Inject synonymously with their own @Autowired annotation.  
 In a Spring application, the two annotations works the same way as Spring has decided to support some JSR-300 annotations in addition to their own.
 
->I agree with you that we dont change the DI frameworks often . However if our source code has multiple packages and if you want to build a common package which you want to share across multiple projects and then going with @Inject JSR annotation is better than using @Autowired which locks your code base with spring DI. – Aditya
+>I agree with you that we don't change the DI frameworks often . However if our source code has multiple packages and if you want to build a common package which you want to share across multiple projects and then going with @Inject JSR annotation is better than using @Autowired which locks your code base with spring DI. – Aditya
 
 
 __@Autowired__  
@@ -821,8 +821,6 @@ To support @Required 接着我们需要在 配置文件中加上这样一句话
 <bean class="org.springframework.beans.factory.annotation.    
     RequiredAnnotationBeanPostProcessor"/>   
 ```
-
-
 
 ##### context:annotation-config
 
@@ -931,13 +929,13 @@ transactionTemplate.execute(new TransactionCallback(){
 **声明式**  
 使用`TransactionProxyFactoryBean`
 
-PROPAGATION_REQUIRED–支持当前事务，如果当前没有事务，就新建一个事务。这是最常见的选择
-PROPAGATION_SUPPORTS–支持当前事务，如果当前没有事务，就以非事务方式执行。 
-PROPAGATION_MANDATORY–支持当前事务，如果当前没有事务，就抛出异常。 
-PROPAGATION_REQUIRES_NEW–新建事务，如果当前存在事务，把当前事务挂起。 
-PROPAGATION_NOT_SUPPORTED–以非事务方式执行操作，如果当前存在事务，就把当前事务挂起。 
-PROPAGATION_NEVER–以非事务方式执行，如果当前存在事务，则抛出异常。 
-PROPAGATION_NESTED–如果当前存在事务，则在嵌套事务内执行。如果当前没有事务，则进行与PROPAGATION_REQUIRED类似的操作。
+* PROPAGATION_REQUIRED–支持当前事务，如果当前没有事务，就新建一个事务. 这是最常见的选择
+* PROPAGATION_SUPPORTS–支持当前事务，如果当前没有事务，就以非事务方式执行。 
+* PROPAGATION_MANDATORY–支持当前事务，如果当前没有事务，就抛出异常。 
+* PROPAGATION_REQUIRES_NEW–新建事务，如果当前存在事务，把当前事务挂起。 
+* PROPAGATION_NOT_SUPPORTED–以非事务方式执行操作, 如果当前存在事务, 就把当前事务挂起.
+* PROPAGATION_NEVER–以非事务方式执行，如果当前存在事务，则抛出异常。 
+* PROPAGATION_NESTED–如果当前存在事务，则在嵌套事务内执行。如果当前没有事务，则进行与PROPAGATION_REQUIRED类似的操作。
 
 前六个策略类似于EJB CMT，第七个（PROPAGATION_NESTED）是Spring所提供的一个特殊变量。它要求事务管理器或者使用JDBC 3.0 Savepoint API提供嵌套事务行为（如Spring的DataSourceTransactionManager）
 
@@ -2231,13 +2229,21 @@ Sometimes the Session will execute the SQL statements needed to synchronize the 
 * 当应用程序显示调用session的flush()方法时.
  
 ###### 改变清理缓存时间点
-session.setFlushMode(FlushMode.COMMIT)
-清理缓存的模式|各种查询方法|Transaction的commit()|Session的flush()
----------------------|--------|--------|--------
+session.setFlushMode(FlushMode.COMMIT)  
+
+清理缓存的模式 | 各种查询方法 | Transaction的commit() | Session的flush()
+:---------------------|:--------|:--------|--------
 FlushMode.AUTO(默认)  |清理    |清理    |清理
 FlushMode.COMMIT      |不清理  |清理    |清理
 FlushMode.NEVER       |不清理  |不清理  |不清理
 
+
+ANNOTATION|PACKAGE|SOURCE
+:----------|:-------|------
+@Resource   |javax.annotation    |Java
+@Inject     |javax.inject        |Java
+@Qualifier  |javax.inject        |Java
+@Autowired  |org.springframework.bean.factory    |Spring
 
 The SQL statements are issued in the following order:
 1. all entity insertions in the same order the corresponding objects were saved using Session.save()
