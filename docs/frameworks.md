@@ -360,7 +360,7 @@ Externalized values may be 'wired into' @Configuration classes using the @Value 
 This approach is most useful when using Spring's PropertySourcesPlaceholderConfigurer, usually enabled via XML with <context:property-placeholder/>. See the section below on composing @Configuration classes with Spring XML using @ImportResource, see @Value Javadoc, and see @Bean Javadoc for details on working with BeanFactoryPostProcessor types such as PropertySourcesPlaceholderConfigurer. 
 
 __Composing @Configuration classes__  
-1. With the @Import annotation
+1. With the @Import annotation  
 @Configuration classes may be composed using the @Import annotation, not unlike the way that <import> works in Spring XML. Because @Configuration objects are managed as Spring beans within the container, imported configurations may be injected using @Autowired or @Inject: 
 ```java
 @Configuration
@@ -386,7 +386,7 @@ public class AppConfig {
 new AnnotationConfigApplicationContext(AppConfig.class);
 ```
 
-2. With the @Profile annotation
+2. With the @Profile annotation  
 @Configuration classes may be marked with the @Profile annotation to indicate they should be processed only if a given profile or profiles are active: 
 ```java
 @Profile("embedded")
@@ -408,7 +408,7 @@ public class ProductionDatabaseConfig {
 }
 ```
 
-3. With Spring XML using the @ImportResource annotation
+3. With Spring XML using the @ImportResource annotation  
 As mentioned above, @Configuration classes may be declared as regular Spring <bean> definitions within Spring XML files. It is also possible to import Spring XML configuration files into @Configuration classes using the @ImportResource annotation. Bean definitions imported from XML can be injected using @Autowired or @Import: 
 ```java
  @Configuration
@@ -424,7 +424,7 @@ As mentioned above, @Configuration classes may be declared as regular Spring <be
  }
 ```
 
-4. With nested @Configuration classes
+4. With nested @Configuration classes  
 @Configuration classes may be nested within one another as follows: 
 ```java
 @Configuration
