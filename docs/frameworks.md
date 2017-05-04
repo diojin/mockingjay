@@ -1627,9 +1627,9 @@ and merge() is very different:
 * the given instance does not become associated with the session, it remains detached
 
 merge()方法处理流程:
-1.根据游离对象的OID到session缓存中查找匹配的持久化对象.
-2.如果在缓存中没有找到与游离对象的OID一致的持久化对象,就根据这个OID从数据库中加载持久化对象.如果在数据库中存在这样的持久化对象,就把游离对象的属性复制到这个刚加载的持久化对象中,计划执行一条update语句,再返回这个持久化对象的引用.
-3.如果merge()方法的参数是一个临时对象,那么也会创建一个新的对象,把临时对象的属性复制到这个新建的对象中,再调用save()方法持久化这个独享,最后返回这个持久化对象的引用.
+1. 根据游离对象的OID到session缓存中查找匹配的持久化对象.
+2. 如果在缓存中没有找到与游离对象的OID一致的持久化对象,就根据这个OID从数据库中加载持久化对象.如果在数据库中存在这样的持久化对象,就把游离对象的属性复制到这个刚加载的持久化对象中,计划执行一条update语句,再返回这个持久化对象的引用.
+3. 如果merge()方法的参数是一个临时对象,那么也会创建一个新的对象,把临时对象的属性复制到这个新建的对象中,再调用save()方法持久化这个独享,最后返回这个持久化对象的引用.
 
 This operation cascades to associated instances if the association is mapped with cascade="merge"
 
@@ -1661,13 +1661,13 @@ saveOrUpdate() does the following:
 ##### Session#delete
 Session.delete() will remove an object's state from the database. Your application, however, can still hold a reference to a deleted object. It is best to think of delete() as making a persistent instance transient.
 
-void delete(Object object)
+__void delete(Object object)__  
 Remove a persistent instance from the datastore. The argument may be an instance associated with the receiving Session or a transient instance with an identifier associated with existing persistent state. 
 
 This operation cascades to associated instances if the association is mapped with cascade="delete"
 
 delete()方法处理过程:
-1.如果参数是游离态对象,先使游离态对象被当前session关联,使它变为持久态对象.如果参数是持久态对象则忽略这一步.此步骤确保使用拦截器的场合下,拦截器能正常工作.
+1. `如果参数是游离态对象,先使游离态对象被当前session关联,使它变为持久态对象`.如果参数是持久态对象则忽略这一步.此步骤确保使用拦截器的场合下,拦截器能正常工作.
 2.计划执行一个delete语句
 3.把对象从Session缓存中删除,该对象进入transient状态.
 
