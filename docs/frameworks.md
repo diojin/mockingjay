@@ -1705,7 +1705,7 @@ Entities returned as results are `initialized on demand`.` The first SQL query r
 * if no chache data is available, this is very slower, or else, it is faster
 * Lazy loading
 
-From P109/117 Hibernate Reference Documentation Version: 3.1 rc3
+From P109/117 Hibernate Reference Documentation Version: 3.1 rc3  
 Occasionally, you might be able to achieve better performance by executing the query using the iterate() method. This will only usually be the case if you expect that the actual entity instances returned by the query will already be in the session or second-level cache. If they are not already cached, iterate() will be slower than list() and might require many database hits for a simple query, usually 1 for the initial select which only returns identifiers, and n additional selects to initialize the actual instances.
 
 ##### SessionFactory#getCurrentSession
@@ -1747,12 +1747,12 @@ eg.Person person=new Person("xiaoxiao","女");
 如果没有变量对该对象进行引用,它将被java虚拟机回收.
 瞬时对象在内存孤立存在,它是携带信息的载体,不和数据库的数据有任何关联关系,在Hibernate中,可通过session的save()或saveOrUpdate()方法将瞬时对象与数据库相关联,并将数据对应的插入数据库中,此时该瞬时对象转变成持久化对象.
 
-持久对象具有如下特点:
-1.和session实例关联;
-2.在数据库中有与之关联的记录.
-
 * 持久态
 处于该状态的对象在数据库中具有对应的记录,并拥有一个持久化标识.如果是用hibernate的delete()方法,对应的持久对象就变成瞬时对象,因数据库中的对应数据已被删除,该对象不再与数据库的记录关联.
+
+持久对象具有如下特点:
+1. 和session实例关联;
+2. 在数据库中有与之关联的记录.
 
 * 脱管态
 当一个session执行close()或clear()、evict()之后,持久对象变成脱管对象,此时持久对象会变成脱管对象,此时`该对象虽然具有数据库识别值`,但它已不在HIbernate持久层的管理之下.
@@ -1761,8 +1761,8 @@ eg.Person person=new Person("xiaoxiao","女");
 当与某持久对象关联的session被关闭后,该持久对象转变为脱管对象.当脱管对象被重新关联到session上时,并再次转变成持久对象.
 脱管对象拥有数据库的识别值,可通过update()、saveOrUpdate()等方法,转变成持久对象.
 脱管对象具有如下特点:
-1.本质上与瞬时对象相同,在没有任何变量引用它时,JVM会在适当的时候将它回收;
-2.比瞬时对象多了一个数据库记录标识值.
+1. 本质上与瞬时对象相同,在没有任何变量引用它时,JVM会在适当的时候将它回收;
+2. 比瞬时对象多了一个数据库记录标识值.
 
 __Distinguishing between transient and detached instances__  
 * either identifier/version property (if it exists) is null or matches unsave-value
@@ -1867,12 +1867,13 @@ __(when) Hibernate also distinguishes between:__
 * "No-proxy" fetching: a single-valued association is fetched when the instance variable is accessed. Compared to proxy fetching, this approach is less lazy; the association is fetched even when only the identifier is accessed. It is also more transparent, since no proxy is visible to the application. This approach requires buildtime bytecode instrumentation and is rarely necessary.
 * Lazy attribute fetching: an attribute or single valued association is fetched when the instance variable is accessed. This approach requires buildtime bytecode instrumentation and is rarely necessary.
 
-__(how) Hibernate3 defines the following fetching strategies:__
+__(how) Hibernate3 defines the following 4 fetching strategies:__
 * Join fetching: Hibernate retrieves the associated instance or collection in the same SELECT,using an OUTER JOIN.
 * Select fetching: a second SELECT is used to retrieve the associated entity or collection. Unless you explicitly disable lazy fetching by specifying lazy="false", this second select will only be executed when you access the association.
 * Subselect fetching: a second SELECT is used to retrieve the associated collections for all entities retrieved in a previous query or fetch. Unless you explicitly disable lazy fetching by specifying lazy="false", this second select will only be executed when you access the association.
 * Batch fetching: an optimization strategy for select fetching. Hibernate retrieves a batch of entity instances or collections in a single SELECT by specifying a list of primary or foreign keys.
 
+__aka.__:  
 * fetch-“join” = Disable the lazy loading, always load all the collections and entities.
 * fetch-“select” (default) = Lazy load all the collections and entities.
 * batch-size=”N” = Fetching up to ‘N’ collections or entities, but *Not N records*.  
@@ -2170,14 +2171,14 @@ Not all classes benefit from caching, so it's important to be able to disable th
 The Hibernate second-level cache is set up in two steps. First, you have to decide which concurrency strategy to use. After that, you configure cache expiration and physical cache attributes using the cache provider.
 
 concurrency strategy: 
-* read-only
+1. read-only  
 A concurrency strategy suitable for data which never changes. Use it for reference data only.
-* nonstrict-read-writ
+2. nonstrict-read-write  
 This strategy makes no guarantee of consistency between the cache and the database. Use this strategy if data hardly ever changes and a small likelihood of stale data is not of critical concern.
-* read-write
+3. read-write  
 Again use this strategy for read-mostly data where it is critical to prevent stale data in concurrent transactions,in the rare case of an update.
 比较普遍的形式，效率一般
-* transactional
+4. transactional  
 Use this strategy for read-mostly data where it is critical to prevent stale data in concurrent transactions,in the rare case of an update.
 JTA中，且支持的缓存产品较少
 
