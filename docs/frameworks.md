@@ -1668,17 +1668,17 @@ This operation cascades to associated instances if the association is mapped wit
 
 delete()方法处理过程:
 1. `如果参数是游离态对象,先使游离态对象被当前session关联,使它变为持久态对象`.如果参数是持久态对象则忽略这一步.此步骤确保使用拦截器的场合下,拦截器能正常工作.
-2.计划执行一个delete语句
-3.把对象从Session缓存中删除,该对象进入transient状态.
+2. 计划执行一个delete语句
+3. 把对象从Session缓存中删除,该对象进入transient状态.
 
 ##### Session#replicate
 It is sometimes useful to be able to take a graph of persistent instances and make them persistent in a different datastore, `without regenerating identifier values`.
 
 The ReplicationMode determines how replicate() will deal with conflicts with existing rows in the database:
-• ReplicationMode.IGNORE: ignores the object when there is an existing database row with the same identifier
-• ReplicationMode.OVERWRITE: overwrites any existing database row with the same identifier
-• ReplicationMode.EXCEPTION: throws an exception if there is an existing database row with the same identifier
-• ReplicationMode.LATEST_VERSION: overwrites the row if its version number is earlier than the version number of the object, or ignore the object otherwise
+* ReplicationMode.IGNORE: ignores the object when there is an existing database row with the same identifier
+* ReplicationMode.OVERWRITE: overwrites any existing database row with the same identifier
+* ReplicationMode.EXCEPTION: throws an exception if there is an existing database row with the same identifier
+* ReplicationMode.LATEST_VERSION: overwrites the row if its version number is earlier than the version number of the object, or ignore the object otherwise
 
 ##### Query#list vs Query#iterate
 
