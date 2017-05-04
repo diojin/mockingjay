@@ -1583,7 +1583,7 @@ __Hibernate3.2 Session加载数据时get和load方法的区别__
 
 1. get方法, hibernate会确认一下该id对应的数据是否存在，首先在session缓存中查找，然后在二级缓存中查找，还没有就查询数据库，数据库中没有就返回null。主要要说明的一点就是在这个版本中get方法也会查找二级缓存！
  
-2. load方法, 加载实体对象的时候，根据映射文件上类级别的lazy属性的配置(默认为true)，分情况讨论：  
+2. load方法, 加载实体对象的时候，根据映射文件上类级别的lazy属性的配置(默认为true),分情况讨论：
     1. 若为true,则首先在Session缓存中查找，看看该id对应的对象是否存在，不存在则使用延迟加载，返回实体的代理类对象(该代理类为实体类的子类，由CGLIB动态生成)。等到具体使用该对象(除获取OID以外)的时候，再查询二级缓存和数据库，若仍没发现符合条件的记录，则会抛出一个ObjectNotFoundException。
     2. 若为false,就跟get方法查找顺序一样，只是最终若没发现符合条件的记录，则会抛出一个ObjectNotFoundException。
  
@@ -1606,12 +1606,13 @@ Hibernate supports this model by providing for reattachment of detached instance
 Use update() if you are certain that the session does not contain an already persistent instance with the same identifier. Use merge() if you want to merge your modifications at any time without consideration of the state of the session. In other words, update() is usually the first method you would call in a fresh session, ensuring that the reattachment of your detached instances is the first operation that is executed.
 
 Usually update() or saveOrUpdate() are used in the following scenario:
-• the application loads an object in the first session
-• the object is passed up to the UI tier
-• some modifications are made to the object
-• the object is passed back down to the business logic tier
-• the application persists these modifications by calling update() in a second session
-可以把映射文件中<class>元素的select-before-update设为true,默认false,修改后会先执行select进行比较.
+* the application loads an object in the first session
+* the object is passed up to the UI tier
+* some modifications are made to the object
+* the object is passed back down to the business logic tier
+* the application persists these modifications by calling update() in a second session
+
+可以把映射文件中\<class\>元素的select-before-update设为true,默认false,修改后会先执行select进行比较.
 
 __Session.update__  
 Update the persistent instance with the identifier of the given detached instance. If there is a persistent instance with the same identifier, an exception is thrown. 
