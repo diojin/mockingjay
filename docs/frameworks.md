@@ -1149,21 +1149,25 @@ public class FooService {
 3. implement DAO class
     1. DAO类继承HibernateDaoSupport，从中获得HibernateTemplate进行具体操作
 Using HibernateDaoSupport/HibernateTemplate is not recommended since it unnecessarily ties your code to Spring classes.
+    2. Hibernate access code can also be coded in plain Hibernate style.  
+    for example:
+```java
+getSessionFactory().getCurrentSession().save(customer);
+```
 
+**See also:**  
+[Implementing DAOs based on plain Hibernate 3 API][spring-orm-hibernate-1]
+
+As for 3.1 Using HibernateDaoSupport/HibernateTemplate,   
 Using these classes was inevitable with older versions of Hibernate in order to integrate support of Spring-managed transactions.
 
 However, since Hibernate 3.0.1 you don't need it any more - you can write a code against a plain Hibernate API while using Spring-managed transactions. All you need is to configure Spring transaction support, inject SessionFactory and call getCurrentSession() on it when you need to work with session.
 
 Another benefit of HibernateTemplate is exception translation. Without HibernateTemplate the same functionality can be achieved by using @Repository annotation, as shown in Gareth Davis's answer.
 
-**See also:**  
-[Implementing DAOs based on plain Hibernate 3 API][spring-orm-hibernate-1]
 
-    2. Hibernate access code can also be coded in plain Hibernate style
-for example:
-```java
-getSessionFactory().getCurrentSession().save(customer);
-```
+
+
 
 
 ##### OpenSessionInView For Hibernate
