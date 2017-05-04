@@ -445,7 +445,7 @@ public class AppConfig {
     }
 }
 ```
-When bootstrapping such an arrangement, only AppConfig need be registered against the application context. By virtue of being a nested @Configuration class, DatabaseConfig will be registered automatically. This avoids the need to use an @Import annotation when the relationship between AppConfig DatabaseConfig is already implicitly clear. 
+When bootstrapping such an arrangement, only AppConfig need be registered against the application context. By virtue of being a nested @Configuration class, DatabaseConfig will be registered automatically. This avoids the need to use an @Import annotation when the relationship between AppConfig and DatabaseConfig is already implicitly clear. 
 Note also that nested @Configuration classes can be used to good effect with the @Profile annotation to provide two options of the same bean to the enclosing @Configuration class. 
 
 __Configuring lazy initialization__  
@@ -453,20 +453,18 @@ By default, @Bean methods will be **eagerly instantiated** at container bootstra
 
 __Testing support for @Configuration classes__  
 The Spring TestContext framework available in the spring-test module provides the @ContextConfiguration annotation, which as of Spring 3.1 can accept an array of @Configuration Class objects: 
+```java
  @RunWith(SpringJUnit4ClassRunner.class)
  @ContextConfiguration(classes={AppConfig.class, DatabaseConfig.class})
  public class MyTests {
-
      @Autowired MyBean myBean;
-
      @Autowired DataSource dataSource;
-
      @Test
      public void test() {
          // assertions against myBean ...
      }
  }
-
+```
 __Enabling built-in Spring features using @Enable annotations__  
 Spring features such as asynchronous method execution, scheduled task execution, annotation driven transaction management, and even Spring MVC can be enabled and configured from @Configuration classes using their respective "@Enable" annotations. See @EnableAsync, @EnableScheduling, @EnableTransactionManagement, @EnableAspectJAutoProxy, and @EnableWebMvc for details. 
 
