@@ -1467,29 +1467,29 @@ object (6) indicated by the ModelAndView object. The View object is responsible 
     不过值得注意的是，一些数据库提供的主键生成机制在效率上未必最佳，大量并发insert数据时可能会引起表之间的互锁。数据库提供的主键生成机制，往往是通过在一个内部表中保存当前主键状态（如对于自增型主键而言，此内部表中就维护着当前的最大值和递增量），之后每次插入数据会读取这个最大值，然后加上递增量作为新记录的主键，之后再把这个新的最大值更新回内部表中，这样，一次Insert操作可能导致数据库内部多次表读写操作，同时伴随的还有数据的加锁解锁操作，这对性能产生了较大影响。因此，对于并发Insert要求较高的系统，推荐采用`uuid.hex` 作为主键生成机制。
 
 * 使用JDBC批处理插入/更新
-```xml
-<prop key="hibernate.jdbc.batch_size">100</prop>
-<prop key="hibernate.order_inserts">true</prop>
-<prop key="hibernate.order_updates">true</prop>
-```
     - Hibernate可以通过设置hibernate.jdbc.fetch_size，hibernate.jdbc.batch_size等属性，对Hibernate进行优化。
     - 针对oracle数据库而言，Fetch Size 是设定JDBC的Statement读取数据的时候每次从数据库中取出的记录条数，一般设置为30、50、100。Oracle数据库的JDBC驱动默认的Fetch Size=15，设置Fetch Size设置为：30、50，性能会有明显提升，如果继续增大，超出100，性能提升不明显，反而会消耗内存。
     - 批量操作
     即使是使用JDBC，在进行大批数据更新时，BATCH与不使用BATCH有效率上也有很大的差别。我们可以通过设置batch_size来让其支持批量操作。
     举个例子，要批量删除某表中的对象，如“delete Account”，打出来的语句，会发现HIBERNATE找出了所有ACCOUNT的ID，再进行删除，这主要是为了维护二级缓存，这样效率肯定高不了，在后续的版本中增加了bulk delete/update，但这也无法解决缓存的维护问题。也就是说，由于有了二级缓存的维护问题，HIBERNATE的批量操作效率并不尽如人意!
+```xml
+<prop key="hibernate.jdbc.batch_size">100</prop>
+<prop key="hibernate.order_inserts">true</prop>
+<prop key="hibernate.order_updates">true</prop>
+```
 
 * 定期刷新和清理Hibernate Session Cache
 entityManager.flush();
 entityManager.clear();
 在处理大数据量时，会有大量的数据缓冲保存在Session的一级缓存中，这缓存大太时会严重显示性能，所以在使用Hibernate处理大数据量的，可以使用Session.clear()或者Session.evict(Object) 在处理过程中，清除全部的缓存或者清除某个对象。
 
-* 减少Hibernate过多的dirty-checking
+* 减少Hibernate过多的dirty-checking  
     如何避免dirty-checking？
     - @Transactional(readOnly=true)
     - Hibernate Stateless Session
 
 * 事务控制
-    事务方面对性能有影响的主要包括:事务方式的选用，事务隔离级别以及锁的选用
+    事务方面对性能有影响的主要包括:事务方式的选用，事务隔离级别以及锁的选用  
     - 事务方式选用
         如果不涉及多个事务管理器事务的话，不需要使用JTA，只有JDBC的事务控制就可以。
 　　- 事务隔离级别
@@ -1502,25 +1502,25 @@ entityManager.clear();
 * 生产系统中，切记要关掉SQL语句打印
 
 ##### Top 10 Hibernate Performance Tuning Tips
-(1) Avoid join duplicates (AKA cartesian products) due to joins along two or more parallel to-many associations; use Exists-subqueries, multiple queries or fetch="subselect" (see (2)) instead - whatever is most appropriate in the specific situation. Join duplicates are already pretty bad in plain SQL, but things get even worse when they occur within Hibernate, because of unnecessary mapping workload and child collections containing duplicates.
+1. Avoid join duplicates (AKA cartesian products) due to joins along two or more parallel to-many associations; use Exists-subqueries, multiple queries or fetch="subselect" (see (2)) instead - whatever is most appropriate in the specific situation. Join duplicates are already pretty bad in plain SQL, but things get even worse when they occur within Hibernate, because of unnecessary mapping workload and child collections containing duplicates.
  
-(2) Define lazy loading as the preferred association loading strategy, and consider applying fetch="subselect" rather than "select" resp. "batch-size". Configure eager loading only for special associations, but join-fetch selectively on a per-query basis.
+2. Define lazy loading as the preferred association loading strategy, and consider applying fetch="subselect" rather than "select" resp. "batch-size". Configure eager loading only for special associations, but join-fetch selectively on a per-query basis.
  
-(3) In case of read-only services with huge query resultsets, use projections and fetch into flat DTOs (e.g. via AliasToBean-ResultTransformer), instead of loading thousands of mapped objects into the Session.
+3. `In case of read-only services with huge query resultsets`, use projections and fetch into flat DTOs (e.g. via **AliasToBeanResultTransformer**), instead of loading thousands of mapped objects into the Session.
  
-(4) Take advantage of HQL Bulk Update and Delete statements, as well as Insert-By-Select (supported by HQL as well).
+4. Take advantage of `HQL Bulk Update and Delete statements`, as well as `Insert-By-Select` (supported by HQL as well).
  
-(5) Set FlushMode to "Never" on Queries and Criteria, when flushing is not necessary at this point.
+5. Set FlushMode to "Never" on Queries and Criteria, when flushing is not necessary at this point.
  
-(6) Set ReadOnly to "true" on Queries and Criteria, when objects returned will never be modified.
+6. Set ReadOnly to "true" on Queries and Criteria, when objects returned will never be modified.
  
-(7) Consider clearing the whole Session after flushing, or evict on a per-object basis, once objects are not longer needed.
+7. Consider clearing the whole Session after flushing, or evict on a per-object basis, once objects are not longer needed.
  
-(8) Define a suitable value for jdbc.batch_size (resp. adonet.batch_size under NHibernate).
+8. Define a suitable value for jdbc.batch_size (resp. adonet.batch_size under NHibernate).
  
-(9) Use Hibernate Query-Cache and Second Level Caching where appropriate (but go sure you are aware of the consequences).
+9. Use Hibernate Query-Cache and Second Level Caching where appropriate (but go sure you are aware of the consequences).
  
-(10) Set hibernate.show_sql to "false" and ensure that Hibernate logging is running at the lowest possible loglevel (also check log4j/log4net root logger configuration).
+10. Set hibernate.show_sql to "false" and ensure that Hibernate logging is running at the lowest possible loglevel (also check log4j/log4net root logger configuration).
 
 ##### Understanding Hibernate Collection performance
 
