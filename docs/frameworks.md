@@ -2182,9 +2182,8 @@ Again use this strategy for read-mostly data where it is critical to prevent sta
 Use this strategy for read-mostly data where it is critical to prevent stale data in concurrent transactions,in the rare case of an update.
 JTA中，且支持的缓存产品较少
 
-* Query Cache: Hibernate can also cache result set of a query. Hibernate Query Cache doesn’t cache the state of the actual entities in the cache; `it caches only identifier values and results of value type`. So it should always be used in conjunction with the second-level cache.
-
-Hibernate also implements a cache for query resultsets that integrates closely with the second-level cache.
+* Query Cache: Hibernate can also cache result set of a query. Hibernate Query Cache doesn’t cache the state of the actual entities in the cache; `it caches only identifier values and results of value type`. So it should always be used in conjunction with the second-level cache.  
+Hibernate also implements a cache for query resultsets that integrates closely with the second-level cache.  
 This is an optional feature and requires two additional physical cache regions that hold the cached query results and the timestamps when a table was last updated. This is only useful for queries that are run frequently with the same parameters.
 
 To use the query cache, you must first activate it using the hibernate.cache.use_query_cache="true" property in the configuration file. By setting this property to true, you make Hibernate create the necessary caches in memory to hold the query and identifier sets.
