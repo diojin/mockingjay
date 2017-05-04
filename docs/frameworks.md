@@ -1556,11 +1556,11 @@ sess.flush();
 ```
 
 
-`All indexed collections (maps, lists, and arrays)` have a primary key consisting of the <key> and <index> columns. In this case, collection updates are extremely efficient. The primary key can be efficiently indexed and a particular row can be efficiently located when Hibernate tries to update or delete it.
+`All indexed collections (maps, lists, and arrays)` have a primary key consisting of the \<key\> and \<index\> columns. In this case, collection updates are extremely efficient. The primary key can be efficiently indexed and a particular row can be efficiently located when Hibernate tries to update or delete it.
 
-Sets have a primary key consisting of <key> and element columns. This can be less efficient for some types of collection element, particularly composite elements or large text or binary fields, as the database may not be able to index a complex primary key as efficiently. However, for one-to-many or many-to-many associations, particularly in the case of synthetic identifiers, it is likely to be just as efficient. 
+Sets have a primary key consisting of \<key\> and element columns. This can be less efficient for some types of collection element, particularly composite elements or large text or binary fields, as the database may not be able to index a complex primary key as efficiently. However, for one-to-many or many-to-many associations, particularly in the case of synthetic identifiers, it is likely to be just as efficient. 
 
-<idbag> mappings define a surrogate key, so they are efficient to update. In fact, they are the best case.
+idbag mappings define a surrogate key, so they are efficient to update. In fact, they are the best case.
 
 Bags are the worst case since they permit duplicate element values and, as they have no index column, no primary key can be defined. Hibernate has no way of distinguishing between duplicate rows. Hibernate resolves this problem by completely removing in a single DELETE and recreating the collection whenever it changes. This can be inefficient.
 
