@@ -49,7 +49,10 @@
         + [Spring MVC](#spring-mvc)
 * [Hibernate](#hibernate)
     - [Hibernate architecture and key components](#hibernate-architecture-and-key-components)
-    - [Hibernate Tuning](#hibernate-tuning)
+    - [Performance tuning](#hibernate-performance-tuning)
+        + [Top 10 Hibernate Performance Tuning Tips](#top-10-hibernate-performance-tuning-tips)
+        + [Understanding Hibernate Collection performance](#understanding-hibernate-collection-performance)
+        + [one shot delete](#hibernate-one-shot-delete)
     - [Hibernate APIs](#hibernate-apis)
         + [Session#load vs Session#get](#sessionload-vs-sessionget)
         + [Session#persist](#sessionpersist)
@@ -62,9 +65,6 @@
         + [SessionFactory#getCurrentSession](#sessionfactorygetcurrentsession)
         + [Session#createFilter](#sessioncreatefilter)
         + [Hibernate#initialize](#hibernateinitialize)
-    - [Performance tuning](#hibernate-performance-tuning)
-        + [Understanding Hibernate Collection performance](#understanding-hibernate-collection-performance)
-        + [one shot delete](#hibernate-one-shot-delete)
     - [Misc](#hibernate-misc)
         + [Object states of hibernate](#object-states-of-hibernate)
         + [pros and cons of Hibernate](#pros-and-cons-of-hibernate)
@@ -1174,7 +1174,7 @@ Another benefit of HibernateTemplate is exception translation. Without Hibernate
 
 在使用Hibernate时遇到OpenSessionInView的问题，可以添加OpenSessionInViewFilter或OpenSessionInViewInterceptor
 
-它有两种配置方式OpenSessionInViewInterceptor和OpenSessionInViewFilter(具体参看SpringSide)，功能相同，只是一个在web.xml配置，另一个在application.xml配置而已。 
+它有两种配置方式OpenSessionInViewInterceptor和OpenSessionInViewFilter，功能相同，只是一个在web.xml配置，另一个在application.xml配置而已。 
 
 Open Session In View在request把session绑定到当前thread期间一直保持hibernate session在open状态，使session在request的整个期间都可以使用，如在View层里PO也可以lazy loading数据，如 ${company.employees}。当View 层逻辑完成后，才会通过Filter的doFilter方法或Interceptor的postHandle方法自动关闭session。 
 1. web.xml配置OpenSessionInViewFilter 
@@ -1445,10 +1445,63 @@ object (6) indicated by the ModelAndView object. The View object is responsible 
 #### Hibernate architecture and key components
 ![hibernate-architecture-1]
 
-#### Hibernate Tuning
+#### Hibernate performance tuning
+* fetching strategy and timing
+* API 的选择以及语法细节
+    - 对大数据量查询时，慎用list()(HibernateTemplate.find)或者iterator()(HibernateTemplate.iterate)返回查询结果. 对于大数据量，使用Query.scroll()(ScrollableResults)可以得到较好的处理速度以及性能。而且直接对结果集向前向后滚动??
+    - Dynamic Update/Insert 如果选定，则生成Update/Insert SQL 时不包含未发生变动的字段属性，这样可以在一定程度上提升SQL执行效能.
+    - 在编写代码的时候请，对将POJO的getter/setter方法设定为public，如果设定为private，Hibernate将无法对属性的存取进行优化，只能转而采用传统的反射机制进行操作，这将导致大量的性能开销（特别是在1.4之前的Sun JDK版本以及IBM JDK中，反射所带来的系统开销相当可观） 
+* Collection 及 mapping的正确使用
+    - In well-designed Hibernate domain models, most collections are in fact one-to-many associations with inverse="true".
+    - For inverse collections 
+        Bags and lists are the most efficient inverse collections.
+    - For non-inverse collections
+        After observing that arrays cannot be lazy, you can conclude that lists, maps and idbags are the most performant (non-inverse) collection types, with sets not far behind. You can expect sets to be the most common kind of collection in Hibernate applications. This is because the "set" semantics are most natural in the relational model.
+    - 由于多对多关联的性能不佳（由于引入了中间表，一次读取操作需要反复数次查询），因此在设计中应该避免大量使用
 
-Top 10 Hibernate Performance Tuning Tips
- 
+* Cascade 的设定. 对含有关联的PO（持久化对象）时，若default-cascade="all"或者 “save-update”，新增PO时，请注意对PO中的集合的赋值操作，因为有可能使得多执行一次update操作。
+
+* Second level cache & Query Cache
+    [For more information][hibernate-caching-2]
+* 减少主键生成开销
+    不过值得注意的是，一些数据库提供的主键生成机制在效率上未必最佳，大量并发insert数据时可能会引起表之间的互锁。数据库提供的主键生成机制，往往是通过在一个内部表中保存当前主键状态（如对于自增型主键而言，此内部表中就维护着当前的最大值和递增量），之后每次插入数据会读取这个最大值，然后加上递增量作为新记录的主键，之后再把这个新的最大值更新回内部表中，这样，一次Insert操作可能导致数据库内部多次表读写操作，同时伴随的还有数据的加锁解锁操作，这对性能产生了较大影响。因此，对于并发Insert要求较高的系统，推荐采用`uuid.hex` 作为主键生成机制。
+
+* 使用JDBC批处理插入/更新
+```xml
+<prop key="hibernate.jdbc.batch_size">100</prop>
+<prop key="hibernate.order_inserts">true</prop>
+<prop key="hibernate.order_updates">true</prop>
+```
+    - Hibernate可以通过设置hibernate.jdbc.fetch_size，hibernate.jdbc.batch_size等属性，对Hibernate进行优化。
+    - 针对oracle数据库而言，Fetch Size 是设定JDBC的Statement读取数据的时候每次从数据库中取出的记录条数，一般设置为30、50、100。Oracle数据库的JDBC驱动默认的Fetch Size=15，设置Fetch Size设置为：30、50，性能会有明显提升，如果继续增大，超出100，性能提升不明显，反而会消耗内存。
+    - 批量操作
+    即使是使用JDBC，在进行大批数据更新时，BATCH与不使用BATCH有效率上也有很大的差别。我们可以通过设置batch_size来让其支持批量操作。
+    举个例子，要批量删除某表中的对象，如“delete Account”，打出来的语句，会发现HIBERNATE找出了所有ACCOUNT的ID，再进行删除，这主要是为了维护二级缓存，这样效率肯定高不了，在后续的版本中增加了bulk delete/update，但这也无法解决缓存的维护问题。也就是说，由于有了二级缓存的维护问题，HIBERNATE的批量操作效率并不尽如人意!
+
+* 定期刷新和清理Hibernate Session Cache
+entityManager.flush();
+entityManager.clear();
+在处理大数据量时，会有大量的数据缓冲保存在Session的一级缓存中，这缓存大太时会严重显示性能，所以在使用Hibernate处理大数据量的，可以使用Session.clear()或者Session.evict(Object) 在处理过程中，清除全部的缓存或者清除某个对象。
+
+* 减少Hibernate过多的dirty-checking
+    如何避免dirty-checking？
+    - @Transactional(readOnly=true)
+    - Hibernate Stateless Session
+
+* 事务控制
+    事务方面对性能有影响的主要包括:事务方式的选用，事务隔离级别以及锁的选用
+    - 事务方式选用
+        如果不涉及多个事务管理器事务的话，不需要使用JTA，只有JDBC的事务控制就可以。
+　　- 事务隔离级别
+        参见标准的SQL事务隔离级别
+　　- 锁的选用
+        悲观锁(一般由具体的事务管理器实现)，对于长事务效率低，但安全。乐观锁(一般在应用级别实现)，如在HIBERNATE中可以定义VERSION字段，显然，如果有多个应用操作数据，且这些应用不是用同一种乐观锁机制，则乐观锁会失效。
+
+* 如果是超大的系统，建议生成htm文件。加快页面提升速度。
+
+* 生产系统中，切记要关掉SQL语句打印
+
+##### Top 10 Hibernate Performance Tuning Tips
 (1) Avoid join duplicates (AKA cartesian products) due to joins along two or more parallel to-many associations; use Exists-subqueries, multiple queries or fetch="subselect" (see (2)) instead - whatever is most appropriate in the specific situation. Join duplicates are already pretty bad in plain SQL, but things get even worse when they occur within Hibernate, because of unnecessary mapping workload and child collections containing duplicates.
  
 (2) Define lazy loading as the preferred association loading strategy, and consider applying fetch="subselect" rather than "select" resp. "batch-size". Configure eager loading only for special associations, but join-fetch selectively on a per-query basis.
@@ -1468,6 +1521,58 @@ Top 10 Hibernate Performance Tuning Tips
 (9) Use Hibernate Query-Cache and Second Level Caching where appropriate (but go sure you are aware of the consequences).
  
 (10) Set hibernate.show_sql to "false" and ensure that Hibernate logging is running at the lowest possible loglevel (also check log4j/log4net root logger configuration).
+
+##### Understanding Hibernate Collection performance
+
+Lazy fetching for collections is implemented using `Hibernate's own implementation of persistent collections`. 
+
+__Hibernate defines 3 basic kinds of collections:__  
+* collections of values
+* one-to-many associations
+* many-to-many associations
+
+we must also consider the structure of the primary key that is used by Hibernate to update or delete collection rows. This suggests the following classification:  
+* indexed collections
+* sets
+* bags
+
+`In well-designed Hibernate domain models, most collections are in fact one-to-many associations with inverse="true".`
+
+In conclusion, 
+* For inverse collections 
+Bags and lists are the most efficient inverse collections.
+* For non-inverse collections
+After observing that arrays cannot be lazy, you can conclude that lists, maps and idbags are the most performant (non-inverse) collection types, with sets not far behind. You can expect sets to be the most common kind of collection in Hibernate applications. This is because the "set" semantics are most natural in the relational model.
+
+Bags and lists are the most efficient inverse collections.
+There is a particular case, however, in which bags, and also lists, are much more performant than sets. `For a collection with inverse="true", the standard bidirectional one-to-many relationship idiom, for example, we can add elements to a bag or list without needing to initialize (fetch) the bag elements. This is because, unlike a set, Collection.add() or Collection.addAll() must always return true for a bag or List(PS: in other word, set may return false if it find out that there is any duplication, that's why set nees to initialize its elements before adding new ones).` This can make the following common code much faster:
+
+```java
+Parent p = (Parent) sess.load(Parent.class, id);
+Child c = new Child();
+c.setParent(p);
+p.getChildren().add(c); //no need to fetch the collection!
+sess.flush();
+```
+
+
+`All indexed collections (maps, lists, and arrays)` have a primary key consisting of the <key> and <index> columns. In this case, collection updates are extremely efficient. The primary key can be efficiently indexed and a particular row can be efficiently located when Hibernate tries to update or delete it.
+
+Sets have a primary key consisting of <key> and element columns. This can be less efficient for some types of collection element, particularly composite elements or large text or binary fields, as the database may not be able to index a complex primary key as efficiently. However, for one-to-many or many-to-many associations, particularly in the case of synthetic identifiers, it is likely to be just as efficient. 
+
+<idbag> mappings define a surrogate key, so they are efficient to update. In fact, they are the best case.
+
+Bags are the worst case since they permit duplicate element values and, as they have no index column, no primary key can be defined. Hibernate has no way of distinguishing between duplicate rows. Hibernate resolves this problem by completely removing in a single DELETE and recreating the collection whenever it changes. This can be inefficient.
+
+##### Hibernate one shot delete
+However, suppose that we remove 18 elements, leaving 2 and then add 3 new elements. There are two possible ways to proceed
+* delete eighteen rows one by one and then insert three rows
+* remove the whole collection in one SQL DELETE and insert all five current elements one by one
+
+Hibernate cannot know that the second option is probably quicker. It would probably be undesirable for Hibernate to be that intuitive as such behavior might confuse database triggers, etc.
+
+Fortunately, you can force this behavior (i.e. the second strategy) at any time by discarding (i.e. dereferencing) the original collection and returning a newly instantiated collection with all the current elements.
+One-shot-delete does not apply to collections mapped inverse="true".
 
 #### Hibernate APIs
 
@@ -1625,114 +1730,6 @@ s.createFilter(lazyCollection, "").setFirstResult(0).setMaxResults(10).list();
 
 ##### Hibernate#initialize
 The static methods **Hibernate.initialize()** and Hibernate.isInitialized(), provide the application with a convenient way of working with lazily initialized collections or proxies.
-
-#### Hibernate performance tuning
-* fetching strategy and timing
-* API 的选择以及语法细节
-    - 对大数据量查询时，慎用list()(HibernateTemplate.find)或者iterator()(HibernateTemplate.iterate)返回查询结果. 对于大数据量，使用Query.scroll()(ScrollableResults)可以得到较好的处理速度以及性能。而且直接对结果集向前向后滚动??
-    - Dynamic Update/Insert 如果选定，则生成Update/Insert SQL 时不包含未发生变动的字段属性，这样可以在一定程度上提升SQL执行效能.
-    - 在编写代码的时候请，对将POJO的getter/setter方法设定为public，如果设定为private，Hibernate将无法对属性的存取进行优化，只能转而采用传统的反射机制进行操作，这将导致大量的性能开销（特别是在1.4之前的Sun JDK版本以及IBM JDK中，反射所带来的系统开销相当可观） 
-* Collection 及 mapping的正确使用
-    - In well-designed Hibernate domain models, most collections are in fact one-to-many associations with inverse="true".
-    - For inverse collections 
-        Bags and lists are the most efficient inverse collections.
-    - For non-inverse collections
-        After observing that arrays cannot be lazy, you can conclude that lists, maps and idbags are the most performant (non-inverse) collection types, with sets not far behind. You can expect sets to be the most common kind of collection in Hibernate applications. This is because the "set" semantics are most natural in the relational model.
-    - 由于多对多关联的性能不佳（由于引入了中间表，一次读取操作需要反复数次查询），因此在设计中应该避免大量使用
-
-* Cascade 的设定. 对含有关联的PO（持久化对象）时，若default-cascade="all"或者 “save-update”，新增PO时，请注意对PO中的集合的赋值操作，因为有可能使得多执行一次update操作。
-
-* Second level cache & Query Cache
-    [For more information][hibernate-caching-2]
-* 减少主键生成开销
-    不过值得注意的是，一些数据库提供的主键生成机制在效率上未必最佳，大量并发insert数据时可能会引起表之间的互锁。数据库提供的主键生成机制，往往是通过在一个内部表中保存当前主键状态（如对于自增型主键而言，此内部表中就维护着当前的最大值和递增量），之后每次插入数据会读取这个最大值，然后加上递增量作为新记录的主键，之后再把这个新的最大值更新回内部表中，这样，一次Insert操作可能导致数据库内部多次表读写操作，同时伴随的还有数据的加锁解锁操作，这对性能产生了较大影响。因此，对于并发Insert要求较高的系统，推荐采用`uuid.hex` 作为主键生成机制。
-
-* 使用JDBC批处理插入/更新
-```xml
-<prop key="hibernate.jdbc.batch_size">100</prop>
-<prop key="hibernate.order_inserts">true</prop>
-<prop key="hibernate.order_updates">true</prop>
-```
-    - Hibernate可以通过设置hibernate.jdbc.fetch_size，hibernate.jdbc.batch_size等属性，对Hibernate进行优化。
-    - 针对oracle数据库而言，Fetch Size 是设定JDBC的Statement读取数据的时候每次从数据库中取出的记录条数，一般设置为30、50、100。Oracle数据库的JDBC驱动默认的Fetch Size=15，设置Fetch Size设置为：30、50，性能会有明显提升，如果继续增大，超出100，性能提升不明显，反而会消耗内存。
-    - 批量操作
-    即使是使用JDBC，在进行大批数据更新时，BATCH与不使用BATCH有效率上也有很大的差别。我们可以通过设置batch_size来让其支持批量操作。
-    举个例子，要批量删除某表中的对象，如“delete Account”，打出来的语句，会发现HIBERNATE找出了所有ACCOUNT的ID，再进行删除，这主要是为了维护二级缓存，这样效率肯定高不了，在后续的版本中增加了bulk delete/update，但这也无法解决缓存的维护问题。也就是说，由于有了二级缓存的维护问题，HIBERNATE的批量操作效率并不尽如人意!
-
-* 定期刷新和清理Hibernate Session Cache
-entityManager.flush();
-entityManager.clear();
-在处理大数据量时，会有大量的数据缓冲保存在Session的一级缓存中，这缓存大太时会严重显示性能，所以在使用Hibernate处理大数据量的，可以使用Session.clear()或者Session.evict(Object) 在处理过程中，清除全部的缓存或者清除某个对象。
-
-* 减少Hibernate过多的dirty-checking
-    如何避免dirty-checking？
-    - @Transactional(readOnly=true)
-    - Hibernate Stateless Session
-
-* 事务控制
-    事务方面对性能有影响的主要包括:事务方式的选用，事务隔离级别以及锁的选用
-    - 事务方式选用
-        如果不涉及多个事务管理器事务的话，不需要使用JTA，只有JDBC的事务控制就可以。
-　　- 事务隔离级别
-        参见标准的SQL事务隔离级别
-　　- 锁的选用
-        悲观锁(一般由具体的事务管理器实现)，对于长事务效率低，但安全。乐观锁(一般在应用级别实现)，如在HIBERNATE中可以定义VERSION字段，显然，如果有多个应用操作数据，且这些应用不是用同一种乐观锁机制，则乐观锁会失效。
-
-* 如果是超大的系统，建议生成htm文件。加快页面提升速度。
-
-* 生产系统中，切记要关掉SQL语句打印
-
-##### Understanding Hibernate Collection performance
-
-Lazy fetching for collections is implemented using `Hibernate's own implementation of persistent collections`. 
-
-__Hibernate defines 3 basic kinds of collections:__  
-* collections of values
-* one-to-many associations
-* many-to-many associations
-
-we must also consider the structure of the primary key that is used by Hibernate to update or delete collection rows. This suggests the following classification:  
-* indexed collections
-* sets
-* bags
-
-`In well-designed Hibernate domain models, most collections are in fact one-to-many associations with inverse="true".`
-
-In conclusion, 
-* For inverse collections 
-Bags and lists are the most efficient inverse collections.
-* For non-inverse collections
-After observing that arrays cannot be lazy, you can conclude that lists, maps and idbags are the most performant (non-inverse) collection types, with sets not far behind. You can expect sets to be the most common kind of collection in Hibernate applications. This is because the "set" semantics are most natural in the relational model.
-
-Bags and lists are the most efficient inverse collections.
-There is a particular case, however, in which bags, and also lists, are much more performant than sets. `For a collection with inverse="true", the standard bidirectional one-to-many relationship idiom, for example, we can add elements to a bag or list without needing to initialize (fetch) the bag elements. This is because, unlike a set, Collection.add() or Collection.addAll() must always return true for a bag or List(PS: in other word, set may return false if it find out that there is any duplication, that's why set nees to initialize its elements before adding new ones).` This can make the following common code much faster:
-
-```java
-Parent p = (Parent) sess.load(Parent.class, id);
-Child c = new Child();
-c.setParent(p);
-p.getChildren().add(c); //no need to fetch the collection!
-sess.flush();
-```
-
-
-`All indexed collections (maps, lists, and arrays)` have a primary key consisting of the <key> and <index> columns. In this case, collection updates are extremely efficient. The primary key can be efficiently indexed and a particular row can be efficiently located when Hibernate tries to update or delete it.
-
-Sets have a primary key consisting of <key> and element columns. This can be less efficient for some types of collection element, particularly composite elements or large text or binary fields, as the database may not be able to index a complex primary key as efficiently. However, for one-to-many or many-to-many associations, particularly in the case of synthetic identifiers, it is likely to be just as efficient. 
-
-<idbag> mappings define a surrogate key, so they are efficient to update. In fact, they are the best case.
-
-Bags are the worst case since they permit duplicate element values and, as they have no index column, no primary key can be defined. Hibernate has no way of distinguishing between duplicate rows. Hibernate resolves this problem by completely removing in a single DELETE and recreating the collection whenever it changes. This can be inefficient.
-
-##### Hibernate one shot delete
-However, suppose that we remove 18 elements, leaving 2 and then add 3 new elements. There are two possible ways to proceed
-* delete eighteen rows one by one and then insert three rows
-* remove the whole collection in one SQL DELETE and insert all five current elements one by one
-
-Hibernate cannot know that the second option is probably quicker. It would probably be undesirable for Hibernate to be that intuitive as such behavior might confuse database triggers, etc.
-
-Fortunately, you can force this behavior (i.e. the second strategy) at any time by discarding (i.e. dereferencing) the original collection and returning a newly instantiated collection with all the current elements.
-One-shot-delete does not apply to collections mapped inverse="true".
 
 #### Hibernate Misc
 
