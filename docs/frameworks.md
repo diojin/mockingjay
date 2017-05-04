@@ -992,11 +992,11 @@ Scope用来声明容器中的对象的存货时间。即容器在对象在进入
 
 Sprign容器最初提供了两种bean的scope类型：singletoon和prototype。自Spring2.0之后，引入了另外三种scope类型，即request、session和global session类型。这三种类型只能再web中使用。Moreover, Spring supports customized scope
 
-ConfigurableBeanFactory.SCOPE_SINGLETON
-ConfigurableBeanFactory.SCOPE_PROTOTYPE
-org.springframework.web.context.WebApplicationContext.SCOPE_REQUEST
-org.springframework.web.context.WebApplicationContext.SCOPE_SESSION
-org.springframework.web.context.WebApplicationContext.SCOPE_GLOBAL_SESSION
+* ConfigurableBeanFactory.SCOPE_SINGLETON  
+* ConfigurableBeanFactory.SCOPE_PROTOTYPE  
+* org.springframework.web.context.WebApplicationContext.SCOPE_REQUEST
+* org.springframework.web.context.WebApplicationContext.SCOPE_SESSION
+* org.springframework.web.context.WebApplicationContext.SCOPE_GLOBAL_SESSION
 
 1. singleton
 特性：  
@@ -1049,18 +1049,18 @@ public interface Scope {
 
 ##### Differences between singleton and Spring's singleton
 
-* Spring标记Singleton的bean代表这种类型的bean在容器中只存在一个共享实例，
-* Singleton模式则是保证在同一个classloader中只存在一个这种类型的实例。
+* Spring标记Singleton的bean代表这种类型的bean在容器中只存在一个共享实例
+* Singleton模式则是保证在同一个classloader中只存在一个这种类型的实例
 
 ##### Bean automatic assembling process
 我们对XML配置文件装配Bean的方式都很熟悉了，但是随着业务的复杂性，我们可能编写越来越复杂的XML配置。
 
 Spring提供了4种类型的自动装配的方式，帮助我们减少XML的配置数量。如下： 
 
-byName：根据与bean的属性具有相同名字（或者ID）的其他bean进行注入
-byType:   根据与bean的属性具有相同类型的其他bean进行注入
-constructor：根据与bean的构造函数参数有相同类型的bean进行注入
-autodetect :  首先尝试使用constructor进行注入，失败则尝试使用byType
+1. byName：根据与bean的属性具有相同名字（或者ID）的其他bean进行注入
+2. byType:   根据与bean的属性具有相同类型的其他bean进行注入
+3. constructor：根据与bean的构造函数参数有相同类型的bean进行注入
+4. autodetect :  首先尝试使用constructor进行注入，失败则尝试使用byType
 
 ##### Ways to initializing a bean
 
@@ -1123,15 +1123,11 @@ Constructor injection is good for mandatory dependencies.
 1. Partial dependency: can be injected using setter injection but it is not possible by constructor. Suppose there are 3 properties in a class, having 3 arg constructor and setters methods. In such case, if you want to pass information for only one property, it is possible by setter method only.
 2. Overriding: Setter injection overrides the constructor injection. .
 3. Changes: We can easily change the value by setter injection. It doesn't create a new bean instance always like constructor. So setter injection is flexible than constructor injection
-4. Required dependency. By using Constructor Injection, you assert the requirement for the dependency in a `container-agnostic` manner
-A class that takes a required dependency as a constructor argument can only be instantiated if that argument is provided (you should have a guard clause to make sure the argument is not null.) A constructor therefore enforces the dependency requirement whether or not you're using Spring, making it container-agnostic.
-
-If you use setter injection, the setter may or may not be called, so the instance may never be provided with its dependency. The only way to force the setter to be called is using @Required or @Autowired , which is specific to Spring and is therefore not container-agnostic.
-
-So to keep your code independent of Spring, use constructor arguments for injection.
-
-Update: Spring 4.3 will perform `implicit injection in single-constructor scenarios`, making your code more independent of Spring by potentially not requiring an @Autowired annotation at all.
-
+4. Required dependency. By using Constructor Injection, you assert the requirement for the dependency in a `container-agnostic` manner.  
+A class that takes a required dependency as a constructor argument can only be instantiated if that argument is provided (you should have a guard clause to make sure the argument is not null.) A constructor therefore enforces the dependency requirement whether or not you're using Spring, making it container-agnostic.  
+If you use setter injection, the setter may or may not be called, so the instance may never be provided with its dependency. The only way to force the setter to be called is using @Required or @Autowired , which is specific to Spring and is therefore not container-agnostic.  
+So to keep your code independent of Spring, use constructor arguments for injection.  
+Update: Spring 4.3 will perform `implicit injection in single-constructor scenarios`, making your code more independent of Spring by potentially not requiring an @Autowired annotation at all.  
 __Implicit constructor injection for single-constructor scenarios__  
 ```java
 // this can be injected properly
@@ -2236,14 +2232,6 @@ session.setFlushMode(FlushMode.COMMIT)
 FlushMode.AUTO(默认)  |清理    |清理    |清理
 FlushMode.COMMIT      |不清理  |清理    |清理
 FlushMode.NEVER       |不清理  |不清理  |不清理
-
-
-ANNOTATION|PACKAGE|SOURCE
-:----------|:-------|------
-@Resource   |javax.annotation    |Java
-@Inject     |javax.inject        |Java
-@Qualifier  |javax.inject        |Java
-@Autowired  |org.springframework.bean.factory    |Spring
 
 The SQL statements are issued in the following order:
 1. all entity insertions in the same order the corresponding objects were saved using Session.save()
