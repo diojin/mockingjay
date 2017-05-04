@@ -475,7 +475,7 @@ __Constraints when authoring @Configuration classes__
 4. Any nested configuration classes must be static. 
 
 ##### @Controller
-* org.springframework.stereotype.Controller
+* org.springframework.stereotype.Controller  
 This annotation serves as a specialization of @Component, allowing for implementation classes to be autodetected through classpath scanning. It is typically used in combination with annotated handler methods based on the org.springframework.web.bind.annotation.RequestMapping annotation.
 ```java
 @Controller
@@ -489,13 +489,12 @@ public class UserAction extends BaseAction<User>{
 
 注意：如果@Controller不指定其value，则默认的bean名字为这个类的类名首字母小写，如果指定value【@Controller(value="UserAction")】或者【@Controller("UserAction")】，则使用value作为bean的名字。
 
-* org.springframework.web.servlet.mvc.Controller
+* org.springframework.web.servlet.mvc.Controller  
 Base Controller interface, representing a component that receives HttpServletRequest and HttpServletResponse instances just like a HttpServlet but is able to participate in an MVC workflow. Controllers are comparable to the notion of a Struts Action. 
-
 Not used in coupang project.
 
 ##### @Service
-org.springframework.stereotype
+org.springframework.stereotype.Service
 
 Indicates that an annotated class is a "Service", originally defined by Domain-Driven Design (Evans, 2003) as "an operation offered as an interface that stands alone in the model, with no encapsulated state." 
 
@@ -523,7 +522,7 @@ ConfigurableBeanFactory.SCOPE_SINGLETON
 ConfigurableBeanFactory.SCOPE_PROTOTYPE
 org.springframework.web.context.WebApplicationContext.SCOPE_REQUEST
 org.springframework.web.context.WebApplicationContext.SCOPE_SESSION
-org.springframework.web.context.WebApplicationContext.SCOPE_GLOBAL_SESSION ??
+org.springframework.web.context.WebApplicationContext.SCOPE_GLOBAL_SESSION
 ```
 To register additional custom scopes, see CustomScopeConfigurer.
 
@@ -607,7 +606,7 @@ public static PropertyPlaceholderConfigurer ppc() {
 ##### @Async
 Annotation that marks a method as a candidate for asynchronous execution. Can also be used at the type level, in which case all of the type's methods are considered as asynchronous. 
 
-the return type is constrained to either void or java.util.concurrent.Future.
+the return type is constrained to either __void__ or __java.util.concurrent.Future__.
 
 1. by xml
 ```xml
