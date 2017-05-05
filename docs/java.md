@@ -442,22 +442,30 @@ Some common used patterns,
  
 **Session Façade** Encapsulates business-tier components and exposes a coarse-grained service to remote clients.
 
+**Front Controller** You want a centralized access point for presentation-tier request handling. 
 
-
+**View Helper** You want to separate a view from its processing logic.
+Use Views to encapsulate formatting code and Helpers to encapsulate view-processing logic. A View delegates its processing responsibilities to its helper classes, `implemented as POJOs, custom tags, or tag files`. Helpers serve as adapters between the view and the model, and perform processing related to formatting logic, such as generating an HTML table.
 
 ### EJB
 
 EJB包括Session Bean、Entity Bean、Message Driven Bean，基于JNDI、RMI、JTA等技术实现。
 
-Session Bean又可分为有状态(stateful)和无状态(stateless)两种。
-Entity bean可分为bean管理的持续性(bmp)和容器管理的持续性(cmp)两种。
+Session Bean又可分为有状态(stateful)和无状态(stateless)两种  
+Entity bean可分为bean管理的持续性(bmp)和容器管理的持续性(cmp)两种
 
-remote接口定义了业务方法，用于ejb客户端调用业务方法。 
+__3 Components:__  
+* remote(local)接口
+* home(localhome)接口
+* bean类 
+
+remote接口定义了业务方法，用于ejb客户端调用业务方法.   
 home接口是ejb工厂用于创建和移除查找ejb实例 
 
-设置jndi服务工厂以及jndi服务地址系统属性，查找home接口，从home接口调用create方法创建remote接口，通过remote接口调用其业务方法。
-
-
+__Typical calling flow__  
+* 设置jndi服务工厂以及jndi服务地址系统属性，查找home接口
+* 从home接口调用create方法创建remote接口
+* 通过remote接口调用其业务方法
 
 #### EJB Misc
 
