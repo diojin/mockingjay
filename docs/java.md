@@ -15,6 +15,7 @@
             * [IIOP(Internet Inter-ORB Protocol)](#iiopinternet-inter-orb-protocol)
             * [JavaIDL](#javaidl)
             * [RMI-IIOP](#rmi-iiop)
+    - [Different ways of implement web service](#different-ways-of-implement-web-service)
 * [JMS](#jms)
     - [Message Broker](#message-broker)
     - [AMQP(Advanced Message Queuing Protocol)](#amqpadvanced-message-queuing-protocol))
@@ -212,6 +213,18 @@ stub 对象负责调用参数和返回值的流化(serialization)、打包解包
 ###### RMI-IIOP
 结合了RMI的易用性和CORBA/IIOP的语言无关性，通过RMI-IIOP，RMI对象可以采用IIOP协议和CORBA对象通讯。RMI-IIOP对RMI的调用参数作了一些很轻微的限制，在调用CORBA对象时，必须遵循这些限制。JDK1.3已经提供对RMI-IIOP的支持。 
 
+##### Different ways of implement web service
+
+有两种方式:  
+* 契约先行（也称为自顶向下，contract-first）方式：通过XSD和WSDL来定义contract，然后根据contract生成Java类
+* 契约后行（也称为自底向上，contract-last）方式：先定义Java类，然后生成约定，也就是从Java类得到WSDL文件。
+
+__上面两种方式各有什么优缺点吗？你更推荐哪种？__  
+
+ways|coupling client side with server side|  learning curve
+-----------|--------------------------------------|----------------
+contract-first| no | long
+contract-last| yes | short
 
 ### JMS
 #### Message Broker

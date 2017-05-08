@@ -12,6 +12,8 @@
     - [Load Balance Algorithm](#load-balance-algorithm)
 * [SOA](#soa)
     - [Misc](#soa-misc)
+        + [PROs and Cons](#soa-pros-and-cons)
+        + [Differences between SOA and Web Service](#differences-between-soa-and-web-service)
 * [Miscellaneous](#miscellaneous)
     - [NoSql](#nosql)
         + [NoSql Categories](#nosql-categories)
@@ -185,8 +187,83 @@ You can see with some of these algorithms that persistent connections would caus
 
 ### SOA
 
+__Service-Oriented Architecture__ is `anapplication architecture` in which all functions, or services, are `defined using a description language` and `have invokable interfaces` that are called to perform business processes. Each interaction is `independent `of each and every other interaction and the interconnect protocols of the communicating devices (i.e., the infrastructure components that determine the communication system do not affect the interfaces).
+
+SOA架构，是一种`粗粒度`、开放式、`松耦合`的服务结构，要求软件产品在开发过程中，按照相关的标准或协议，进行`分层开发`。通过这种分层设计或架构体系可以使软件产品变得更加弹性和灵活，且尽可能的与第三方软件产品互补兼容，以达到快速扩展，满足或响应市场或客户需求的多样化、多变性。
+
+>This definition of SOA was produced by the SOA Definition team of The Open Group SOA Working Group.
+
+__Service-Oriented Architecture (SOA)__ is an `architectural style` that supports service-orientation.
+
+Service-orientation is a way of thinking in terms of services and service-based development and the outcomes of services.
+
+__A service:__  
+* Is a logical representation of a repeatable business activity that has a specified outcome (e.g., check customer credit, provide weather data, consolidate drilling reports)
+* Is self-contained
+* May be composed of other services
+* Is a “black box” to consumers of the service
+
+__SOA Architectural Style__  
+The SOA architectural style has the following distinctive features:
+* It is based on `the design of the services` – which mirror real-world business activities – `comprising the enterprise (or inter-enterprise) business processes.`
+* `Service representation utilizes business descriptions` to provide `context` (i.e., business process, goal, rule, policy, service interface, and service component) and `implements services using service orchestration.`
+* It places unique requirements on the infrastructure – it is recommended that implementations `use open standards(PS: XML and SOAP, etc) to realize interoperability and location transparency`.
+* Implementations are `environment-specific` – they are constrained or enabled by `context` and must be described within that context.
+* It requires `strong governance` of service representation and implementation.
+* It requires a `“Litmus Test”`, which determines a “good service”.
+
 #### SOA Misc
 
+##### SOA PROs and Cons
+
+__In all, PROs are:__  
+* platform-independent
+* improved information flow(due to coarse-grained services)
+* better data translation
+* internal software organization(reducing round trips between clients and service providers)
+* reusable, easy to maintain and change
+
+__Cons are:__  
+* applications with GUI functionality become more complex when using SOA.
+* had to be customized
+* need strong governance of business flow, service description and implentation, otherwise, it raise secure problem
+
+Details are as below, 
+
+SOA provides a strategic capability for integrating business processes, data, and organizational knowledge. Because interfaces are `platform-independent`, a client from any device using any operating system in any language can use the service. In a service-oriented architecture, clients consume services, rather than invoking discreet method calls directly. 
+
+__There are many benefits of SOA, including__  
+* improved information flow
+* location transparency
+* internal software organization
+* better data translation
+
+__The most commonly discussed disadvantage of SOA__ is for applications with GUI functionality. These types of applications become more complex when using SOA.
+
+SOA体系架构带来的主要观点是`业务驱动IT`，即业务驱动和业务更加紧密地联系在一起。
+* 以`粗粒度的业务服务作为基础`来对公司业务进行建模，这样就可以产生`简洁的业务和系统视图`
+* 以业务服务为基础来实现的IT系统`更灵活、更易于重用`、也更快地应对企业业务需求的变化
+* 以业务服务为基础，通过`显式地方式来定义、描述`、实现和管理业务层次的粗粒度服务(包括业务流程)，提供了业务服务模型和相关IT业务之间提供了更好的"可追溯性"，缩小了它们之间的差距，使得业务服务的变化更容易传递到IT。
+
+(粗粒度性：粗粒度服务提供一项特定的业务功能，采用粗粒度服务接口的优点在于使用者和服务层之间不必再进行多次的往复，一次往复就足够了)
+
+利用SOA架构开发的时候，其基于松耦合的特性能给企业带来诸多的好处:  
+* 更易维护
+　　业务服务提供者和业务服务使用者的松散耦合关系及对开放标准的采用确保了该特性的实现。建立在以 SOA基础上的信息系统，当需求发生变化的时候，不需要修改提供业务服务的接口，只需要调整业务服务流程或者修改操作即可，整个应用系统也更容易被维护。
+* 更高的可用性
+　　该特点是在于服务提供者和服务使用者的松散耦合关系上得以发挥与体现。使用者无须了解提供者的具休实现细节
+* 更好的伸缩性
+　　依靠业务服务设计、开发和部署等所采用的架构模型实现伸缩性。使得服务提供者可以互相彼此独立地进行调整，以满足新的服务需求。
+
+现在，国内许多企业已经使用了SOA架构，但是是否它就真的没有缺点，答案显然不是：  
+* 安全问题。SOA做为一种基于服务的架构，其面向的是流程。这样，当企业真正实施基于SOA的应用软件以后，表面看来，企业的业务流程得到了梳理，内控的能力提高了，但SOA架构要求必须有一个类似于流程管理的程序，来统一管理这些流程。
+　　这就带来一个问题，如果这个架构出现问题，那么将导致所有的业务瘫痪。而现在企业信息化的发展趋势是IT和业务结合得越来越紧密，或者可以说业务对IT的依赖程度越来越高，相信如果SOA不能很好地解决安全问题，将会极大地限制其发展。
+* 个性化问题。SOA通过所谓粗粒度服务接口和分级，确实提高了效率。实现流程化以后，也确实简化了开发难度。如果这个流程不适合我这个企业的实际情况，我还是需要个性化开发。国内的中小企业占到了企业总量的70%，他们的需求很具个性化，而且比较在意价格的因素。实际上这和SOA高度集成的性质是不相符的。
+
+##### Differences between SOA and Web Service
+SOA是一种软件设计准则，一种实现松耦合，高可复用性和粗粒度的web服务的设计模式。开发者可以选择任意协议实现SOA，例如，HTTP、HTTPS、JMS、SMTP、RMI、IIOP（例如，采用IIOP的EJB）、RPC等。消息可以采用XML或者数据传输对象（Data Transfer Objects，DTOs）。
+
+`Web Service是实现SOA的技术之一`。也可以不用Web service来实现SOA应用：例如，用一些传统的技术，像Java RMI，EJB，JMS消息等。但是Web service提供的是标准的平台无关的服务，这些服务采用HTTP、XML、SOAP、WSDL和UDDI技术，因此可以带来J2EE和.NET这些异构技术（heterogeneous technologies）之间的互操作性。
 
 ### Miscellaneous
 
