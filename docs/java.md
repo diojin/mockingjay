@@ -462,7 +462,7 @@ __3 Components:__
 remote接口定义了业务方法，用于ejb客户端调用业务方法.   
 home接口是ejb工厂用于创建和移除查找ejb实例 
 
-__Typical calling flow__  
+__Typical calling flow:__  
 * 设置jndi服务工厂以及jndi服务地址系统属性，查找home接口
 * 从home接口调用create方法创建remote接口
 * 通过remote接口调用其业务方法
@@ -496,7 +496,10 @@ entity beans能存活相对较长的时间，并且状态是持续的。只要�
 ##### EJB roles and components
 一个完整的基于ejb的分布式计算结构由六个角色组成，这六个角色可以由不同的开发商提供，每个角色所作的工作必须遵循sun公司提供的ejb规范，以保证彼此之间的兼容性。这六个角色分别是`ejb组件开发者(enterprise bean provider)`, `ejb 容器提供者(ejb container provider)`, `ejb 服务器提供者(ejb server provider)`, `应用组合者(application assembler)`, `部署者(deployer)`, `系统管理员(system administrator)`
 
-三个对象是remote(local)接口、home(localhome)接口，bean类
+__3 Components:__  
+* remote(local)接口
+* home(localhome)接口
+* bean类 
 
 ##### Aspect fuctions provided by EJB Container
 
@@ -573,12 +576,9 @@ ClassLoader使用的是`双亲委托模型`来搜索类的，每个ClassLoader�
 3. 但是JVM在搜索类的时候，又是如何判定两个class是相同的呢？  
 JVM在判定两个class是否相同时，`不仅要判断两个类名是否相同，而且要判断是否由同一个类加载器实例加载的`。只有两者同时满足的情况下，JVM才认为这两个class是相同的。`就算两个class是同一份class字节码，如果被两个不同的ClassLoader实例所加载，JVM也会认为它们是两个不同class`。
 
-classloader 加载类用的是`全盘负责委托机制`。所谓`全盘负责`，即是当一个classloader加载一个Class的时候，这个Class所依赖的和引用的所有 Class也由这个classloader负责载入，除非是显式的使用另外一个classloader载入；`委托机制`则是先让parent（父）类加载器 (而不是super，它与parent classloader类不是继承关系)寻找，只有在parent找不到的时候才从自己的类路径中去寻找。此外类加载还`采用了cache机制`，也就是如果 cache中保存了这个Class就直接返回它，如果没有才从文件中读取和转换成Class，并存入cache，这就是为什么我们修改了Class但是必须重新启动JVM才能生效的原因
-
-
-定义自已的类加载器分为两步：  
-1、继承java.lang.ClassLoader
-2、重写父类的findClass方法
+定义自已的类加载器分为两步:  
+1. 继承java.lang.ClassLoader
+2. 重写父类的findClass方法
 读者可能在这里有疑问，父类有那么多方法，为什么偏偏只重写findClass方法？
 因为JDK已经在loadClass方法中帮我们实现了ClassLoader搜索类的算法，当在loadClass方法中搜索不到类时，loadClass方法就会调用findClass方法来搜索类，所以我们只需重写该方法即可。如没有特殊的要求，一般不建议重写loadClass搜索类的算法。下图是JAVA 8 API中ClassLoader的loadClass方法：
 
@@ -604,9 +604,12 @@ __Context ClassLoader__
 >From JDK 8
 If not set, the default is the ClassLoader context of the parent Thread. The context ClassLoader of the primordial thread is typically set to the class loader used to load the application. 
 
-加载Class的默认规则比较简单，有两个：  
+加载Class的默认规则比较简单，有3个：  
 1. 双亲委托机制。
-2. 同一个加载器：类A引用到类B，则由类A的加载器去加载类B，保证引用到的类由同一个加载器加载。
+2. 同一个加载器：类A引用到类B,则由类A的加载器去加载类B,保证引用到的类由同一个加载器加载
+3. Cache 机制
+
+classloader 加载类用的是`全盘负责委托机制`。所谓`全盘负责`，即是当一个classloader加载一个Class的时候，这个Class所依赖的和引用的所有 Class也由这个classloader负责载入，除非是显式的使用另外一个classloader载入；`委托机制`则是先让parent（父）类加载器 (而不是super，它与parent classloader类不是继承关系)寻找，只有在parent找不到的时候才从自己的类路径中去寻找。此外类加载还`采用了cache机制`，也就是如果 cache中保存了这个Class就直接返回它，如果没有才从文件中读取和转换成Class，并存入cache，这就是为什么我们修改了Class但是必须重新启动JVM才能生效的原因
 
 这其实是因为加载Class的默认规则在某些情况下不能满足要求。比如jdk中的jdbc API 和具体数据库厂商的实现类SPI的类加载问题。在jdbc API的类是由BootStrap加载的，那么如果在jdbc API需要用到spi的实现类时，根据默认规则2，则实现类也会由BootStrap加载，但是spi实现类却没法由BootStrap加载，只能由Ext或者App加载，如何解决这个问题？牛人们就想出了ContextClassLoader的方法。
 
@@ -634,7 +637,7 @@ Channel和Buffer有好几种类型。下面是JAVA NIO中的一些主要Channel�
 * SocketChannel
 * ServerSocketChannel
 
-以下是Java NIO里关键的Buffer实现：
+以下是Java NIO里关键的Buffer实现:
 * ByteBuffer
 * CharBuffer
 * DoubleBuffer
@@ -644,9 +647,9 @@ Channel和Buffer有好几种类型。下面是JAVA NIO中的一些主要Channel�
 * ShortBuffer
 
 __MappedByteBuffer__  
-java处理大文件，一般用BufferedReader,BufferedInputStream这类带缓冲的Io类，不过如果文件超大的话，更快的方式是采用MappedByteBuffer。MappedByteBuffer是java nio引入的文件内存映射方案，读写性能极高。NIO最主要的就是实现了对异步操作的支持。
+java处理大文件, 一般用BufferedReader,BufferedInputStream这类带缓冲的Io类, 不过如果文件超大的话, 更快的方式是采用MappedByteBuffer。MappedByteBuffer是java nio引入的文件内存映射方案, 读写性能极高。NIO最主要的就是实现了对异步操作的支持。
 
-Selector允许单线程处理多个 Channel。如果你的应用打开了多个连接（通道），但每个连接的流量都很低，使用Selector就会很方便。例如，在一个聊天服务器中。 
+Selector允许单线程处理多个Channel。如果你的应用打开了多个连接（通道），但每个连接的流量都很低，使用Selector就会很方便。例如，在一个聊天服务器中。 
 
 如果需要管理同时打开的成千上万个连接，这些连接每次只是发送少量的数据，例如聊天服务器，实现NIO的服务器可能是一个优势。同样，如果你需要维持许多打开的连接到其他计算机上，如P2P网络中，使用一个单独的线程来管理你所有出站连接，可能是一个优势。
 
@@ -654,9 +657,10 @@ Selector允许单线程处理多个 Channel。如果你的应用打开了多个�
 
 ##### Java NIO提供了与标准IO不同的IO工作方式 
 
-Channels and Buffers（通道和缓冲区）：标准的IO基于字节流和字符流进行操作的，而NIO是基于通道（Channel）和缓冲区（Buffer）进行操作，数据总是从通道读取到缓冲区中，或者从缓冲区写入到通道中。
-__Asynchronous IO（异步IO）__：Java NIO可以让你异步的使用IO，例如：当线程从通道读取数据到缓冲区时，线程还是可以进行其他事情。当数据被写入到缓冲区时，线程可以继续处理它。从缓冲区写入通道也类似。
-Selectors（选择器）：Java NIO引入了选择器的概念，选择器用于监听多个通道的事件（比如：连接打开，数据到达）。因此，单个的线程可以监听多个数据通道。
+Channels and Buffers(通道和缓冲区): 标准的IO基于字节流和字符流进行操作的，而NIO是基于通道（Channel）和缓冲区（Buffer）进行操作，数据总是从通道读取到缓冲区中，或者从缓冲区写入到通道中  
+
+__Asynchronous IO（异步IO）__： Java NIO可以让你异步的使用IO，例如：当线程从通道读取数据到缓冲区时，线程还是可以进行其他事情。当数据被写入到缓冲区时，线程可以继续处理它。从缓冲区写入通道也类似
+Selectors(选择器): Java NIO引入了选择器的概念，选择器用于监听多个通道的事件（比如：连接打开，数据到达）。因此，单个的线程可以监听多个数据通道
 
 |IO|NIO
 |----|----
@@ -664,47 +668,43 @@ Selectors（选择器）：Java NIO引入了选择器的概念，选择器用于
 |Blocking IO | Non blocking IO
 | | Selectors
 
-
 NIO可让您只使用一个（或几个）单线程管理多个通道（网络连接或文件），`但付出的代价是解析数据可能会比从一个阻塞流中读取数据更复杂。`
-
 
 __面向流与面向缓冲__
 
-Java NIO和IO之间第一个最大的区别是，IO是面向流的，NIO是面向缓冲区的。 Java IO面向流意味着每次从流中读一个或多个字节，直至读取所有字节，它们没有被缓存在任何地方。此外，它不能前后移动流中的数据。如果需要前后移动从流中读取的数据，需要先将它缓存到一个缓冲区。 Java NIO的缓冲导向方法略有不同。数据读取到一个它稍后处理的缓冲区，需要时可在缓冲区中前后移动。这就增加了处理过程中的灵活性。但是，还需要检查是否该缓冲区中包含所有您需要处理的数据。而且，需确保当更多的数据读入缓冲区时，不要覆盖缓冲区里尚未处理的数据。
+Java NIO和IO之间第一个最大的区别是，IO是面向流的，NIO是面向缓冲区的。 Java IO面向流意味着每次从流中读一个或多个字节，直至读取所有字节，它们没有被缓存在任何地方。此外，它不能前后移动流中的数据。如果需要前后移动从流中读取的数据，需要先将它缓存到一个缓冲区。 Java NIO的缓冲导向方法略有不同。数据读取到一个它稍后处理的缓冲区，需要时可在缓冲区中前后移动。这就增加了处理过程中的灵活性。但是，还需要检查是否该缓冲区中包含所有您需要处理的数据。而且，需确保当更多的数据读入缓冲区时，不要覆盖缓冲区里尚未处理的数据
 
 __阻塞与非阻塞IO__ 
 
-Java IO的各种流是阻塞的。这意味着，当一个线程调用read() 或 write()时，该线程被阻塞，直到有一些数据被读取，或数据完全写入。该线程在此期间不能再干任何事情了。 Java NIO的非阻塞模式，使一个线程从某通道发送请求读取数据，但是它仅能得到目前可用的数据，如果目前没有数据可用时，就什么都不会获取。而不是保持线程阻塞，所以直至数据变的可以读取之前，该线程可以继续做其他的事情。 非阻塞写也是如此。一个线程请求写入一些数据到某通道，但不需要等待它完全写入，这个线程同时可以去做别的事情。 线程通常将非阻塞IO的空闲时间用于在其它通道上执行IO操作，所以一个单独的线程现在可以管理多个输入和输出通道（channel）。 
-
-
+Java IO的各种流是阻塞的。这意味着，当一个线程调用read() 或 write()时，该线程被阻塞，直到有一些数据被读取，或数据完全写入。该线程在此期间不能再干任何事情了。 Java NIO的非阻塞模式，使一个线程从某通道发送请求读取数据，但是它仅能得到目前可用的数据，如果目前没有数据可用时，就什么都不会获取。而不是保持线程阻塞，所以直至数据变的可以读取之前，该线程可以继续做其他的事情。 非阻塞写也是如此。一个线程请求写入一些数据到某通道，但不需要等待它完全写入，这个线程同时可以去做别的事情。 线程通常将非阻塞IO的空闲时间用于在其它通道上执行IO操作，所以一个单独的线程现在可以管理多个输入和输出通道(channel) 
 
 #### Stream
 
 #### Eclipse Shortcuts
 
-全局 打开外部javadoc Shift+F2 
-Java编辑器 打开结构(all inheritant properties) Ctrl+F3 
-全局 打开资源 Ctrl+Shift+R 
-全局 打开类型 Ctrl+Shift+T 
-全局 打开类型层次结构 F4 / Ctrl + T
-全局 打开声明 F3 
-全局 在层次结构中打开类型 Ctrl+Shift+H 
+* 全局 打开外部javadoc Shift+F2 
+* Java编辑器 打开结构(all inheritant properties) Ctrl+F3 
+* 全局 打开资源 Ctrl+Shift+R 
+* 全局 打开类型 Ctrl+Shift+T 
+* 全局 打开类型层次结构 F4 / Ctrl + T
+* 全局 打开声明 F3 
+* 全局 在层次结构中打开类型 Ctrl+Shift+H 
 
-全局 转至匹配的括号 Ctrl+Shift+P
+* 全局 转至匹配的括号 Ctrl+Shift+P
 
-全局 转至上一个编辑位置 Ctrl+Q  
+* 全局 转至上一个编辑位置 Ctrl+Q  
 
-全局 快速修正 Ctrl+1 
-全局 内容辅助 Alt+/ 
-全局 上下文信息/智能提示  Alt+ / 
+* 全局 快速修正 Ctrl+1 
+* 全局 内容辅助 Alt+/ 
+* 全局 上下文信息/智能提示  Alt+ / 
 Alt+Shift+/
 Ctrl+Shift+Space 
 
-ctrl + shift + o：导入类 
-ctrl + shift + f：格式化代码 
+* ctrl + shift + o：导入类
+* ctrl + shift + f：格式化代码 
 
-查找当前元素的声明 Ctrl+G
-查找当前元素的所有引用 Ctrl+Shift+G
+* 查找当前元素的声明 Ctrl+G
+* 查找当前元素的所有引用 Ctrl+Shift+G
 
 ---
 [collections_1]:/resources/img/java/collection_performance_test_1.png "performance test: set vs hash_set vs hash_table"
