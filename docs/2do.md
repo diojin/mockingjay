@@ -130,6 +130,10 @@ DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  impleme
 
 ### DONE
 ___
+##### 2017-05-08 to ?
+- [ ] :kissing_cat: :two: go through other review preparation materials
+    - [x] :arrow_right_hook: ~~spring~~
+    - [x]:arrow_right_hook: ~~hibernate~~ 
 
 ##### 2017-04-26
 - [x] :kissing_cat: :two: ~~help darling to start learning english/economic books~~

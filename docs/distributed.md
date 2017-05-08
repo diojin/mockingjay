@@ -4,8 +4,17 @@
 * [NoSql](#nosql)
     - [NoSql Categories](#nosql-categories)
     - [NoSql Characteristics](#nosql-characteristics)
-* [Miscellaneous](#miscellaneous)
+* [Hadoop](#hadoop)
+    - [Hive](#hive)
+    - [HBase](#hbase)
+* [Cluster](#cluster)
+    - [Cluster types](#cluster-types)
+    - [Load Balance Algorithm](#load-balance-algorithm)
+* [SOA](#soa)
     - []
+* [Miscellaneous](#miscellaneous)
+    - [software transactional memory (STM)](#software-transactional-memorystm)
+    - [Big Data open source trendy technologies](#big-data-open-source-trendy-technologies)
 
 ### NoSql
 
@@ -43,10 +52,266 @@ graph(图形)数据库|Neo4J, InfoGrid, Infinite Graph|`社交网络，推荐系
 NoSQL数据库并没有一个统一的架构，两种NoSQL数据库之间的不同，甚至远远超过两种关系型数据库的不同。可以说，NoSQL各有所长，成功的NoSQL必然`特别适用于某些场合或者某些应用`，在这些场合中会远远胜过关系型数据库和其他的NoSQL。
 
 
-CAP theorem
+### Hadoop
 
+Hadoop 是一个实现了MapReduce 计算模型的开源分布式并行编程框架，程序员可以借助Hadoop 编写程序，将所编写的程序运行于计算机机群上，从而实现对海量数据的处理
+
+ 此外，Hadoop 还提供一个分布式文件系统(HDFS）及分布式数据库（HBase）用来将数据存储或部署到各个计算节点上。所以，你可以大致认为：Hadoop=HDFS（文件系统，数据存储技术相关）+HBase（数据库）+MapReduce（数据处理）。Hadoop 框架如图所示：
+![hadoop_1]
+
+我们已经知道，Hadoop是Google的MapReduce一个Java实现。MapReduce是一种简化的分布式编程模式，让程序自动分布到一个由普通机器组成的超大集群上并发执行。Hadoop主要由HDFS、MapReduce和HBase等组成。具体的hadoop的组成如下图：
+![hadoop_2]
+
+__The project includes these modules:__  
+* Hadoop Common: The common utilities that support the other Hadoop modules.
+* Hadoop Distributed File System (HDFS™): A distributed file system that provides high-throughput access to application data.
+* Hadoop YARN: A framework for job scheduling and cluster resource management.
+* Hadoop MapReduce: A YARN-based system for parallel processing of large data sets.
+
+__Other Hadoop-related projects at Apache include:__  
+* Ambari™: A web-based tool for provisioning, managing, and monitoring Apache Hadoop clusters which includes support for Hadoop HDFS, Hadoop MapReduce, Hive, HCatalog, HBase, ZooKeeper, Oozie, Pig and Sqoop. Ambari also provides a dashboard for viewing cluster health such as heatmaps and ability to view MapReduce, Pig and Hive applications visually alongwith features to diagnose their performance characteristics in a user-friendly manner.
+* Avro™: A data serialization system.
+* Cassandra™: A scalable multi-master database with no single points of failure.
+* Chukwa™: A data collection system for managing large distributed systems.
+* HBase™: A scalable, distributed database that `supports structured data storage` for large tables.
+* Hive™: A data warehouse infrastructure that provides data summarization and ad hoc querying.
+* Mahout™: A Scalable machine learning and data mining library.
+* Pig™: A high-level data-flow language and execution framework for parallel computation.
+* Spark™: A fast and general compute engine for Hadoop data. Spark provides a simple and expressive programming model that supports a wide range of applications, including ETL, machine learning, stream processing, and graph computation.
+* Tez™: A generalized data-flow programming framework, built on Hadoop YARN, which provides a powerful and flexible engine to execute an arbitrary DAG of tasks to process data for both batch and interactive use-cases. Tez is being adopted by Hive™, Pig™ and other frameworks in the Hadoop ecosystem, and also by other commercial software (e.g. ETL tools),` to replace Hadoop™ MapReduce as the underlying execution engine`.
+* ZooKeeper™: A high-performance coordination service for distributed applications.
+
+
+#### Hive
+Hive是基于Hadoop的一个数据仓库工具，处理能力强而且成本低廉。
+
+__主要特点：__  
+存储方式是将结构化的数据文件映射为一张数据库表。提供类SQL语言，实现完整的SQL查询功能。可以将SQL语句转换为MapReduce任务运行，十分适合数据仓库的统计分析。
+
+__不足之处：__  
+* 采用行存储的方式（SequenceFile）来存储和读取数据, 效率低
+* 当要读取数据表某一列数据时需要先取出所有数据然后再提取出某一列的数据，效率很低。
+* 同时，它还占用较多的磁盘空间
+
+由于以上的不足，有人（查礼博士）介绍了一种将分布式数据处理系统中以记录为单位的存储结构变为以列为单位的存储结构，进而减少磁盘访问数量，提高查询处理性能。这样，由于相同属性值具有相同数据类型和相近的数据特性，以属性值为单位进行压缩存储的压缩比更高，能节省更多的存储空间。
+
+#### HBase
+HBase是一个分布式的、面向列的开源数据库，它不同于一般的关系数据库,是一个适合于非结构化数据存储的数据库。另一个不同的是HBase基于列的而不是基于行的模式。HBase使用和 BigTable非常相同的数据模型。用户存储数据行在一个表里。一个数据行拥有一个可选择的键和任意数量的列，一个或多个列组成一个ColumnFamily，一个Fmaily下的列位于一个HFile中，易于缓存数据。表是疏松的存储的，因此用户可以给行定义各种不同的列。在HBase中数据按主键排序，同时表按主键划分为多个HRegion
+
+### Cluster
+
+[For more information][cluster_1]
+
+__幂等方法(Idempotent methods)__  
+幂等函数，或幂等方法，是指可以使用相同参数重复执行，并能获得相同结果的函数。这些函数不会影响系统状态，也不用担心重复执行会对系统造成改变。例如，“getUsername()”函数就是一个幂等函数，“deleteFile()”函数就不是。“幂等”是HTTP Session和EJB Failover的一个重要概念。
+
+__负载均衡(load balance)__  
+负载均衡是集群技术中重要的一部分。通过将请求分发到不同的服务器，它提供了可同时获得高可用性和更高性能的服务的方法。简单的负载均衡器可以是一个Servlet或一些插件，复杂的负载均衡器可能是高级的嵌入了SSL加速器的硬件设备。
+除了分发请求之外，负载均衡器还负责执行一些重要的任务：
+1. `“会话持久”`用来确保用户会话生命周期在一台服务器上的完整性。
+2. `“心跳检查”`来检查失败的服务器。
+3. Session Sticky ?
+4. 在某些情况下，负载均衡器需要参与“失败转移”的过程，下文中会提及
+
+__HTTPSession Failover__  
+主流的Java EE供应商都实现了HTTPSession失败转移。当浏览器在访问有状态的Web应用时，在该服务器的内存中会创建会话对象。与此同时将能唯一确定会话对象的HTTPSession ID发送至浏览器。浏览器将该ID作为cookie存储，并在下次请求该Web应用时将此cookie发送至Web服务器。
+为了支持会话失败转移，Web服务器中的`会话对象将被备份下来`，以备服务器失败时防止会话信息丢失。负载均衡器将检测到实例的失败，并将后续请求分发到其他服务器实例上。由于会话对象已经被备份下来了，处理请求的新服务器实例就能恢复该会话的信息，继续正确处理会话。
+
+要实现上述功能，需要引入以下内容：
+__全局HTTPSession ID__  
+上面已经讲过，HTTPSession ID用来标识特定服务器实例中的内存会话对象。在Java EE中，HTTPSession ID根据JVM实例来产生。每个JVM实例能驻留多个Web应用，每个应用能为不同的用户保存HTTPSession。HTTPSession ID是在当前JVM实例中访问相关会话对象的关键。在会话失败转移的实现中，不同的JVM实例不能生成相同的HTTPSession ID。如若不然，在失败转移发生时，就不知道哪个对象是应该恢复的对象。所以，需要引入全局HTTPSession ID机制。
+
+__会话持久的方法__  
+* 数据库持久化办法
+    一些的Java EE集群产品都支持使用JDBC通过关系型数据库备份会话状态。
+    通常，执行数据库的事务会造成一些额外的开销，所以本方法的主要缺陷在于当并发数据量较大时可能无法提供需要的可扩展性。大部分采用数据库会话持久化方法的应用服务器供应商都建议尽量减少HTTPSession存储的对象.
+* 内存复制办法
+    Tomcat、JBoss、WebLogic、Websphere之流的Java EE服务器都提供了另一种实现：内存复制。在上图中描述了使用内存复制技术来实现会话状态备份的场景。本方法的性能很好。对比数据库持久化技术，在原服务器和一台或多台备份服务器之间进行直接内存复制对网络通信的影响很小。但是，不同厂商的服务器对内存复制技术的应用方式不同(在下面有具体描述)，有的厂商采用的技术就不再需要“恢复”的过程了，即会话数据备份时已驻留在备份服务器的内存中，当备份服务器接管时，所有的数据已经存在。
+
+#### Cluster types
+There are 4 major types of clusters:
+* Storage
+* High availability
+* Load balancing
+* High performance
+
+[For more information][cluster_types_1]
+
+__Storage clusters__ provide a consistent file system image across servers in a cluster, allowing the servers to simultaneously read and write to a single shared file system. A storage cluster simplifies storage administration by limiting the installation and patching of applications to one file system. Also, with a cluster-wide file system, a storage cluster eliminates the need for redundant copies of application data and `simplifies backup and disaster recovery`. __Red Hat Cluster Suite__ provides storage clustering through Red Hat GFS.
+
+__High-availability clusters__ provide continuous availability of services by `eliminating single points of failure` and by `failing over` services from one cluster node to another in case a node becomes inoperative. Typically, services in a high-availability cluster read and write data (via read-write mounted file systems). Therefore, a high-availability cluster must maintain data integrity as one cluster node takes over control of a service from another cluster node. Node failures in a high-availability cluster are not visible from clients outside the cluster. (High-availability clusters are sometimes referred to as failover clusters.) Red Hat Cluster Suite provides high-availability clustering through its High-availability Service Management component.
+常说的双机热备、双机互备等都属于高可用集群的范畴
+
+__Load-balancing clusters__ dispatch network service requests to multiple cluster nodes to balance the request load among the cluster nodes. Load balancing provides cost-effective scalability because you can match the number of nodes according to load requirements. If a node in a load-balancing cluster becomes inoperative, the load-balancing software detects the failure and redirects requests to other cluster nodes. Node failures in a load-balancing cluster are not visible from clients outside the cluster. Red Hat Cluster Suite provides load-balancing through LVS (Linux Virtual Server).
+
+__High-performance clusters(高性能计算集群)__ use cluster nodes to perform concurrent calculations. A high-performance cluster allows applications to work in parallel, therefore enhancing the performance of the applications. (High performance clusters are also referred to as computational clusters or __grid computing__.)
+
+__按集群层次划分__  
+1. Web级集群，是J2EE集群中最重要和基础的功能。web层集群技术包括：Web负载均衡和HTTPSession Failover。web负载均衡，基本的是在浏览器和web服务器之间放置负载均衡器。
+2. 应用级集群，是ejb集群，EJB是J2EE应用平台的核心，EJB是用于开发和部署具多层结构的、分布式的、面向组件的Java应用系统跨平台的构件体系结构。主要是业务应用，部署在EJB容器上。
+3. 数据库级集群，比如在oracle数据库设置多个数据库实例，全部映射到数据库。
+
+__Load Balance Algorithm__  
+
+[For more information 1][cluster_load_balance_algorithm_1]
+[For more information 2][cluster_load_balance_algorithm_2]
+
+* Static算法
+负载均衡的石器时代，为一个服务指定多个IP:PORT，(其他的IP作为)备份模式，其总是返回服务器组的第一个服务器（只要第一个服务器可用），当第一个服务器没有用的时候，才会返回后续可用的服务器。这种情况下，每台机器都包括全量的数据，查询通常会落到第一台机器上，第一台机器上Cache命中率高，但是当失败的时候，落到第二胎机器上，那就杯具了，Cache命中率那个低啊
+
+* Random算法
+idx=rand()%M
+在实际使用中，跟Static算法一样，都是模块维护全量数据，这个还好每台机器的cache命中率理论上应该差不多，但是都不高，为啥呢？因为同样一个请求一会落到机器A，一会落到机器B上。浪费内存啊，内存有限，Cache会被淘汰，频繁淘汰，当然使得命中率低下啊
+
+随机：负载均衡方法随机的把负载分配到各个可用的服务器上，通过随机数生成算法选取一个服务器，然后把连接发送给它。虽然许多均衡产品都支持该算法，但是它的有效性一直受到质疑，除非把服务器的可运行时间看的很重。
+While it is available on many load balancing products, its usefulness is questionable except where uptime is concerned – and then only if you detect down machines.
+
+* Round robin算法
+idx=(idx+1)%M
+同样的模块维护全量数据
+
+Round Robin passes each new connection request to the next server in line, eventually distributing connections evenly across the array of machines being load balanced. `Round Robin works well in most configurations, but could be better if the equipment that you are load balancing is not roughly equal in processing speed, connection speed, and/or memory.`
+
+There are 3 variants of this algorithm:  
+1. 轮询：轮询算法按顺序把每个新的连接请求分配给下一个服务器，最终把所有请求平分给所有的服务器。轮询算法在大多数情况下都工作的不错，但是如果负载均衡的设备在处理速度、连接速度和内存等方面不是完全均等，那么效果会更好。
+2. 加权轮询：该算法中，每个机器接受的连接数量是按权重比例分配的。这是对普通轮询算法的改进，比如你可以设定：第三台机器的处理能力是第一台机器的两倍，那么负载均衡器会把两倍的连接数量分配给第3台机器。Weighted Round Robin (called Ratio on the BIG-IP)
+3. 动态轮询：类似于加权轮询，但是，权重值基于对各个服务器的持续监控，并且不断更新。这是一个动态负载均衡算法，基于服务器的实时性能分析分配连接，比如每个节点的当前连接数或者节点的最快响应时间等。
+    __Dynamic Round Robin__ (Called Dynamic Ratio on the BIG-IP)
+    This is a dynamic load balancing method, distributing connections based on various aspects of real-time server performance analysis, such as the current number of connections per node or the fastest node response time. 
+
+* Hash算法
+又叫取余算法，将query key做hash之后，按照机器数量取余，选取中一个机器进行连接服务。
+idx=hash(query_key)%M
+余数计算的方法简单，数据的分散性也相当优秀，`但也有其缺点。那就是当添加或移除服务器时，缓存重组的代价相当巨大。添加服务器后，余数就会产生巨变，这样就无法获取与保存时相同的服务器，从而影响缓存的命中率`
+
+* Consistent hash算法
+一致性hash算法是：首先求出服务器（节点）的哈希值，并将其配置到0～2^32的圆（continuum）上。然后用同样的方法求出存储数据的键的哈希值，并映射到圆上。然后从数据映射到的位置开始顺时针查找，将数据保存到找到的第一个服务器上。如果超过2^32仍然找不到服务器，就会保存到第一台服务器上。另外, 通过使用虚拟节点来实现数据均匀分布.
+idx=FirstMaxServerIdx(hash(query_key))
+
+* CARP算法
+CARP准确的说不是一个算法，而是一个协议，Cache Array Routing Protocol，Cache群组路由协议。
+计算全部服务器的idx_key=hash(query_key+server_idx)，其中计算得到idx_key最大的server_idx就是需要的idx。
+
+假设开始3台后端服务器，请求用标志串 req = "abcd" 来标志，服务器用 S1, S2, S3来标志， 那么，通过对 req + Sx 合并起来计算签名就可以对每个服务器得到一个数值：
+(req = "abcd" + S1) = K1
+(req = "abcd" + S2) = K2
+(req = "abcd" + S3) = K3
+计算的方法可以使用crc，也可以使用MD5，目的的得到一个*散列*的数字，这样在K1,K2,K3中 必定有一个最大的数值，假设是K2，那么可以将请求req扔给S2，这样，以后对相同的请求， 相同的服务器组，计算出来的结果必定是K2最大，从而达到HASH分布的效果。
+`巧妙的地方在于，新增或者删除一台服务器的时候，不会引起已有服务器的cache大规模失效`， 假设新增一台服务器S4，那么对S1,S2,S3计算的K值都完全相同，那么对S4可以计算得到一个新值K4，如果计算K的算法足够散列，那么原先计算到S1,S2,S3的请求，理论上都会有1/4的请求新计算得到的K4比原先的K大， 那么这1/4的请求会转移到S4，从而新增的S4服务器会负担1/4的请求，原先的S1,S2,S3也只会负担原先的3/4。
+
+* 最快算法：最快算法基于所有服务器中的最快响应时间分配连接。`该算法在服务器跨不同网络的环境中特别有用`。
+Fastest: The Fastest method passes a new connection based on the fastest response time of all servers. This method may be particularly useful in environments where servers are distributed across different logical networks. On the BIG-IP, only servers that are active will be selected.
+
+**The Long Term Resource Monitoring algorithms** are the best choice if you have a significant number of persistent connections. **Fastest** works okay in this scenario also if you don’t have access to any of the dynamic solutions.
+
+* 最少连接：系统把新连接分配给当前连接数目最少的服务器。`该算法在各个服务器运算能力基本相似的环境中非常有效。`
+Least Connections: With this method, the system passes a new connection to the server that has the least number of current connections. Least Connections methods work best in environments where the servers or other equipment you are load balancing have similar capabilities. This is a dynamic load balancing method, distributing connections based on various aspects of real-time server performance analysis, such as the current number of connections per node or the fa`stest node response time. This Application Delivery Controller method is rarely available in a simple load balancer.
+最少连接数均衡算法对内部中需负载的每一台服务器都有一个数据记录，记录当前该服务器正在处理的连接数量，当有新的服务连接请求时，将把当前请求分配给连接数最少的服务器，使均衡更加符合实际情况，负载更加均衡。`此种均衡算法适合长时处理的请求服务，如FTP。
+
+* 观察算法：该算法同时利用最小连接算法和最快算法来实施负载均衡。服务器根据当前的连接数和响应时间得到一个分数，分数较高代表性能较好，会得到更多的连接。
+Observed: The Observed method uses a combination of the logic used in the Least Connections and Fastest algorithms to load balance connections to servers being load-balanced. With this method, servers are ranked based on a combination of the number of current connections and the response time. Servers that have a better balance of fewest connections and fastest response time receive a greater proportion of the connections. This Application Delivery Controller method is rarely available in a simple load balancer.
+
+* 预判算法：该算法使用观察算法来计算分数，但是预判算法会分析分数的变化趋势来判断某台服务器的性能正在改善还是降低。具有改善趋势的服务器会得到更多的连接。`该算法适用于大多数环境`。
+Predictive: The Predictive method uses the ranking method used by the Observed method, however, with the Predictive method, the system analyzes the trend of the ranking over time, determining whether a servers performance is currently improving or declining. The servers in the specified pool with better performance rankings that are currently improving, rather than declining, receive a higher proportion of the connections. The Predictive methods work well in any environment. This Application Delivery Controller method is rarely available in a simple load balancer.
+
+You can see with some of these algorithms that persistent connections would cause problems. Like Round Robin, if the connections persist to a server for as long as the user session is working, some servers will build a backlog of persistent connections that slow their response time. **The Long Term Resource Monitoring algorithms** are the best choice if you have a significant number of persistent connections. **Fastest** works okay in this scenario also if you don’t have access to any of the dynamic solutions.
+
+### SOA
 
 
 
 ### Miscellaneous
 
+CAP theorem
+
+#### software transactional memory (STM)
+[For more information][stm_1]
+`In computer science, software transactional memory (STM) is a concurrency control mechanism analogous to database transactions for controlling access to shared memory in concurrent computing.` It is `an alternative to lock-based synchronization`. STM is a strategy `implemented in software`, rather than as a hardware component. A transaction in this context occurs when a piece of code executes a series of reads and writes to shared memory. These reads and writes logically occur at a single instant in time; intermediate states are not visible to other (successful) transactions. 
+
+Unlike the locking techniques used in most modern multithreaded applications, STM is `very optimistic`: a thread completes modifications to shared memory without regard for what other threads might be doing, `recording every read and write that it is performing in a log`. Instead of placing the onus on the writer to make sure it does not adversely affect other operations in progress, it is placed on the` reader, who after completing an entire transaction verifies that other threads have not concurrently made changes to memory that it accessed in the past`. This final operation, in which the changes of a transaction are validated and, if validation is successful, made permanent, is called a commit. A transaction may also abort at any time, causing all of its prior changes to be rolled back or undone. `If a transaction cannot be committed due to conflicting changes, it is typically aborted and re-executed from the beginning until it succeeds.`
+
+The benefit of this optimistic approach is increased concurrency: no thread needs to wait for access to a resource, and different threads can safely and simultaneously modify disjoint parts of a data structure that would normally be protected under the same lock.
+
+`However, in practice STM systems also suffer a performance hit compared to fine-grained lock-based systems on small numbers of processors (1 to 4 depending on the application)`. This is due primarily to the overhead associated with maintaining the log and the time spent committing transactions. `Even in this case performance is typically no worse than twice as slow.`[5] Advocates of STM believe this penalty is justified by the conceptual benefits of STM[citation needed].
+
+In 2005, Tim Harris, Simon Marlow, Simon Peyton Jones, and Maurice Herlihy described an STM system built on Concurrent Haskell that enables arbitrary atomic operations to be composed into larger atomic operations, a useful concept impossible with lock-based programming. 
+
+STM can be implemented as a lock-free algorithm or it can use locking.
+
+#### Big Data open source trendy technologies
+[For more informtaion][big-data-open-source-tech-1]
+
+* Storm and Kafka
+Storm and Kafka are the future of stream processing, and they are already in use at a number of high-profile companies including Groupon, Alibaba, and The Weather Channel.
+Born inside of Twitter, Storm is a “distributed real-time computation system”. `Storm does for real-time processing what Hadoop did for batch processing.` Kafka for its part is a `messaging system` developed at LinkedIn to serve as the foundation for their activity stream and the data processing pipeline behind it.
+When paired together, you get the stream, you get it in-real time, and you get it at linear scale.
+
+Why should you care?
+`With Storm and Kafka, you can conduct stream processing at linear scale`, assured that every message gets processed in real-time, reliably. In tandem, Storm and Kafka can handle data velocities of tens of thousands of messages every second.
+Stream processing solutions like Storm and Kafka have caught the attention of many enterprises due to their superior approach to ETL (extract, transform, load) and data integration.
+Storm and Kafka are also great at `in-memory analytics`, and `real-time decision support`. Companies are quickly realizing that batch processing in Hadoop does not support real-time business needs. Real-time streaming analytics is a must-have component in any enterprise Big Data solution or stack, because of how elegantly they handle the “three V’s” — volume, velocity and variety.
+Storm and Kafka are the two technologies on the list that we’re most committed to at Infochimps, and it is reasonable to expect that they’ll be a formal part of our platformsoon.
+
+* Drill and Dremel
+Drill and Dremel make `large-scale, ad-hoc querying of data` possible, with radically lower latencies that are especially apt for `data exploration`. `They make it possible to scan over petabytes of data in seconds`, to answer ad hoc queries and presumably, power compelling visualizations.
+Drill and Dremel `put power in the hands of business analysts, and not just data engineers`. The business side of the house will love Drill and Dremel.
+Drill is the open source version of what Google is doing with Dremel (Google also offers Dremel-as-a-Service with its BigQuery offering). Companies are going to want to make the tool their own, which why Drill is the thing to watch mostly closely. Although it’s not quite there yet, strong interest by the development community is helping the tool mature rapidly.
+
+Why should you care?
+Drill and Dremel compare favorably to Hadoop for `anything ad-hoc`. Hadoop is all about batch processing workflows, which creates certain disadvantages.
+The Hadoop ecosystem worked very hard to make MapReduce an approachable tool for ad hoc analyses. `From Sawzall to Pig and Hive, many interface layers have been built on top of Hadoop to make it more friendly, and business-accessible.` Yet, for all of the SQL-like familiarity, these abstraction layers ignore one fundamental reality – MapReduce (and thereby Hadoop) is purpose-built for organized data processing (read: running jobs, or “workflows”).
+What if you’re not worried about running jobs? What if you’re more concerned with asking questions and getting answers — slicing and dicing, looking for insights?
+That’s “ad hoc exploration” in a nutshell — if you assume data that’s been processed already, how can you optimize for speed? You shouldn’t have to run a new job and wait, sometimes for considerable lengths of time, every time you want to ask a new question.
+In stark contrast to workflow-based methodology, most business-driven BI and analytics queries are fundamentally ad hoc, interactive, low-latency analyses. Writing Map Reduce workflows is prohibitive for many business analysts. Waiting minutes for jobs to start and hours for workflows to complete is not conducive to an interactive experience of data, the comparing and contrasting, and the zooming in and out that ultimately creates fundamentally new insights.
+Some data scientists even speculate that Drill and Dremel may actually be better than Hadoop in the wider sense, and a potential replacement, even. That’s a little too edgy a stance to embrace right now, but there is merit in an approach to analytics that is more query-oriented and low latency.
+
+At Infochimps we like the **Elasticsearch full-text search engine** and database for doing high-level data exploration, but for truly capable Big Data querying at the (relative) seat level, we think that Drill will become the de facto solution.
+
+* R
+R is an `open source statistical programming language`. It is incredibly powerful. `Over two million (and counting) analysts` use R. It’s been around `since 1997` if you can believe it. It is a modern version of the S language for statistical computing that originally came out of the Bell Labs. Today, R is quickly becoming the new standard for statistics.
+R performs complex data science at a much smaller price (both literally and figuratively). R is making serious headway in ousting SAS and SPSS from their thrones, and has become the tool of choice for the world’s best statisticians (and data scientists, and analysts too).
+
+Why should you care?
+Because it has `an unusually strong community around it`, you can find R libraries for almost anything under the sun — making virtually any kind of data science capability accessible without new code. R is exciting because of who is working on it, and how much net-new innovation is happening on a daily basis. the R community is one of the most thrilling places to be in Big Data right now.
+R is a also wonderful way to future-proof your Big Data program. In the last few months, literally thousands of new features have been introduced, replete with publicly available knowledge bases for every analysis type you’d want to do as an organization.
+`Also, R works very well with Hadoop`, making it an ideal part of an integrated Big Data approach.
+`To keep an eye on: Julia is an interesting and growing alternative to R, because it combats R’s notoriously slow language interpreter problem. The community around Julia isn’t nearly as strong right now, but if you have a need for speed…`
+   
+* Gremlin and Giraph
+Gremlin and Giraph help empower `graph analysis`, and are `often used coupled with graph databases like Neo4j or InfiniteGraph`, or `in the case of Giraph, working with Hadoop`. Golden Orb is another high-profile example of a graph-based project picking up steam.
+Graph databases are pretty cutting edge. They have interesting differences with relational databases, which mean that sometimes you might want to take a graph approach rather than a relational approach from the very beginning.
+`The common analogue for graph-based approaches is Google’s Pregel, of which Gremlin and Giraph are open source alternatives`. In fact, here’s a great read on how mimicry of Google technologies is a cottage industry unto itself.
+
+Why should you care?
+Graphs do a great job of `modeling computer networks`, and `social networks`, too — anything that links data together. Another common use is mapping, and `geographic pathways` — calculating shortest routes for example, from place A to place B (or to return to the social case, tracing the proximity of stated relationships from person A to person B).
+Graphs are also popular for `bioscience and physics` use cases for this reason — they can chart molecular structures unusually well, for example.
+
+`Big picture, graph databases and analysis languages and frameworks` are a great illustration of how the world is starting to realize that Big Data is not about having one database or one programming framework that accomplishes everything. Graph-based approaches are a killer app, so to speak, for anything that involves large networks with many nodes, and many linked pathways between those nodes.
+The most innovative scientists and engineers know to apply the right tool for each job, making sure everything plays nice and can talk to each other (the glue in this sense becomes the core competence).
+
+* SAP Hana
+SAP Hana is an `in-memory analytics platform` that includes an `in-memory database and a suite of tools` and software for creating analytical processes and moving data in and out, in the right formats.
+
+Why should you care?
+SAP is going against the grain of most entrenched enterprise mega-players by providing a very powerful product, free for development use. And it’s not only that — SAP is also creating meaningful incentives for startups to embrace Hana as well. They are authentically fostering community involvement and there is uniformly positive sentiment around Hana as a result.
+Hana highly benefits any applications with unusually fast processing needs, such as `financial modeling and decision support, website personalization, and fraud detection`, among many other use cases.
+The biggest drawback of Hana is that “in-memory” means that it by definition leverages access to solid state memory, which has clear advantages, but is much more expensive than conventional disk storage.
+For organizations that don’t mind the added operational cost, Hana means incredible speed for very-low latency big data processing.
+
+* Honorable mention: D3
+D3 doesn’t make the list quite yet, but it’s close, and worth mentioning for that reason.
+D3 is a `javascript document visualization library` that revolutionizes how powerfully and creatively we can visualize information, and make data truly interactive. It was created by Michael Bostock and came out of his work at the New York Times, where he is the Graphics Editor.
+For example, you can use D3 to generate an HTML table from an array of numbers. Or, you can use the same data to create an interactive  bar chart with smooth transitions and interaction.
+Here’s an example of D3 in action, making President Obama’s 2013 budget proposal understandable, and navigable.
+`With D3, programmers can create dashboards galore`. Organizations of all sizes are quickly embracing D3 as a superior visualization platform to the heads-up displays of yesteryear.
+
+---
+[hadoop_1]:/resources/img/java/hadoop_1.png "Hadoop framework"
+[hadostm_1op_2]:/resources/img/java/hadoop_2.png "Hadoop product line"
+[stm_1]: https://en.wikipedia.org/wiki/Software_transactional_memory#Java "Software_transactional_memory"
+[cluster_types_1]:https://www.centos.org/docs/5/html/Cluster_Suite_Overview/s1-clstr-basics-CSO.html "Cluster Types"
+[cluster_1]:http://www.jfox.info/java-ji-qun-ji-shu-mian-shi-de-yi-xie-zhi-shi-zhun-bei "Cluster Overview"
+[cluster_load_balance_algorithm_1]:http://blog.csdn.net/guzhouke19910920/article/details/7719361 "Load balance algorithm"
+[cluster_load_balance_algorithm_2]:http://www.cnblogs.com/todsong/archive/2012/02/25/2368101.html "Load balance algorithm"
+[big-data-open-source-tech-1]: https://techcrunch.com/2012/10/27/big-data-right-now-five-trendy-open-source-technologies/ "big-data-open-source-tech"
+[big-data-1]:http://www.infochimps.com/ "Infochimps, the #1 Big Data platform in the cloud"
