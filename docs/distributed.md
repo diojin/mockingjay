@@ -674,7 +674,28 @@ __Another message flow chart from other resource:__
 
 PS: there are some notices,   
 * MaxN and AcceptedN should be same thing in Basic Paxos
-* in 1st flow, acceptor notices all learners, however, in 2nd flow, proposer does so
+* in 1st flow, acceptor notices all learners, however, in 2nd flow, proposer does the job
+
+至于Paxos中一直提到的一个全局唯一且递增的proposer number，其如何实现，引用如下：  
+>如何产生唯一的编号呢？在《Paxos made simple》中提到的是让所有的Proposer都从不相交的数据集合中进行选择，例如系统有5个Proposer，则可为每一个Proposer分配一个标识j(0~4)，则每一个proposer每次提出决议的编号可以为5*i + j(i可以用来表示提出议案的次数)
+
+
+###### Multi-Paxos
+If each command is the result of a single instance of the Basic Paxos protocol a significant amount of overhead would result. The paper Paxos Made Simple[17] defines Paxos to be what is commonly called "Multi-Paxos" which `in steady state uses a distinguished leader to coordinate an infinite stream of commands`. A typical deployment of Paxos uses a continuous stream of agreed values acting as commands to update a distributed state machine.  
+`If the leader is relatively stable, phase 1 becomes unnecessary. Thus, it is possible to skip phase 1 for future instances of the protocol with the same leader.`  
+To achieve this, the instance number I is included along with each value. Multi-Paxos reduces the failure-free message delay (proposal to learning) from 4 delays to 2 delays.
+
+1. Message flow: Multi-Paxos, start
+(first instance with new leader)
+
+![distributed_paxos_img_2]
+
+Vm = highest of (Va, Vb, Vc)
+2. Message flow: Multi-Paxos, steady-state
+(subsequent instances with same leader)
+
+![distributed_paxos_img_3]  
+
 
 
 ---
