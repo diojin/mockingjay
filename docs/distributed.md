@@ -679,6 +679,11 @@ PS: there are some notices,
 至于Paxos中一直提到的一个全局唯一且递增的proposer number，其如何实现，引用如下：  
 >如何产生唯一的编号呢？在《Paxos made simple》中提到的是让所有的Proposer都从不相交的数据集合中进行选择，例如系统有5个Proposer，则可为每一个Proposer分配一个标识j(0~4)，则每一个proposer每次提出决议的编号可以为5*i + j(i可以用来表示提出议案的次数)
 
+[For more information][distributed_paxos_2]
+
+paxos虽然也是分布式情况下强一致性算法，但他在2PC上至少有两点改进  
+1. 无单点失败. 不存在说网路问题导致事务阻塞甚至失败, 尤其是连接coordinator的，因为paxos的角色是可以互串的，必要时participant也能充当coordinator
+2. non blocking. 加在任何一个在1b2b阶段投了赞成票的participant上的锁是可以被砸开的：只要新提案的编号更大，这样就提高吞吐量了，当然频繁的产生新proposer可能会导致活锁：永远无法达成协议，最好设置一个超时机制，过了一定的时间才产生一个proposer
 
 ###### Multi-Paxos
 If each command is the result of a single instance of the Basic Paxos protocol a significant amount of overhead would result. The paper Paxos Made Simple[17] defines Paxos to be what is commonly called "Multi-Paxos" which `in steady state uses a distinguished leader to coordinate an infinite stream of commands`. A typical deployment of Paxos uses a continuous stream of agreed values acting as commands to update a distributed state machine.  
@@ -710,8 +715,31 @@ Note the Accepted message in Fast Byzantine Paxos is sent to all Acceptors and a
 __Message flow: Fast Byzantine Multi-Paxos, steady state__  
 ![distributed_paxos_img_5]  
 
+###### Paxos applications
 
- 
+1. database replication, log replication等  
+如bdb的数据复制就是使用paxos兼容的算法。`Paxos最大的用途就是保持多个节点数据的一致性`
+2. naming (and directory) service  
+如大型系统内部通常存在多个接口服务相互调用。通常的做法有
+* static  
+通常的实现是将服务的ip/hostname写死在配置中，当service发生故障时候，通过手工更改配置文件或者修改DNS指向的方法来解决。缺点是可维护性差，内部的单元越多，故障率越大
+* LVS双机冗余的方式  
+缺点是所有单元需要双倍的资源投入  
+通过Paxos算法来管理所有的naming服务，则可保证high available分配可用的service给client。象ZooKeeper还提供watch功能，即watch的对象发生了改变会自动发notification, 这样所有的client就可以使用一致的，高可用的接口
+3. config配置管理  
+* 通常手工修改配置文件的方法，这样容易出错，也需要人工干预才能生效，所以节点的状态无法同时达到一致。
+* 大规模的应用都会实现自己的配置服务，比如用http web服务来实现配置中心化。它的缺点是更新后所有client无法立即得知，各节点加载的顺序无法保证，造成系统中的配置不是同一状态。
+4. membership用户角色/access control list  
+比如在权限设置中，用户一旦设置某项权限比如由管理员变成普通身份，这时应在所有的服务器上所有远程CDN立即生效，否则就会导致不能接受的后果。
+5. ID generation
+通常简单的解决方法是用数据库自增ID, 这导致数据库切分困难，或程序生成GUID, 这通常导致ID过长。更优雅的做法是`利用paxos算法在多台replicas之间选择一个作为master`, 通过master来分配号码。当master发生故障时，再用paxos选择另外一个master。
+
+这里列举了一些常见的Paxos应用场合，对于类似上述的场合，如果用其它解决方案，一方面不能提供自动的高可用性方案，同时也远远没有Paxos实现简单及优雅。
+
+Yahoo!开源的ZooKeeper是一个开源的类Paxos实现。它的编程接口看起来很像一个可提供强一致性保证的分布式小文件系统。`对上面所有的场合都可以适用`.但可惜的是，ZooKeeper并不是遵循Paxos协议，而是基于自身设计并优化的一个2 phase commit的协议，因此它的理论[6]并未经过完全证明。但由于ZooKeeper在Yahoo!内部已经成功应用在HBase, Yahoo! Message Broker, Fetch Service of Yahoo! crawler等系统上，因此完全可以放心采用。
+
+这里要补充一个背景，就是要证明分布式容错算法的正确性通常比实现算法还困难，Google没法证明Chubby是可靠的，Yahoo!也不敢保证它的ZooKeeper理论正确性。大部分系统都是靠在实践中运行很长一段时间才能谨慎的表示，目前系统已经基本没有发现大的问题了。
+
 
 
 ---
