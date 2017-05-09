@@ -31,6 +31,7 @@
     - [Consensus Protocols](#consensus-protocols)
         + [Two-phase commit protocol (2PC)](#two-phase-commit-protocol-2pc)
         + [Three-phrase commit protocol (3PC)](#three-phrase-commit-protocol-3pc)
+        + [Paxos Protocol](#paxos-protocol)
 
 ### Hadoop
 
@@ -571,13 +572,13 @@ __Basic algorithm:__
     3. Each cohort `replies` with an agreement `message` (cohort votes Yes to commit), if the cohort's actions succeeded, or an abort message (cohort votes No, not to commit), if the cohort experiences a failure that will make it impossible to commit.
 
 2. Commit phase(or Completion phase)
-    1. Success
+    1. Success  
     If the coordinator received an agreement message from all cohorts during the commit-request phase:  
         1. The coordinator sends `a commit message` to all the cohorts.
         2. Each cohort completes the operation, and `releases all the locks and resources held during the transaction`.
         3. Each cohort sends an `acknowledgment` to the coordinator.
         4. The coordinator `completes the transaction` when all acknowledgments have been received.
-    2. Failure
+    2. Failure  
     If any cohort votes No during the commit-request phase (or the coordinator's timeout expires):  
         1. The coordinator sends `a rollback message` to all the cohorts.
         2. Each cohort `undoes the transaction` using the undo log, and releases the resources and locks held during the transaction.
@@ -590,7 +591,7 @@ The `greatest disadvantage` of the two-phase commit protocol is that it is a `bl
 1. blocking protocol, 吞吐量不行，一旦某个participant第一阶段投了赞成票就得在他上面加独占锁，其他事务不得介入，直到当前事务提交or回滚
 2. 单点coordinator是个严重问题, 没有热备机制，coordinator节点crash或者连接它的网路坏了会阻塞该事务
 
-### Three-phrase commit protocol (3PC)
+##### Three-phrase commit protocol (3PC)
 [For more information][distributed_3pc_1]  
 [For more information][distributed_3pc_2]  
 
@@ -604,6 +605,7 @@ In describing the protocol, we use terminology similar to that used in the two-p
 The Three-phase commit protocol eliminates this problem by `introducing the Prepared to commit state`. If the coordinator fails before sending preCommit messages, the cohort will unanimously agree that the operation was aborted. The coordinator will not send out a doCommit message until all cohort members have ACKed that they are Prepared to commit. This eliminates the possibility that any cohort member actually completed the transaction before all cohort members were aware of the decision to do so
 
 PS: differences between 3pc and 2pc  
+* non blocking
 * introducing the Prepared to commit state before coordinator sending commit message
 * Timeout cause abort in most operations
 
@@ -615,6 +617,24 @@ The protocol requires at least 3 round trips to complete, needing a minimum of 3
 `三段提交的核心理念是：在询问的时候并不锁定资源，除非所有人都同意了，才开始锁资源`
 
 其实，三段提交是一个很复杂的事情，`实现起来相当难`，而且也有一些问题。
+
+##### Paxos Protocol
+Paxos is a family of protocols for solving consensus in a network of unreliable processors
+
+><分布式系统的事务处理>：
+Google Chubby的作者Mike Burrows说过这个世界上只有一种一致性算法，那就是Paxos，其它的算法都是残次品
+
+__Paxos在原作者的《Paxos Made Simple》中内容是比较精简的：__  
+1. Phase 1
+    1. A proposer selects a proposal number n and sends a prepare request with number n to a majority of acceptors.
+    2. If an acceptor receives a prepare request with number n greater than that of any prepare request to which it has already responded, then it responds to the request with a promise not to accept any more proposals numbered less than n and with the highest-numbered proposal (if any) that it has accepted.
+
+2. Phase 2
+    1. 
+(a) If the proposer receives a response to its prepare requests (numbered n) from a majority of acceptors, then it sends an accept request to each of those acceptors for a proposal numbered n with a value v , where v is the value of the highest-numbered proposal among the responses, or is any value if the responses reported no proposals.
+(b) If an acceptor receives an accept request for a proposal numbered n, it accepts the proposal unless it has already responded to a prepare request having a number greater than n.
+
+
 
 
 ---
@@ -639,5 +659,5 @@ The protocol requires at least 3 round trips to complete, needing a minimum of 3
 [distributed_3pc_2]:http://coolshell.cn/articles/10910.html "Three-Phrase Commit Protocol"
 [distributed_3pc_3]:/resources/img/java/distributed_3pc_1.png "Three-Phrase Commit Protocol: process flow"
 [distributed_3pc_4]:/resources/img/java/distributed_3pc_2.png "Three-Phrase Commit Protocol: state machine chart"
-
-
+[distributed_paxos_1]:http://www.cppblog.com/kevinlynx/archive/2014/10/15/208580.html "图解分布式一致性协议Paxos"
+[distributed_paxos_2]:http://blog.chinaunix.net/uid-16723279-id-3803058.html "两阶段提交协议与paxos投票算法 "
