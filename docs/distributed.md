@@ -690,12 +690,28 @@ To achieve this, the instance number I is included along with each value. Multi-
 
 ![distributed_paxos_img_2]
 
-Vm = highest of (Va, Vb, Vc)
+Vm = highest of (Va, Vb, Vc)  
 2. Message flow: Multi-Paxos, steady-state
 (subsequent instances with same leader)
 
 ![distributed_paxos_img_3]  
 
+###### Byzantine Paxos
+Paxos may also be extended to support `arbitrary failures of the participants`, including `lying`, `fabrication of messages`, `collusion with other participants`, `selective non-participation`, etc. These types of failures are called __Byzantine failures__, after the solution popularized by Lamport.
+`Byzantine Paxos adds an extra message (Verify) which acts to distribute knowledge and verify the actions of the other processors:`  
+__Message flow: Byzantine Multi-Paxos, steady state__  
+
+![distributed_paxos_img_4]  
+
+Fast Byzantine Paxos removes this extra delay, since the` client sends commands directly to the Acceptors.`
+
+Note the Accepted message in Fast Byzantine Paxos is sent to all Acceptors and all Learners, while Fast Paxos sends Accepted messages only to Learners
+
+__Message flow: Fast Byzantine Multi-Paxos, steady state__  
+![distributed_paxos_img_5]  
+
+
+ 
 
 
 ---
@@ -725,4 +741,6 @@ Vm = highest of (Va, Vb, Vc)
 [distributed_paxos_img_1]:/resources/img/java/distributed_paxos_1.png "Message flow: Basic Paxos"
 [distributed_paxos_img_2]:/resources/img/java/distributed_paxos_2.png "Message flow: Multi-Paxos, start"
 [distributed_paxos_img_3]:/resources/img/java/distributed_paxos_3.png "Message flow: Multi-Paxos, steady-state"
+[distributed_paxos_img_4]:/resources/img/java/distributed_paxos_4.png "Message flow: Byzantine Multi-Paxos, steady state"
+[distributed_paxos_img_5]:/resources/img/java/distributed_paxos_5.png "Message flow: Fast Byzantine Multi-Paxos, steady state"
 [distributed_paxos_img_6]:/resources/img/java/distributed_paxos_6.png "Another message flow chart from other resource"
