@@ -723,4 +723,6 @@ Vm = highest of (Va, Vb, Vc)
 [distributed_paxos_1]:http://www.cppblog.com/kevinlynx/archive/2014/10/15/208580.html "图解分布式一致性协议Paxos"
 [distributed_paxos_2]:http://blog.chinaunix.net/uid-16723279-id-3803058.html "两阶段提交协议与paxos投票算法 "
 [distributed_paxos_img_1]:/resources/img/java/distributed_paxos_1.png "Message flow: Basic Paxos"
+[distributed_paxos_img_2]:/resources/img/java/distributed_paxos_2.png "Message flow: Multi-Paxos, start"
+[distributed_paxos_img_3]:/resources/img/java/distributed_paxos_3.png "Message flow: Multi-Paxos, steady-state"
 [distributed_paxos_img_6]:/resources/img/java/distributed_paxos_6.png "Another message flow chart from other resource"
