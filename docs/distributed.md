@@ -26,6 +26,7 @@
     - [Cloud computing](#cloud-computing)
     - [Data streaming](#data-streaming)
     - [peer-to-peer vs client-server](#peer-to-peer-vs-client-server)
+        + [peer-to-peer](#peer-to-peer)
 
 ### Hadoop
 
@@ -472,7 +473,66 @@ Spark是一个基于内存计算的开源的集群计算系统，用Scala语言�
 #### peer-to-peer vs client-server
 [For more information][distributed_misc_1]
 
+##### peer-to-peer
+A peer-to-peer network is often a reasonable choice in a `home network`, or other environment where significant growth in numbers of users or quantity of computer-based work is not expected, where `security` is not a serious concern, and where there is little or no need for major `system-wide services`.
 
+The upside of the Peer-to-peer is that it is `relatively inexpensive` and `fairly simple to set up and manage`. The flip side is that it is limited in extensibility, tends to `overburden user workstations` by having them play the role of server to other users, is `largely unsecured`, and is typically `unable to provide system-wide services` since the typical workstation will run a standard desktop operating system incapable of hosting any major service
+
+__Upside:__  
+* suitable to home network, no significant growth
+* relatively inexpensive, fairly simple to set up and manage
+* 分布式的
+* 系统可扩充性强
+* 可持续性高
+
+__Flip side:__  
+* overburden user's computer
+* largely unsecured
+* no system-wide services 
+
+与Client/Server模式相比，在实施P2P的系统中，服务器与客户端的界限消失或者淡化，系统中每个参与应用的节点均可以以“平等”的方式共享其他节点的共享资源，如cpu 、存储空间等。在P2P系统中，实体一般同时扮演两种角色：客户机和服务器。
+
+从结构上看，P2P系统是`分布式的`，目前存在两类P2P系统：`混杂P2P系统与纯粹P2P系统`，前者由客户机与中央服务器构成，其典型案例为`Napster`，后者则完全由客户机构成，其典型案例为`Gnutella`
+
+* Napster（混杂P2P系统）的工作模式
+整个系统由客户机与目录服务器（中央服务器）构成，其工作模式如下：
+1. `客户机向目录服务器发送搜索数据包，请求得到目标客户机的网络地址`
+2. 录服务器收到数据包后，将目标客户机的地址发送给该客户机。
+3. 客户机依据这些地址，向目标客户机发送请求。
+4. 对方收到请求后，对之进行处理，将结果返回给发送方。
+与传统的Client/Server模式相比，在非纯粹的P2P系统中，`中央服务器即目录服务器的功能已被极大的削弱，仅为客户机的寻址提供服务`，不再承担主要的运算工作。相反的，系统中的每个客户机均可以作为服务器，接受其他客户机发送的请求，为其他客户机提供服务，整个系统对中央服务器的依赖性明显降低。
+ 
+* Gnutella（纯粹P2P系统）的工作模式
+Gnutella系统完全由客户机构成，下面将以文件下载操作为例对其工作模式进行简单描述：
+1. 客户机2向所有相邻客户机1、4、3发送搜索数据包，请求客户机1、4、3为其提供文件A的下载服务。
+2. 客户机1、4、3将客户机2的搜索数据包转发给各自相邻的客户机5、6、7，该转发工作将在接到数据包的后续客户机上持续进行，`直至系统中所有客户机均收到该搜索数据包`。
+3. 客户机1、3、4、5、6、7对自身数据进行查找，拥有文件A资源的客户机5、7向客户机2发送响应数据包。
+4. 客户机2接收到响应数据包，`依据规则（如：路径最短规则）`，选择丛客户机7下载文件A。
+ 
+根据以上的描述可以看出，在纯粹的P2P系统中，每个客户机自身具有发现其他客户机的能力，客户机不需要通过目录服务器就可以直接获取其他客户机的网络地址，从而从根本上摆脱了对中心服务器的依赖
+
+#####　client-server
+
+The client-server architecture is usually the correct choice, `even in a small business`, where `growth is anticipated`, `security` matters, and sophisticated `server-based services` will be beneficial to productivity.
+
+The upside of the Client-server is that it can extend to handle organizational growth, allows user workstations to function as `unburdened clients`, can provide sophisticated system-wide services, and is configurable for maximum security.  The downside is obvious:   `higher initial capital investment` to establish, and a greater level of technology expertise required to configure and manage, as compared to the vanilla peer-to-peer network
+
+__Upside:__  
+* usually the correct choice, even in a small business
+* growth is anticipated
+* secure
+* server-based services
+* unburdened clients
+
+__Downside:__  
+* higher initial capital investment, hard to configure and manage
+* 系统可扩充性弱
+* 可持续性弱, 单点故障
+
+##### In conclusion
+On balance, however, a Client-server configuration is preferable to peer-to-peer, especially in a small business environment where there is an expectation of growth.
+
+Well, why not start off with a peer-to-peer network architecture and then move up to client-server when the time comes?  Because, unless there is some overwhelming consideration to the contrary, it is likely more cost-effective and productivity-effective to begin with client-server, despite the initial cost difference.
 
 
 ---
