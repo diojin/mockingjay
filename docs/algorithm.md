@@ -42,11 +42,11 @@ hash(object)%N
 [For more information][distributed_consistent_hash_1]
 
 __Consistent Hash的做法__  
-1. 环形hash空间
+1. 环形hash空间  
 考虑通常的 hash 算法都是将 value 映射到一个 32 为的 key 值，也即是 0~2^32-1 次方的数值空间；我们可以将这个空间想象成一个首（ 0 ）尾（ 2^32-1 ）相接的圆环，如下面图 1 所示的那样。
 ![distributed_consistent_hash_2]
 
-2. 把对象映射到hash 空间
+2. 把对象映射到hash 空间  
 接下来考虑 4 个对象 object1~object4 ，通过 hash 函数计算出的 hash 值 key 在环上的分布如图 2 所示。
 hash(object1) = key1;
 …
@@ -54,7 +54,7 @@ hash(object4) = key4;
 
 ![distributed_consistent_hash_3]
 
-3. 把cache 映射到hash空间
+3. 把cache 映射到hash空间  
 `Consistent hashing 的基本思想就是将对象和 cache (server) 都映射到同一个hash 数值空间中，并且使用相同的 hash算法`
 假设当前有 A,B 和 C 共 3 台 cache (server)，那么其映射结果将如图 3 所示，他们在 hash 空间中，以对应的 hash 值排列。
 hash(cache A) = key A;
@@ -65,12 +65,12 @@ hash(cache C) = key C;
  
 说到这里，顺便提一下 cache server 的 hash 计算，一般的方法可以使用 cache serve的 IP 地址或者机器名作为 hash输入
 
-4. 把对象映射到cache
+4. 把对象映射到cache  
 现在 cache server 和对象都已经通过同一个 hash 算法映射到 hash 数值空间中了，接下来要考虑的就是如何将对象映射到 cache 上面了。
 在这个环形空间中，如果沿着`顺时针方向`从对象的 key 值出发，直到遇见一个 cache ，那么就将该对象存储在这个 cache 上，因为对象和 cache 的 hash 值是固定的，因此这个 cache 必然是唯一和确定的。
 依然继续上面的例子（参见图 3 ），那么根据上面的方法，对象 object1 将被存储到 cache A 上； object2 和object3 对应到 cache C ； object4 对应到 cache B ；
 
-5. 虚拟节点
+5. 虚拟节点  
 考量 Hash 算法的另一个指标是平衡性 (Balance) ，定义如下：
 hash 算法并不是保证绝对的平衡，如果 cache server较少的话，对象并不能被均匀的映射到 cache 上，比如在上面的例子中，仅部署 cache A 和 cache C 的情况下，在 4 个对象中， cache A 仅存储了 object1 ，而 cache C 则存储了object2 、 object3 和 object4 ；分布是很不均衡的。
 为了解决这种情况， consistent hashing 引入了“虚拟节点”的概念，它可以如下定义：
@@ -92,6 +92,60 @@ Hash(“202.168.14.241”);
 引入“虚拟节点”后，计算“虚拟节”点 cache A1 和 cache A2 的 hash 值：
 Hash(“202.168.14.241#1”);  // cache A1
 Hash(“202.168.14.241#2”);  // cache A2
+
+#### Vector Clock
+[For more information 1][distributed_vector_clock_2]
+为了提高可用性，Dynamo允许“更新”操作异步的传播到其他副本，当出现多个写事件并发执行时，可能会导致`系统中出现多个版本的对象`。
+由于我们`无法保证分布式系统中的多个结点的物理时钟是完美同步的`，所以通过物理时钟来确定事件的时序是不靠谱的，但我们可以通过`基于事件的逻辑时钟`来构建部分有序的事件时序集合
+Dynamo通过Vector Clock来构建同一对象多个事件的部分有序的时序集合
+需要特别说明的是，`Vector Clock能解决分布式系统多版本合并的问题, 但是对于确实发生冲突的版本，它无法合并，而需要用户自己去做合并`
+
+[For more information 2][distributed_vector_clock_2]
+A vector clock is an algorithm for `generating a partial ordering of events in a distributed system` and `detecting causality violations`. Just as in Lamport timestamps, interprocess messages contain the state of the sending process's logical clock. A vector clock of a system of N processes is anarray/vector of N logical clocks, one clock per process; a local "smallest possible values" copy of the global clock-array is kept in each process, with the following rules for clock updates:
+* Initially all clocks are zero.
+* Each time a process experiences an internal event, it increments its own logical clock in the vector by one.
+* Each time a process prepares to send a message, it sends its entire vector along with the message being sent.
+* Each time a process receives a message, it increments its own logical clock in the vector by one and updates each element in its vector by taking the maximum of the value in its own vector clock and the value in the vector in the received message (for every element).
+
+![distributed_vector_clock_1]
+Example of a system of vector clocks. Events in the blue region are the causes leading to event B4, whereas those in the red region are the effects of event B4
+
+__How to use the vector?__  
+通过比较这些向量的大小，来确定事件发生的顺序。
+假如一个向量的所有分享量的count值都小于或等于另一个向量，可以认为后者并前者更"新"
+否则，存在冲突
+
+__An example:__  
+
+1.“用户A在N1节点上设置x=100”   ------------  节点N1生成向量<(N1,1)>
+2.“用户A在N1节点上设置x=200”   ------------  节点N1生成向量<(N1,2)>
+3.“N1将x=200传播到N2” -----------  节点N2生成向量<(N1,2), (N2,1)>
+4.“N1将x=200传播到N3” -----------   节点N3生成向量<(N1,2), (N3,1)>
+5.“用户A在N2节点上设置x=300”   ------------  节点N2生成向量<(N1,2), (N2,2)>
+6.“用户B在N3节点上设置x=400”   -----------  节点N3生成向量<(N1,2), (N3,2)>
+
+As a result, 
+N1: <(N1,2), (N2,0), (N3,0)>
+N2: <`(N1,2)`, (N2,2), (N3,0)>
+N3: <`(N1,2)`, (N2,0), (N3,2)>
+客户端其拿到N1,N2,N3上的向量，通过比较可知，N1上的是旧数据，N2/N3版本存在冲突，此时需要用户自己去解决冲突
+
+
+如果使用Example图示例子中的操作, (PS: which add an additional operation, that is, message sender increases its own logical clock by one when sending a message to other processor) 那么例子变为
+
+1.“用户A在N1节点上设置x=100”   ------------  节点N1生成向量<(N1,1)>
+2.“用户A在N1节点上设置x=200”   ------------  节点N1生成向量<(N1,2)>
+3.“N1将x=200传播到N2” -----------  节点N2生成向量<(N1,3), (N2,1)>
+4.“N1将x=200传播到N3” -----------   节点N3生成向量<(N1,4), (N3,1)>
+5.“用户A在N2节点上设置x=300”   ------------  节点N2生成向量<(N1,3), (N2,2)>
+6.“用户B在N3节点上设置x=400”   -----------  节点N3生成向量<(N1,4), (N3,2)>
+
+As a result, 
+N1: <(N1,2), (N2,0), (N3,0)>
+N2: <`(N1,3)`, (N2,2), (N3,0)>
+N3: <`(N1,4)`, (N2,0), (N3,2)>
+
+Conclusion is the same as before, however, there are differences on version value of the vector clock, which are highlighted and doesn't affect the result.
 
 #### MapReduce
 ![mapreduce_1]
@@ -121,5 +175,6 @@ Hash(“202.168.14.241#2”);  // cache A2
 [distributed_consistent_hash_4]:/resources/img/java/algorithm_consistent_hash_3.png "一致性hash算法 - 图 3 cache 和对象的 key 值分布"
 [distributed_consistent_hash_5]:/resources/img/java/algorithm_consistent_hash_4.png "一致性hash算法 - 图 4 引入“虚拟节点”后的映射关系"
 [distributed_consistent_hash_6]:/resources/img/java/algorithm_consistent_hash_5.png "一致性hash算法 - 图 5 查询对象所在 cache"
-
-
+[distributed_vector_clock_1]:https://en.wikipedia.org/wiki/Vector_clock "Vector clock"
+[distributed_vector_clock_2]:http://blog.csdn.net/yfkiss/article/details/39966087 "Vector Clock理解"
+[distributed_vector_clock_1]:/resources/img/java/algorithm_vector_clock_1.png "Example of a system of vector clocks"
