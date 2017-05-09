@@ -94,20 +94,20 @@ Hash(“202.168.14.241#1”);  // cache A1
 Hash(“202.168.14.241#2”);  // cache A2
 
 #### Vector Clock
-[For more information 1][distributed_vector_clock_2]
+[For more information 1][distributed_vector_clock_2]  
 为了提高可用性，Dynamo允许“更新”操作异步的传播到其他副本，当出现多个写事件并发执行时，可能会导致`系统中出现多个版本的对象`。
 由于我们`无法保证分布式系统中的多个结点的物理时钟是完美同步的`，所以通过物理时钟来确定事件的时序是不靠谱的，但我们可以通过`基于事件的逻辑时钟`来构建部分有序的事件时序集合
 Dynamo通过Vector Clock来构建同一对象多个事件的部分有序的时序集合
 需要特别说明的是，`Vector Clock能解决分布式系统多版本合并的问题, 但是对于确实发生冲突的版本，它无法合并，而需要用户自己去做合并`
 
-[For more information 2][distributed_vector_clock_2]
+[For more information 2][distributed_vector_clock_2]  
 A vector clock is an algorithm for `generating a partial ordering of events in a distributed system` and `detecting causality violations`. Just as in Lamport timestamps, interprocess messages contain the state of the sending process's logical clock. A vector clock of a system of N processes is anarray/vector of N logical clocks, one clock per process; a local "smallest possible values" copy of the global clock-array is kept in each process, with the following rules for clock updates:
 * Initially all clocks are zero.
 * Each time a process experiences an internal event, it increments its own logical clock in the vector by one.
 * Each time a process prepares to send a message, it sends its entire vector along with the message being sent.
 * Each time a process receives a message, it increments its own logical clock in the vector by one and updates each element in its vector by taking the maximum of the value in its own vector clock and the value in the vector in the received message (for every element).
 
-![distributed_vector_clock_1]
+![distributed_vector_clock_3]
 Example of a system of vector clocks. Events in the blue region are the causes leading to event B4, whereas those in the red region are the effects of event B4
 
 __How to use the vector?__  
@@ -117,33 +117,33 @@ __How to use the vector?__
 
 __An example:__  
 
-1.“用户A在N1节点上设置x=100”   ------------  节点N1生成向量<(N1,1)>
-2.“用户A在N1节点上设置x=200”   ------------  节点N1生成向量<(N1,2)>
-3.“N1将x=200传播到N2” -----------  节点N2生成向量<(N1,2), (N2,1)>
-4.“N1将x=200传播到N3” -----------   节点N3生成向量<(N1,2), (N3,1)>
-5.“用户A在N2节点上设置x=300”   ------------  节点N2生成向量<(N1,2), (N2,2)>
-6.“用户B在N3节点上设置x=400”   -----------  节点N3生成向量<(N1,2), (N3,2)>
+1. “用户A在N1节点上设置x=100”   ------------  节点N1生成向量<(N1,1)>
+2. “用户A在N1节点上设置x=200”   ------------  节点N1生成向量<(N1,2)>
+3. “N1将x=200传播到N2” -----------  节点N2生成向量<(N1,2), (N2,1)>
+4. “N1将x=200传播到N3” -----------   节点N3生成向量<(N1,2), (N3,1)>
+5. “用户A在N2节点上设置x=300”   ------------  节点N2生成向量<(N1,2), (N2,2)>
+6. “用户B在N3节点上设置x=400”   -----------  节点N3生成向量<(N1,2), (N3,2)>
 
-As a result, 
-N1: <(N1,2), (N2,0), (N3,0)>
-N2: <`(N1,2)`, (N2,2), (N3,0)>
-N3: <`(N1,2)`, (N2,0), (N3,2)>
+As a result,   
+N1: <(N1,2), (N2,0), (N3,0)>  
+N2: <`(N1,2)`, (N2,2), (N3,0)>  
+N3: <`(N1,2)`, (N2,0), (N3,2)>  
 客户端其拿到N1,N2,N3上的向量，通过比较可知，N1上的是旧数据，N2/N3版本存在冲突，此时需要用户自己去解决冲突
 
 
 如果使用Example图示例子中的操作, (PS: which add an additional operation, that is, message sender increases its own logical clock by one when sending a message to other processor) 那么例子变为
 
-1.“用户A在N1节点上设置x=100”   ------------  节点N1生成向量<(N1,1)>
-2.“用户A在N1节点上设置x=200”   ------------  节点N1生成向量<(N1,2)>
-3.“N1将x=200传播到N2” -----------  节点N2生成向量<(N1,3), (N2,1)>
-4.“N1将x=200传播到N3” -----------   节点N3生成向量<(N1,4), (N3,1)>
-5.“用户A在N2节点上设置x=300”   ------------  节点N2生成向量<(N1,3), (N2,2)>
-6.“用户B在N3节点上设置x=400”   -----------  节点N3生成向量<(N1,4), (N3,2)>
+1. “用户A在N1节点上设置x=100”   ------------  节点N1生成向量<(N1,1)>
+2. “用户A在N1节点上设置x=200”   ------------  节点N1生成向量<(N1,2)>
+3. “N1将x=200传播到N2” -----------  节点N2生成向量<(N1,3), (N2,1)>
+4. “N1将x=200传播到N3” -----------   节点N3生成向量<(N1,4), (N3,1)>
+5. “用户A在N2节点上设置x=300”   ------------  节点N2生成向量<(N1,3), (N2,2)>
+6. “用户B在N3节点上设置x=400”   -----------  节点N3生成向量<(N1,4), (N3,2)>
 
-As a result, 
-N1: <(N1,2), (N2,0), (N3,0)>
-N2: <`(N1,3)`, (N2,2), (N3,0)>
-N3: <`(N1,4)`, (N2,0), (N3,2)>
+As a result,  
+N1: <(N1,2), (N2,0), (N3,0)>  
+N2: <`(N1,3)`, (N2,2), (N3,0)>  
+N3: <`(N1,4)`, (N2,0), (N3,2)>  
 
 Conclusion is the same as before, however, there are differences on version value of the vector clock, which are highlighted and doesn't affect the result.
 
@@ -177,4 +177,4 @@ Conclusion is the same as before, however, there are differences on version valu
 [distributed_consistent_hash_6]:/resources/img/java/algorithm_consistent_hash_5.png "一致性hash算法 - 图 5 查询对象所在 cache"
 [distributed_vector_clock_1]:https://en.wikipedia.org/wiki/Vector_clock "Vector clock"
 [distributed_vector_clock_2]:http://blog.csdn.net/yfkiss/article/details/39966087 "Vector Clock理解"
-[distributed_vector_clock_1]:/resources/img/java/algorithm_vector_clock_1.png "Example of a system of vector clocks"
+[distributed_vector_clock_3]:/resources/img/java/algorithm_vector_clock_1.png "Example of a system of vector clocks"
