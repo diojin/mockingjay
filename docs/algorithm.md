@@ -107,7 +107,7 @@ A vector clock is an algorithm for `generating a partial ordering of events in a
 * Each time a process prepares to send a message, it sends its entire vector along with the message being sent.
 * Each time a process receives a message, it increments its own logical clock in the vector by one and updates each element in its vector by taking the maximum of the value in its own vector clock and the value in the vector in the received message (for every element).
 
-![distributed_vector_clock_3]
+![distributed_vector_clock_3]  
 Example of a system of vector clocks. Events in the blue region are the causes leading to event B4, whereas those in the red region are the effects of event B4
 
 __How to use the vector?__  

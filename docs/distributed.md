@@ -27,6 +27,9 @@
     - [Data streaming](#data-streaming)
     - [peer-to-peer vs client-server](#peer-to-peer-vs-client-server)
         + [peer-to-peer](#peer-to-peer)
+        + [client-server](#client-server)
+    - [Consensus Protocols](#consensus-protocols)
+        + [Two-phase commit protocol (2PC)](#two-phase-commit-protocol2pc)
 
 ### Hadoop
 
@@ -323,6 +326,17 @@ SOA是一种软件设计准则，一种实现松耦合，高可复用性和粗�
 
 CAP theorem
 
+插入一个知识点Quorum NRW模型：
+    N: 复制的节点数量
+    R: 成功读操作的最小节点数
+    W: 成功写操作的最小节点数
+只需W + R > N，就可以保证强一致性。
+
+此处我们的N=3
+当需要高可写的系统时，可以设置W=1 R=3
+当需要高可读的系统时，可以设置W=3 R=1
+
+
 #### NoSql
 
 A NoSQL (originally referring to "non SQL" or "non relational") database provides a mechanism for storage and retrieval of data which is modeled in means other than the tabular relations used in relational databases. 
@@ -534,6 +548,46 @@ On balance, however, a Client-server configuration is preferable to peer-to-peer
 
 Well, why not start off with a peer-to-peer network architecture and then move up to client-server when the time comes?  Because, unless there is some overwhelming consideration to the contrary, it is likely more cost-effective and productivity-effective to begin with client-server, despite the initial cost difference.
 
+#### Consensus Protocols
+##### Two-phase commit protocol (2PC)
+__两阶段提交协议__  
+In transaction processing, databases, and computer networking, the two-phase commit protocol (2PC) is a type of atomic commitment protocol (ACP). It is a distributed algorithm that coordinates` all the processes that participate in a distributed atomic transaction on whether to commit or abort(roll back) the transaction` (it is a specialized type of consensus protocol). The protocol achieves its goal even in many cases of `temporary system failure` (involving either process, network node, communication, etc. failures), and is thus widely used. However, it is not resilient to all possible failure configurations, and in rare cases, user (e.g., a system's administrator) intervention is needed to remedy an outcome. To accommodate recovery from failure (automatic in most cases) the protocol's participants `use logging of the protocol's states`. Log records, which are typically slow to generate but survive failures, are used by the protocol's recovery procedures. Many protocol variants exist that primarily differ in logging strategies and recovery mechanisms. Though usually intended to be used infrequently, recovery procedures compose a substantial portion of the protocol, due to many possible failure scenarios to be considered and supported by the protocol.
+
+__Assumptions:__  
+The protocol works in the following manner:   
+* one node is designated the coordinator, which is the master site, and the rest of the nodes in the network are designated the cohorts. 
+* The protocol assumes that there is `stable storage at each node with a write-ahead log`, that no node crashes forever, that the data in the write-ahead log is never lost or corrupted in a crash
+* any two nodes can communicate with each other. (not restrictive)
+
+The last assumption is not too restrictive, as network communication can typically be rerouted. The first two assumptions are much stronger; if a node is totally destroyed then data can be lost.
+
+![distributed_2pc_1]
+
+__Basic algorithm:__  
+1. Commit request phase(or voting phase)
+    1. The coordinator sends `a query to commit message` to all cohorts and waits until it has received a reply from all cohorts.
+    2. The cohorts `execute the transaction up to the point where they will be asked to commit`. They each write an entry to their undo `log` and an entry to their redo log.
+    3. Each cohort `replies` with an agreement `message` (cohort votes Yes to commit), if the cohort's actions succeeded, or an abort message (cohort votes No, not to commit), if the cohort experiences a failure that will make it impossible to commit.
+
+2. Commit phase(or Completion phase)
+    1. Success
+    If the coordinator received an agreement message from all cohorts during the commit-request phase:  
+        1. The coordinator sends `a commit message` to all the cohorts.
+        2. Each cohort completes the operation, and `releases all the locks and resources held during the transaction`.
+        3. Each cohort sends an `acknowledgment` to the coordinator.
+        4. The coordinator `completes the transaction` when all acknowledgments have been received.
+    2. Failure
+    If any cohort votes No during the commit-request phase (or the coordinator's timeout expires):  
+        1. The coordinator sends `a rollback message` to all the cohorts.
+        2. Each cohort `undoes the transaction` using the undo log, and releases the resources and locks held during the transaction.
+        3. Each cohort sends an `acknowledgement` to the coordinator.
+        4. The coordinator `undoes the transaction` when all acknowledgements have been received.
+
+The `greatest disadvantage` of the two-phase commit protocol is that it is a `blocking protocol`. If the coordinator fails permanently, some cohorts will never resolve their transactions: After a cohort has sent an agreement message to the coordinator, it will block until a commit or rollback is received.
+
+点评：2PC绝对是CP的死党，是分布式情况下强一致性算法，因此缺点也是很明显:
+1. blocking protocol, 吞吐量不行，一旦某个participant第一阶段投了赞成票就得在他上面加独占锁，其他事务不得介入，直到当前事务提交or回滚
+2. 单点coordinator是个严重问题, 没有热备机制，coordinator节点crash或者连接它的网路坏了会阻塞该事务
 
 ---
 [distributed_misc_1]:http://www.enterprise-technology.net/network3.htm "p2p vs cs"
@@ -552,3 +606,4 @@ Well, why not start off with a peer-to-peer network architecture and then move u
 [mapreduce_1]:/resources/img/java/mapreduce_1.png "Map Reduce Flowchart"
 [mapreduce_2]:/resources/img/java/mapreduce_2.png "Map Reduce Flowchart"
 [mapreduce_example_1]:/resources/img/java/mapreduce_example_1.png "Map Reduce WordCount"
+[distributed_2pc_1]:/resources/img/java/distributed_2pc_1.png "Two-Phrase Commit Protocol"
