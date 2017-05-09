@@ -29,7 +29,8 @@
         + [peer-to-peer](#peer-to-peer)
         + [client-server](#client-server)
     - [Consensus Protocols](#consensus-protocols)
-        + [Two-phase commit protocol (2PC)](#two-phase-commit-protocol2pc)
+        + [Two-phase commit protocol (2PC)](#two-phase-commit-protocol-2pc)
+        + [Three-phrase commit protocol (3PC)](#three-phrase-commit-protocol-3pc)
 
 ### Hadoop
 
@@ -589,6 +590,33 @@ The `greatest disadvantage` of the two-phase commit protocol is that it is a `bl
 1. blocking protocol, 吞吐量不行，一旦某个participant第一阶段投了赞成票就得在他上面加独占锁，其他事务不得介入，直到当前事务提交or回滚
 2. 单点coordinator是个严重问题, 没有热备机制，coordinator节点crash或者连接它的网路坏了会阻塞该事务
 
+### Three-phrase commit protocol (3PC)
+[For more information][distributed_3pc_1]  
+[For more information][distributed_3pc_2]  
+
+In computer networking and databases, the three-phase commit protocol (3PC)[1] is a distributed algorithm which lets `all nodes` in a distributed system agree to commit a transaction. Unlike the two-phase commit protocol (2PC) however, 3PC is `non-blocking`. Specifically, 3PC `places an upper bound on the amount of time required before a transaction either commits or aborts`. This property ensures that if a given transaction is attempting to commit via 3PC and holds some resource locks, it will release the locks after the timeout.
+
+In describing the protocol, we use terminology similar to that used in the two-phase commit protocol. Thus we have a single coordinator site leading the transaction and a set of one or more cohorts being directed by the coordinator.
+
+![distributed_3pc_3]  
+![distributed_3pc_4]  
+
+The Three-phase commit protocol eliminates this problem by `introducing the Prepared to commit state`. If the coordinator fails before sending preCommit messages, the cohort will unanimously agree that the operation was aborted. The coordinator will not send out a doCommit message until all cohort members have ACKed that they are Prepared to commit. This eliminates the possibility that any cohort member actually completed the transaction before all cohort members were aware of the decision to do so
+
+PS: differences between 3pc and 2pc  
+* introducing the Prepared to commit state before coordinator sending commit message
+* Timeout cause abort in most operations
+
+Disadvantages
+`The main disadvantage to this algorithm is that it cannot recover in the event the network is segmented in any manner`. The original 3PC algorithm assumes a fail-stop model, where processes fail by crashing and crashes can be accurately detected, and does not work with network partitions or asynchronous communication.
+Keidar and Dolev's E3PC algorithm eliminates this disadvantage.
+The protocol requires at least 3 round trips to complete, needing a minimum of 3 round trip times (RTTs). This is potentially a long latency to complete each transaction.
+
+`三段提交的核心理念是：在询问的时候并不锁定资源，除非所有人都同意了，才开始锁资源`
+
+其实，三段提交是一个很复杂的事情，`实现起来相当难`，而且也有一些问题。
+
+
 ---
 [distributed_misc_1]:http://www.enterprise-technology.net/network3.htm "p2p vs cs"
 [hadoop_1]:/resources/img/java/hadoop_1.png "Hadoop framework"
@@ -607,3 +635,9 @@ The `greatest disadvantage` of the two-phase commit protocol is that it is a `bl
 [mapreduce_2]:/resources/img/java/mapreduce_2.png "Map Reduce Flowchart"
 [mapreduce_example_1]:/resources/img/java/mapreduce_example_1.png "Map Reduce WordCount"
 [distributed_2pc_1]:/resources/img/java/distributed_2pc_1.png "Two-Phrase Commit Protocol"
+[distributed_3pc_1]:https://en.wikipedia.org/wiki/Three-phase_commit_protocol "Three-Phrase Commit Protocol"
+[distributed_3pc_2]:http://coolshell.cn/articles/10910.html "Three-Phrase Commit Protocol"
+[distributed_3pc_3]:/resources/img/java/distributed_3pc_1.png "Three-Phrase Commit Protocol: process flow"
+[distributed_3pc_4]:/resources/img/java/distributed_3pc_2.png "Three-Phrase Commit Protocol: state machine chart"
+
+
