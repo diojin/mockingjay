@@ -32,6 +32,7 @@
         + [Two-phase commit protocol (2PC)](#two-phase-commit-protocol-2pc)
         + [Three-phrase commit protocol (3PC)](#three-phrase-commit-protocol-3pc)
         + [Paxos Protocol](#paxos-protocol)
+        + [The Byzantine Generals Problem](#the-byzantine-generals-problem)
 
 ### Hadoop
 
@@ -740,6 +741,82 @@ Yahoo!开源的ZooKeeper是一个开源的类Paxos实现。它的编程接口看
 
 这里要补充一个背景，就是要证明分布式容错算法的正确性通常比实现算法还困难，Google没法证明Chubby是可靠的，Yahoo!也不敢保证它的ZooKeeper理论正确性。大部分系统都是靠在实践中运行很长一段时间才能谨慎的表示，目前系统已经基本没有发现大的问题了。
 
+##### The Byzantine Generals Problem
+
+[For more information 1][distributed_byzantine_1]  
+[For more information 2][distributed_byzantine_2]  
+[For more information 3][distributed_byzantine_3]  
+
+Also called __Byzantine fault tolerance__  
+[For more information 4][distributed_byzantine_4]  
+
+__关于拜占庭将军问题，一个简易的非正式描述如下：__  
+拜占庭帝国想要进攻一个强大的敌人，为此派出了10支军队去包围这个敌人。这个敌人虽不比拜占庭帝国，但也足以抵御5支常规拜占庭军队的同时袭击。基于一些原因，这10支军队不能集合在一起单点突破，必须在分开的包围状态下同时攻击。他们任一支军队单独进攻都毫无胜算，除非有至少6支军队同时袭击才能攻下敌国。他们分散在敌国的四周，依靠通信兵相互通信来协商进攻意向及进攻时间。困扰这些将军的问题是，他们不确定他们中是否有叛徒，叛徒可能擅自变更进攻意向或者进攻时间。在这种状态下，拜占庭将军们能否找到一种分布式的协议来让他们能够远程协商，从而赢取战斗？这就是著名的拜占庭将军问题。
+
+应该明确的是，拜占庭将军问题中并不去考虑通信兵是否会被截获或无法传达信息等问题，即消息传递的信道绝无问。`Lamport已经证明了在消息可能丢失的不可靠信道上试图通过消息传递的方式达到一致性是不可能的`。所以，`在研究拜占庭将军问题的时候，我们已经假定了信道是没有问题的`，并在这个前提下，去做一致性和容错性相关研究。如果需要考虑信道是有问题的，这涉及到了另一个相关问题：两军问题。
+
+形式化条件的推演:  
+定义一个变量vi，作为其他将军收到的第i个将军的命令值；j将军会将把自己的判断作为vj。可以想象，由于叛徒的存在，各个将军收到的vi值不一定是相同的。之后，定义一个函数来处理向量(v1,v2,…,vn)，代表了多数人的意见(majority(v1,v2,...,vn))，各将军用这个函数的结果作为自己最终采用的命令。至此，我们可以利用这些定义来形式化这个问题，用以匹配一致性和正确性
+
+* 一致性  
+条件1：每一个忠诚的将军必须得到相同的(v1,v2,…,vn)指令向量或者指令集合。
+* 正确性  
+条件2：若i将军是忠诚的，其他忠诚的将军必须以他送出的值作为vi。
+
+可以将问题改为一系列的司令-副官模式来简化问题，即一个司令把自己的命令传递给n-1个副官，使得：
+* IC1：所有忠诚的副官遵守一个命令，即一致性。
+* IC2：若司令是忠诚的，每一个忠诚的副官遵守他发出的命令，即正确性。
+
+__The problem can be restated as:__  
+1. All loyal generals receive the same information upon which they will somehow get to the same decision
+2. The information sent by a loyal general should be used by all the other loyal generals
+
+__The above problem can be reduced into a series of one commanding general and multiple lieutenants problem - Byzantine Generals Problem:__  
+* All loyal lieutenants obey the same order
+* If the commanding general is loyal, then every loyal lieutenant obeys the order she sends
+
+__Another variant: Reliability by Majority Voting__   
+One way to achieve reliability is to have multiple replica of system (or component) and take the majority voting among them
+
+In order for the majority voting to yield a reliable system, the following two conditions should be satisfied:  
+* All non-faulty components must use the same input value
+* If the input unit is non-faulty, then all non-faulty components use the value it provides as input
+
+在经典的情形下，我们可以找到两种办法，`口头协议和书面协议`
+
+###### Oral Messages - No Signature 口头协议
+__Oral Message Requirements and their Implications__  
+1. A1 - Every message that is sent is delivered correctly  
+    * The failure of communication medium connecting two components is indistinguishable from component failure.  
+    * Line failure just adds one more traitor component.  
+2. A2 - The receiver of a message knows who sent it  
+    * No switched network is allowed
+    * The later requirement -- A4 nullifies this constraint
+3. A3 - The absence of a message can be detected  
+    * Timeout mechanism is needed
+
+or to say in short,   
+1. A1：每个被发送的消息都能够被正确的投递
+2. A2：信息接收者知道是谁发送的消息
+3. A3：能够知道缺少的消息
+
+__Solution:__  
+采用口头协议，若叛徒数少于1/3，则拜占庭将军问题可解。也就是说，若叛徒数为m，当将军总数n至少为3m+1时，问题可解（即满足了IC1和IC2）。
+
+Lamport’s algorithm is a recursive definition, with a base case for m=0, and a recursive step for m > 0:  
+
+* Algorithm OM(0)  
+    1. The general sends his value to every lieutenant.
+    2. Each lieutenant uses the value he receives from the general.
+* Algorithm OM(m), m > 0
+    1. The general sends his value to each lieutenant.
+    2. Populate (v1, v2, … vn) for each lieutenant
+        1. Calculate vi.  
+        For each i, let vi be the value lieutenant i receives from the general. Lieutenant i acts as the general in Algorithm OM(m-1) to send the value vi to each of the n-2 other lieutenants.
+        2. Calculate vj (j ≠ i).  
+        For each i, and each j ≠ i, let vi(?? should be vj) be the value lieutenant i received from lieutenant j in step 2 (using Algorithm (m-1)). Lieutenant i uses the value majority (v1, v2, … vn). (PS: use it as the new vi, and send to all other lieutenants for next round)
+
+若任何一步没有命令则默认为撤退命令
 
 
 ---
@@ -772,3 +849,10 @@ Yahoo!开源的ZooKeeper是一个开源的类Paxos实现。它的编程接口看
 [distributed_paxos_img_4]:/resources/img/java/distributed_paxos_4.png "Message flow: Byzantine Multi-Paxos, steady state"
 [distributed_paxos_img_5]:/resources/img/java/distributed_paxos_5.png "Message flow: Fast Byzantine Multi-Paxos, steady state"
 [distributed_paxos_img_6]:/resources/img/java/distributed_paxos_6.png "Another message flow chart from other resource"
+[distributed_byzantine_1]:http://www.btckan.com/news/topic/14011 "The Byzantine Generals Problem"
+[distributed_byzantine_2]:http://marknelson.us/2007/07/23/byzantine/ "The Byzantine Generals Problem"
+[distributed_byzantine_3]:http://pages.cs.wisc.edu/~sschang/OS-Qual/reliability/byzantine.htm "The Byzantine Generals Problem"
+[distributed_byzantine_4]:https://en.wikipedia.org/wiki/Byzantine_fault_tolerance "Byzantine fault tolerance"
+
+
+
