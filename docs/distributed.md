@@ -7,6 +7,8 @@
 * [Hadoop](#hadoop)
     - [Hive](#hive)
     - [HBase](#hbase)
+    - [Misc](#hadoop-misc)
+        + [MapReduce](#mapreduce)
 * [Cluster](#cluster)
     - [Cluster types](#cluster-types)
     - [Load Balance Algorithm](#load-balance-algorithm)
@@ -23,6 +25,7 @@
     - [Big Data open source trendy technologies](#big-data-open-source-trendy-technologies)
     - [Cloud computing](#cloud-computing)
     - [Data streaming](#data-streaming)
+    - [peer-to-peer vs client-server](#peer-to-peer-vs-client-server)
 
 ### Hadoop
 
@@ -69,6 +72,27 @@ __不足之处：__
 
 #### HBase
 HBase是一个分布式的、面向列的开源数据库，它不同于一般的关系数据库,是一个适合于非结构化数据存储的数据库。另一个不同的是HBase基于列的而不是基于行的模式。HBase使用和 BigTable非常相同的数据模型。用户存储数据行在一个表里。一个数据行拥有一个可选择的键和任意数量的列，一个或多个列组成一个ColumnFamily，一个Fmaily下的列位于一个HFile中，易于缓存数据。表是疏松的存储的，因此用户可以给行定义各种不同的列。在HBase中数据按主键排序，同时表按主键划分为多个HRegion
+
+#### Hadoop Misc
+##### MapReduce
+![mapreduce_1]
+
+原始状态下，输入–Map — Shuffle — Reduce — 输出
+![mapreduce_2]
+
+首先，让我们以WordCount为例来解释MapReduce是怎么工作的.
+![mapreduce_example_1]
+
+
+map数据输入
+Hadoop针对文本文件缺省使用LineRecordReader类来实现读取，一行一个key/value对，key取偏移量，value为行内容。
+如下是map1的输入数据： 
+Key1                  Value1 
+0         Hello World Bye World
+如下是map2的输入数据： 
+Key1                Value1 
+0         Hello Hadoop GoodBye Hadoop
+
 
 ### Cluster
 
@@ -384,7 +408,7 @@ Why should you care?
 Because it has `an unusually strong community around it`, you can find R libraries for almost anything under the sun — making virtually any kind of data science capability accessible without new code. R is exciting because of who is working on it, and how much net-new innovation is happening on a daily basis. the R community is one of the most thrilling places to be in Big Data right now.
 R is a also wonderful way to future-proof your Big Data program. In the last few months, literally thousands of new features have been introduced, replete with publicly available knowledge bases for every analysis type you’d want to do as an organization.
 `Also, R works very well with Hadoop`, making it an ideal part of an integrated Big Data approach.
-`To keep an eye on: Julia is an interesting and growing alternative to R, because it combats R’s notoriously slow language interpreter problem. The community around Julia isn’t nearly as strong right now, but if you have a need for speed…`
+`To keep an eye on: Julia is an interesting and growing alternative to R, because it combats R’s notoriously slow language interpreter problem. The community around Julia isn’t nearly as strong right now, but if you have a need for speed`
    
 * Gremlin and Giraph
 Gremlin and Giraph help empower `graph analysis`, and are `often used coupled with graph databases like Neo4j or InfiniteGraph`, or `in the case of Giraph, working with Hadoop`. Golden Orb is another high-profile example of a graph-based project picking up steam.
@@ -445,8 +469,14 @@ Spark是一个基于内存计算的开源的集群计算系统，用Scala语言�
 
 ![data_streaming_1]
 
+#### peer-to-peer vs client-server
+[For more information][distributed_misc_1]
+
+
+
 
 ---
+[distributed_misc_1]:http://www.enterprise-technology.net/network3.htm "p2p vs cs"
 [hadoop_1]:/resources/img/java/hadoop_1.png "Hadoop framework"
 [hadostm_1op_2]:/resources/img/java/hadoop_2.png "Hadoop product line"
 [stm_1]: https://en.wikipedia.org/wiki/Software_transactional_memory#Java "Software_transactional_memory"
@@ -458,5 +488,7 @@ Spark是一个基于内存计算的开源的集群计算系统，用Scala语言�
 [big-data-1]:http://www.infochimps.com/ "Infochimps, the #1 Big Data platform in the cloud"
 [cloud-computing-1]:https://hubpages.com/technology/cloud-computing-architecture "Cloud Computing Architecture Explained"
 [cloud-computing-2]:/resources/img/java/cloud_computing_1.png "A cloud computing architecture example"
-
 [data_streaming_1]:/resources/img/java/data_streaming_1.png "Stream vs Batch"
+[mapreduce_1]:/resources/img/java/mapreduce_1.png "Map Reduce Flowchart"
+[mapreduce_2]:/resources/img/java/mapreduce_2.png "Map Reduce Flowchart"
+[mapreduce_example_1]:/resources/img/java/mapreduce_example_1.png "Map Reduce WordCount"
