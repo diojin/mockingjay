@@ -338,6 +338,10 @@ CAP theorem
 当需要高可写的系统时，可以设置W=1 R=3
 当需要高可读的系统时，可以设置W=3 R=1
 
+Quorums[edit]
+Quorums express the safety properties of Paxos by ensuring at least some surviving processor retains knowledge of the results.
+Quorums are defined as subsets of the set of Acceptors such that any two subsets (that is, any two Quorums) share at least one member. Typically, a Quorum is any majority of participating Acceptors. For example, given the set of Acceptors {A,B,C,D}, a majority Quorum would be any three Acceptors: {A,B,C}, {A,C,D}, {A,B,D}, {B,C,D}. More generally, arbitrary positive weights can be assigned to Acceptors and a Quorum defined as any subset of Acceptors with the summary weight greater than half of the total weight of all Acceptors.
+
 
 #### NoSql
 
@@ -624,15 +628,35 @@ Paxos is a family of protocols for solving consensus in a network of unreliable 
 ><分布式系统的事务处理>：
 Google Chubby的作者Mike Burrows说过这个世界上只有一种一致性算法，那就是Paxos，其它的算法都是残次品
 
-__Paxos在原作者的《Paxos Made Simple》中内容是比较精简的：__  
+>Paxos在原作者的《Paxos Made Simple》中内容是比较精简的：
 1. Phase 1
     1. A proposer selects a proposal number n and sends a prepare request with number n to a majority of acceptors.
     2. If an acceptor receives a prepare request with number n greater than that of any prepare request to which it has already responded, then it responds to the request with a promise not to accept any more proposals numbered less than n and with the highest-numbered proposal (if any) that it has accepted.
-
 2. Phase 2
-    1. 
-(a) If the proposer receives a response to its prepare requests (numbered n) from a majority of acceptors, then it sends an accept request to each of those acceptors for a proposal numbered n with a value v , where v is the value of the highest-numbered proposal among the responses, or is any value if the responses reported no proposals.
-(b) If an acceptor receives an accept request for a proposal numbered n, it accepts the proposal unless it has already responded to a prepare request having a number greater than n.
+    1. If the proposer receives a response to its prepare requests (numbered n) from a majority of acceptors, then it sends an accept request to each of those acceptors for a proposal numbered n with a value v , where v is the value of the highest-numbered proposal among the responses, or is any value if the responses reported no proposals.
+    2. If an acceptor receives an accept request for a proposal numbered n, it accepts the proposal unless it has already responded to a prepare request having a number greater than n.
+
+
+Basic Paxos[edit]
+This protocol is the most basic of the Paxos family. Each instance of the Basic Paxos protocol decides on a single output value. The protocol proceeds over several rounds. A successful round has two phases. A Proposer should not initiate Paxos if it cannot communicate with at least a Quorum of Acceptors:
+Phase 1a: Prepare[edit]
+A Proposer (the leader) creates a proposal identified with a number N. This number must be greater than any previous proposal number used by this Proposer. Then, it sends a Prepare message containing this proposal to a Quorum of Acceptors. The Proposer decides who is in the Quorum.
+Phase 1b: Promise[edit]
+If the proposal's number N is higher than any previous proposal number received from any Proposer by the Acceptor, then the Acceptor must return a promise to ignore all future proposals having a number less than N. If the Acceptor accepted a proposal at some point in the past, it must include the previous proposal number and previous value in its response to the Proposer.
+Otherwise, the Acceptor can ignore the received proposal. It does not have to answer in this case for Paxos to work. However, for the sake of optimization, sending a denial (Nack) response would tell the Proposer that it can stop its attempt to create consensus with proposal N.
+Phase 2a: Accept Request[edit]
+If a Proposer receives enough promises from a Quorum of Acceptors, it needs to set a value to its proposal. If any Acceptors had previously accepted any proposal, then they'll have sent their values to the Proposer, who now must set the value of its proposal to the value associated with the highest proposal number reported by the Acceptors. If none of the Acceptors had accepted a proposal up to this point, then the Proposer may choose any value for its proposal.[17]
+The Proposer sends an Accept Request message to a Quorum of Acceptors with the chosen value for its proposal.
+Phase 2b: Accepted[edit]
+If an Acceptor receives an Accept Request message for a proposal N, it must accept it if and only if it has not already promised to any prepare proposals having an identifier greater than N. In this case, it should register the corresponding value v and send an Accepted message to the Proposer and every Learner. Else, it can ignore the Accept Request.
+Note that an Acceptor can accept multiple proposals. These proposals may even have different values in the presence of certain failures. However, the Paxos protocol will guarantee that the Acceptors will ultimately agree on a single value.
+Rounds fail when multiple Proposers send conflicting Prepare messages, or when the Proposer does not receive a Quorum of responses (Promise orAccepted). In these cases, another round must be started with a higher proposal number.
+Notice that when Acceptors accept a request, they also acknowledge the leadership of the Proposer. Hence, Paxos can be used to select a leader in a cluster of nodes.
+Here is a graphic representation of the Basic Paxos protocol. Note that the values returned in the Promise message are null the first time a proposal is made, since no Acceptor has accepted a value before in this round.
+Message flow: Basic Paxos[edit]
+(first round is successful)
+ 
+Vn = highest of (Va,Vb,Vc)
 
 
 
