@@ -33,6 +33,7 @@
         + [Three-phrase commit protocol (3PC)](#three-phrase-commit-protocol-3pc)
         + [Paxos Protocol](#paxos-protocol)
         + [The Byzantine Generals Problem](#the-byzantine-generals-problem)
+    - [Web Security techniques](#web-security-techniques)
 
 ### Hadoop
 
@@ -817,6 +818,96 @@ Lamport’s algorithm is a recursive definition, with a base case for m=0, and a
         For each i, and each j ≠ i, let vi(?? should be vj) be the value lieutenant i received from lieutenant j in step 2 (using Algorithm (m-1)). Lieutenant i uses the value majority (v1, v2, … vn). (PS: use it as the new vi, and send to all other lieutenants for next round)
 
 若任何一步没有命令则默认为撤退命令
+
+###### 书面协议
+__Additional Requirements:__  
+* A4:  
+A loyal general's `signature` cannot be forged  
+Anyone can verify the authenticity of a general's signature  
+
+__Implication__:  
+Digital signature is required
+
+__Solution:__  
+If at least two generals are loyal, this problem can be solved
+
+Algorithm - recursive  
+* Lieutenants recursively augment orders `with their signature` and forward them to all the other lieutenants
+* ...
+
+我们用集合Vi来表示i副官收到的命令集，这是一个集合，也就是满足互异性（没有重复的元素）等集合的条件。类似的，我们定义choice(V)函数来决定各个副官的选择，这个函数可以有非常多种形式，他只要满足了以下两个条件：  
+1. 如果集合V只包含了一个元素v，那么choice(V)=v
+2. choice(o)=RETREAT，其中o是空集
+任何满足了这两个条件的函数都可以作为choice()，例如取平均值就可以。我们只需要根据具体情形定义choice()即可
+
+之后我们会发现SM(m)算法并不是一个递归算法，`我们只要让各个副官收到的V集相同`，choice(V)也一定能够得到相同的值。
+1. 初始化Vi=空集合。
+2. 将军签署命令并发给每个副官
+3. 对于每个副官i  
+    1. 如果副官i从发令者收到v:0的消息，且还没有收到其他命令序列  
+        1. 那么他使Vi为{v}
+        2. 发送v:0:i给其他所有副官。
+    2. 如果副官i收到了形如v:0:j1:…:jk的消息且v不在集合Vi中  
+        1. 那么他添加v到Vi
+        2. 如果k\<m，那么发送v:0:j1:…:jk:i 给每个不在j1,..,jk 中的副官>
+4. 对于每个副官i，当他不再收到任何消息，则遵守命令choive(Vi)
+
+PS: in short,  
+* use Set instead of vector
+* message is only sent to unreached lieutenants, no duplicated messaging
+* with signature
+
+`书面协议的本质就是引入了签名系统`，这使得所有消息都可追本溯源。这一优势，`大大节省了成本`，`他化解了口头协议中1/3要求`，只要采用了书面协议，忠诚的将军就可以达到一致（实现IC1和IC2）。这个效果是惊人的，相较之下口头协议则明显有一些缺陷。
+
+观察A1~A4，我们做了一些在现实中比较难以完成的假设，比如没考虑传输信息的延迟时间，`书面协议的签名体系难以实现`，而且签名消息记录的保存难以摆脱一个中心化机构而独立存在。事实上，`存在能够完美解决书面协议实际局限的方法，这个方法就是区块链`.
+
+如果您感兴趣，也可以参考笔者同系列的文章《大材小用——用区块链解决拜占庭将军问题》。
+
+###### Missing Communication Paths
+Network topology or policy could keep a general sending/receiving messages to/from another general, this constraint makes Byzantine problem more general
+
+* Oral Message
+Conclusion: If the communication graph is 3m-regular and less than or equal to m generals are traitors, this problem can be solved.
+
+__k regular set of neighbors of a node p__  
+* the set of all neighbors of p, whose size is k 
+* for any node not in the set, there exists a disjoint path, not passing through the node p, from a node in the set
+
+`k regular graph - every node has k regular set of neighbors`
+
+__Solution:__  
+Lieutenants recursively forward orders to all its k regular neighbors
+
+* Signed Message
+Conclusion: If the subgraph of loyal generals is connected, this problem can be solved
+
+###### Byzantine fault tolerance in practice
+
+* bitcoin. One example of BFT in use is `bitcoin`, a peer-to-peer digital currency system. The bitcoin network works in parallel to generate a chain of Hashcashstyle proof-of-work. The proof-of-work chain is the key to overcome Byzantine failures and to reach a coherent global view of the system state.
+
+* Some aircraft systems, such as the Boeing 777 Aircraft Information Management System (via its ARINC 659 SAFEbus® network), the Boeing 777 flight control system, and the Boeing 787 flight control systems, use Byzantine fault tolerance. Because these are real-time systems, their Byzantine fault tolerance solutions must have very low latency. For example, SAFEbus can achieve Byzantine fault tolerance with on the order of a microsecond of added latency.
+
+* Some spacecraft such as the SpaceX Dragon flight system and the NASA Crew Exploration Vehicle consider Byzantine fault tolerance in their design.
+
+#### Web Security techniques
+
+1. 以`“保护”`为目的的第一代网络安全技术
+2. 以`“保障”`为目的的第二代网络安全技术
+3. 以`“生存”`为目的的第三代网络安全技术
+
+* 第一代网络安全技术`通过划分明确的网络边界`，利用各种`保护和隔离的技术手段`，如`用户鉴别和认证`、`存取控制`、`权限管理和信息加解密`等，试图在网络边界上阻止非法入侵，达到信息安全的目的。第一代网络安全技术解决了很多安全问题，但并不是在所有情况下都有效，由于无法清晰地划分和控制网络边界，`第一代网络安全技术对一些攻击行为如计算机病毒、用户身份冒用、系统漏洞攻击等就显得无能为力`，于是出现了第二代网络安全技术。
+
+* 第二代网络安全技术`以检测技术为核心`，`以恢复技术为后盾`，融合了保护、检测、响应、恢复四大技术。它通过检测和恢复技术，发现网络系统中异常的用户行为，根据事件的严重性，`提示系统管理员，采取相应的措施`。由于系统漏洞千差万别，攻击手法层出不穷，不可能完全正确地检测全部的攻击行为，因此，必须用新的安全技术来保护信息系统的安全。
+
+* 第三代网络安全技术是一种信息生存技术，卡耐基梅隆大学的学者给这种生存技术下了一个定义：`所谓“生存技术”就是系统在攻击、故障和意外事故已发生的情况下，在限定时间内完成使命的能力`。它假设我们不能完全正确地检测对系统的入侵行为，当入侵和故障突然发生时，能够利用“容忍”技术来解决系统的“生存”问题，以确保信息系统的保密性、完整性、真实性、可用性和不可否认性
+
+无数的网络安全事件告诉我们，网络的安全仅依靠“堵”和“防”是不够的。 `入侵容忍技术`就是基于这一思想，要求系统中任何单点的失效或故障不至于影响整个系统的运转。由于任何系统都可能被攻击者占领，因此，`入侵容忍系统不相信任何单点设备`。`入侵容忍可通过对权力分散及对技术上单点失效的预防`，保证任何少数设备、任何局部网络、任何单一场点都不可能做出泄密或破坏系统的事情，任何设备、任何个人都不可能拥有特权。因而，入侵容忍技术同样能够有效地防止内部犯罪事件发生。
+
+入侵容忍技术的实现主要有两种途径  
+* 第一种方法是`攻击响应`，通过检测到局部系统的失效或估计到系统被攻击，而`加快反应时间，调整系统结构，重新分配资源`，使信息保障上升到一种在攻击发生的情况下能够继续工作的系统。可以看出，这种实现方法依赖于“入侵判决系统”是否能够及时准确地检测到系统失效和各种入侵行为
+* 另一种实现方法则被称为`“攻击遮蔽”`，技术。就是待攻击发生之后，整个系统好像没什么感觉。该方法`借用了容错技术的思想，就是在设计时就考虑足够的冗余`，保证当部分系统失效时，整个系统仍旧能够正常工作。
+
+多方安全计算的技术、门槛密码技术、Byzantine协议技术等成为入侵容忍技术的理论基础。
 
 
 ---
