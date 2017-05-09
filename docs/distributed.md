@@ -14,12 +14,15 @@
     - [Misc](#soa-misc)
         + [PROs and Cons](#soa-pros-and-cons)
         + [Differences between SOA and Web Service](#differences-between-soa-and-web-service)
+* [Book Recommendation](#book-recommendation)
 * [Miscellaneous](#miscellaneous)
     - [NoSql](#nosql)
         + [NoSql Categories](#nosql-categories)
         + [NoSql Characteristics](#nosql-characteristics)
     - [software transactional memory (STM)](#software-transactional-memorystm)
     - [Big Data open source trendy technologies](#big-data-open-source-trendy-technologies)
+    - [Cloud computing](#cloud-computing)
+    - [Data streaming](#data-streaming)
 
 ### Hadoop
 
@@ -265,6 +268,32 @@ SOA是一种软件设计准则，一种实现松耦合，高可复用性和粗�
 
 `Web Service是实现SOA的技术之一`。也可以不用Web service来实现SOA应用：例如，用一些传统的技术，像Java RMI，EJB，JMS消息等。但是Web service提供的是标准的平台无关的服务，这些服务采用HTTP、XML、SOAP、WSDL和UDDI技术，因此可以带来J2EE和.NET这些异构技术（heterogeneous technologies）之间的互操作性。
 
+### Book Recommendation
+
+#### <大型网站系统与Java中间件开发实践> 
+
+本人入门水平，看此书的目的是想初步了解分布式系统。
+主要内容：此书以淘宝某些系统为原型，以淘宝某些网站的演进为引子，主要介绍了Java中间件，消息中间件，数据层应用层的分布式处理。
+从系统的演进可以一窥分布式系统的发展与进化：
+单机系统--> 应用与数据库分机--> 数据库读写分离--> 分布式存储的引入--> 数据的水平垂直拆分--> 应用的分布式部署--> 应用服务化。
+
+在我看来，无非是三种方式去解决大型网站遇到的问题：  
+* 拆应用
+* 拆数据库
+* 优化应用及应用间的交互
+
+1. 拆应用：有两种拆法，一个是水平扩展，即将应用部署在多台机器上，要解决的实现难点是session的同步、时间同步问题、分布式事务处理。另一个是按功能垂直拆，一个个模块都独立部署，这样一个个模块又都是一个新系统，又可以将它们做水平扩展。
+2. 拆数据库：也有两种拆法，一个是水平，另一个是垂直。拆数据库明显比拆应用难的多，一方面要解决技术难题，另一方面要优化代码。要解决的问题也都很棘手。
+    1. 跨库事务的处理 （提交协议：两阶段提交、Paxos协议）
+    2. 跨库多表的查询
+    3. 查询的分页及排序
+    4. 同表跨库的sequence问题
+3. 优化应用及应用间的交互：一般优化应用的方法有像引入cache模型、cache系统；引入NOSQL；引入分布式文件系统；引入多线程处理等。另一种方式是优化其之间的交互，引入消息中间件，构建一些Java中间件更好的支持多系统的交互等。
+ 
+扩展阅读：Java的多线程编程。Java NIO。负载均衡器的了解。分布式事物。JMS。NOSQL。
+
+总结：是一本较入门的书，很多东西并没有太深入，但面也算全。适合做为一本分布式的入门书来读。
+
 ### Miscellaneous
 
 CAP theorem
@@ -385,6 +414,38 @@ For example, you can use D3 to generate an HTML table from an array of numbers. 
 Here’s an example of D3 in action, making President Obama’s 2013 budget proposal understandable, and navigable.
 `With D3, programmers can create dashboards galore`. Organizations of all sizes are quickly embracing D3 as a superior visualization platform to the heads-up displays of yesteryear.
 
+#### Cloud computing
+
+[For more information][cloud-computing-1]
+
+Though there is no official definition and straight forward way to explain what exactly cloud computing is, but it can be expressed in general as the following statement:
+“cloud computing is such a type of computing environment, where business owners `outsource their computing needs` including application software services to a third party and when they need to use the computing power or employees need to use the application resources like database, emails etc., they access the resources `via Internet`.”
+
+__Cloud Computing Service Architecture__  
+Mainly, 3 types of services you can get from a cloud service provider.
+1. __Infrastructure as a service__- service provider bears all the cost of servers, networking equipment, storage, and back-ups. You just have to pay to take the computing service. And the users build their own application softwares. `Amazon EC2` is a great example of this type of service.
+2. __Platform as a service__- service provider only provide platform or a stack of solutions for your users. It helps users saving investment on hardware and software. `Google Gc engine` and `Force.com` provide this type of service.
+3. __Software as a service__- service provider will give your users the service of using their software, especially any type of applications software. Example-`Google (GOOG)`, `Salesforce.com (CRM)`, `NetSuite (N)`
+
+__Why cloud computing?__  
+The main advantage of using cloud computing facility is that customers do not have to pay for infrastructure installation and maintenance cost. As a user of cloud computing you have to pay the service charges according to your usage of computing power and other networking resources. Moreover, you no more have to worry about software updates, installation, email servers, anti-viruses, backups, web servers and both physical and logical security of your data. Thus, cloud computing can help you focus more on your core business competency.
+
+__A cloud computing architecture example__
+
+![cloud-computing-2]
+
+#### Data streaming
+
+Streaming data and real-time analytics
+Easily handle millions of events per second with in-stream ETL and analytics
+
+It’s not enough anymore to simply perform historical analysis and batch reports. In situations where you need to make well-informed decisions in real-time, the data and insights must also be timely and immediately actionable. Cloud::Streams lets you process data as it flows into your application, powering `real-time dashboards` and `on-the-fly analytics` and `delivering data seamlessly to Hadoop clusters and NoSQL databases`. Single-purpose ETL solutions are rapidly being replaced with `multi-node, multi-purpose data integration platforms` — the universal glue that connects systems together and makes Big Data analytics feasible. Cloud::Streams is a linearly scalable, fault-tolerant distributed routing framework for data integration, collection, and streaming data processing. Ready-to-go integration connectors allow you to tap into virtually any internal or external data source that your application needs.
+
+Spark是一个基于内存计算的开源的集群计算系统，用Scala语言实现，构建在HDFS上，能与Hadoop很好的结合，而且运行速度比MapReduce快100倍。
+
+![data_streaming_1]
+
+
 ---
 [hadoop_1]:/resources/img/java/hadoop_1.png "Hadoop framework"
 [hadostm_1op_2]:/resources/img/java/hadoop_2.png "Hadoop product line"
@@ -395,3 +456,7 @@ Here’s an example of D3 in action, making President Obama’s 2013 budget prop
 [cluster_load_balance_algorithm_2]:http://www.cnblogs.com/todsong/archive/2012/02/25/2368101.html "Load balance algorithm"
 [big-data-open-source-tech-1]: https://techcrunch.com/2012/10/27/big-data-right-now-five-trendy-open-source-technologies/ "big-data-open-source-tech"
 [big-data-1]:http://www.infochimps.com/ "Infochimps, the #1 Big Data platform in the cloud"
+[cloud-computing-1]:https://hubpages.com/technology/cloud-computing-architecture "Cloud Computing Architecture Explained"
+[cloud-computing-2]:/resources/img/java/cloud_computing_1.png "A cloud computing architecture example"
+
+[data_streaming_1]:/resources/img/java/data_streaming_1.png "Stream vs Batch"
