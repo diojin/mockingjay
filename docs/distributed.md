@@ -649,24 +649,32 @@ This protocol is the most basic of the Paxos family. Each instance of the Basic 
     Otherwise, the Acceptor can ignore the received proposal. It does not have to answer in this case for Paxos to work. However, for the sake of optimization, sending a denial (Nack) response would tell the Proposer that it can stop its attempt to create consensus with proposal N.
 2. Phase 2
     1. Phase 2a: Accept Request  
-    If a Proposer receives enough promises from a Quorum of Acceptors, it needs to set a value to its proposal. If any Acceptors had previously accepted any proposal, then they'll have sent their values to the Proposer, who now must set the value of its proposal to the value associated with the highest proposal number reported by the Acceptors. If none of the Acceptors had accepted a proposal up to this point, then the Proposer may choose any value for its proposal.  
+    If a Proposer receives enough promises from a Quorum of Acceptors, it needs to set a value to its proposal. If any Acceptors had previously accepted any proposal, then they'll have sent their values to the Proposer, who now must set the value of its proposal to t`he value associated with the highest proposal number` reported by the Acceptors. If none of the Acceptors had accepted a proposal up to this point, then the Proposer may choose any value for its proposal.  
     The Proposer sends an Accept Request message to a Quorum of Acceptors with the chosen value for its proposal.
     2. Phase 2b: Accepted  
-    If an Acceptor receives an Accept Request message for a proposal N, it must accept it if and only if it has not already promised to any prepare proposals having an identifier greater than N. In this case, it should register the corresponding value v and send an Accepted message to the Proposer and every Learner. Else, it can ignore the Accept Request.  
-    Note that an Acceptor can accept multiple proposals. These proposals may even have different values in the presence of certain failures. However, the Paxos protocol will guarantee that the Acceptors will ultimately agree on a single value.  
-    Rounds fail when multiple Proposers send conflicting Prepare messages, or when the Proposer does not receive a Quorum of responses (Promise orAccepted). In these cases, another round must be started with a higher proposal number.  
-    Notice that when Acceptors accept a request, they also acknowledge the leadership of the Proposer. Hence, Paxos can be used to select a leader in a cluster of nodes.
+    If an Acceptor receives an Accept Request message for a proposal N, it must accept it if and only if it has not already promised to any prepare proposals having an identifier greater than N. In this case, it should register the corresponding value v and` send an Accepted message to the Proposer and every Learner.` Else, it can ignore the Accept Request.  
+
+3. Rounds fail when multiple Proposers send conflicting Prepare messages, or when the Proposer does not receive a Quorum of responses (Promise or Accepted). In these cases, another round must be started with a higher proposal number.  
+
+Note that an Acceptor can accept multiple proposals. These proposals may even have different values in the presence of certain failures. However, the Paxos protocol will guarantee that the Acceptors will ultimately agree on a single value.  
+
+Notice that when Acceptors accept a request, they also acknowledge the leadership of the Proposer. Hence, `Paxos can be used to select a leader in a cluster of nodes.`
 
 Here is a graphic representation of the Basic Paxos protocol. Note that the values returned in the Promise message are null the first time a proposal is made, since no Acceptor has accepted a value before in this round.
 
-Message flow: Basic Paxos
+__Message flow: Basic Paxos__  
 (first round is successful)
 
 ![distributed_paxos_img_1]
  
 Vn = highest of (Va,Vb,Vc)
 
+__Another message flow chart from other resource:__  
+![distributed_paxos_img_6]  
 
+PS: there are some notices,   
+* MaxN and AcceptedN should be same thing in Basic Paxos
+* in 1st flow, acceptor notices all learners, however, in 2nd flow, proposer does so
 
 
 ---
@@ -694,3 +702,4 @@ Vn = highest of (Va,Vb,Vc)
 [distributed_paxos_1]:http://www.cppblog.com/kevinlynx/archive/2014/10/15/208580.html "图解分布式一致性协议Paxos"
 [distributed_paxos_2]:http://blog.chinaunix.net/uid-16723279-id-3803058.html "两阶段提交协议与paxos投票算法 "
 [distributed_paxos_img_1]:/resources/img/java/distributed_paxos_1.png "Message flow: Basic Paxos"
+[distributed_paxos_img_6]:/resources/img/java/distributed_paxos_6.png "Another message flow chart from other resource"
