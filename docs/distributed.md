@@ -16,6 +16,7 @@
     - [Misc](#soa-misc)
         + [PROs and Cons](#soa-pros-and-cons)
         + [Differences between SOA and Web Service](#differences-between-soa-and-web-service)
+* [Grid computing](#grid-computing)
 * [Book Recommendation](#book-recommendation)
 * [Miscellaneous](#miscellaneous)
     - [NoSql](#nosql)
@@ -28,12 +29,27 @@
     - [peer-to-peer vs client-server](#peer-to-peer-vs-client-server)
         + [peer-to-peer](#peer-to-peer)
         + [client-server](#client-server)
+    - [Master-Slave](#master-slave)
+    - [Master-Master](#master-master)
     - [Consensus Protocols](#consensus-protocols)
         + [Two-phase commit protocol (2PC)](#two-phase-commit-protocol-2pc)
         + [Three-phrase commit protocol (3PC)](#three-phrase-commit-protocol-3pc)
         + [Paxos Protocol](#paxos-protocol)
         + [The Byzantine Generals Problem](#the-byzantine-generals-problem)
+        + [Comparations](consensus-protocol-comparations)
+        + [Two Armies Problem](#two-armies-problem)
     - [Web Security techniques](#web-security-techniques)
+    - [REST-Representational state transfer](rest-representational-state-transfer)
+        + [Relationship between URI and HTTP Methods](relationship-between-uri-and-http-methods)
+        + [Some common mistakes about RESTful](#some-common-mistakes-about-restful)
+        + [SOAP Web Service vs RESTful Web Service](#soap-web-service-vs-restful-web-service)
+    - [CAP theorem](#cap-theorem)
+    - [Quorum NRW](#quorum-nrw)
+    - [Consistency Model](#consistency-model)
+    - [Fallacies of distributed computing](#fallacies-of-distributed-computing)
+    - [3 results of distribute computing](#3-results-of-distribute-computing)
+    - [Mobile Agent](#mobile-agent)
+    - [Cache](#cache)
 
 ### Hadoop
 
@@ -300,6 +316,19 @@ SOA是一种软件设计准则，一种实现松耦合，高可复用性和粗�
 
 `Web Service是实现SOA的技术之一`。也可以不用Web service来实现SOA应用：例如，用一些传统的技术，像Java RMI，EJB，JMS消息等。但是Web service提供的是标准的平台无关的服务，这些服务采用HTTP、XML、SOAP、WSDL和UDDI技术，因此可以带来J2EE和.NET这些异构技术（heterogeneous technologies）之间的互操作性。
 
+### Grid computing
+网格计算是通过Internet把分散在各处的硬件、软件、信息资源连结成为一个巨大的整体,从而使得人们能够利用地理上分散于各处的资源,完成各种大规 模的、复杂的计算和数据处理的任务。网格计算建立的是一种新型的Internet基础支撑结构,目标是将与Internet互联的计算机设施社会化。网格计算的发展非常迅速,数据网格、服务网格、计算网格等各种网格系统在全球范围内得到广泛的研究和实施。网格计算无疑是分布式计算技术通向计算时代的一个非常重要的里程碑。  
+
+网格的体系结构是有效进行网格计算的重要基础,到目前为止比较重要的网格体系结构有两个:  
+1. 一个是以Globus项目为代表的五层沙漏结构,它是一个以协议为中心的框架
+2. 另一个是与Web服务相融合的开放网格服务结构OGSA(Open Grid Services Architecture),它与Web 服务一样都是以服务为中心。
+ 
+但是,所有的网格系统都有这样一个基本的、公共的体系结构:资源层、中间件层和应用层。  
+1. 网格资源层：它是构成网格系统的硬件基础。包括Internet各种计算资源,这些计算资源通过网络设备连接起来。
+2. 网格中间件层:它是一系列工具和协议软件。其功能是屏蔽资源层中计算资源的分布、异构特性,向网格应用层提供透明、一致的使用接口。
+3. 网格应用层:它是用户需求的具体体现。在网格操作系统的支持下,提供系统能接受的语言、Web 服务接口、二次开发环境和工具,并可配置支持工程应用、数据库访问的软件等。
+
+
 ### Book Recommendation
 
 #### <大型网站系统与Java中间件开发实践> 
@@ -327,23 +356,6 @@ SOA是一种软件设计准则，一种实现松耦合，高可复用性和粗�
 总结：是一本较入门的书，很多东西并没有太深入，但面也算全。适合做为一本分布式的入门书来读。
 
 ### Miscellaneous
-
-CAP theorem
-
-插入一个知识点Quorum NRW模型：
-    N: 复制的节点数量
-    R: 成功读操作的最小节点数
-    W: 成功写操作的最小节点数
-只需W + R > N，就可以保证强一致性。
-
-此处我们的N=3
-当需要高可写的系统时，可以设置W=1 R=3
-当需要高可读的系统时，可以设置W=3 R=1
-
-Quorums[edit]
-Quorums express the safety properties of Paxos by ensuring at least some surviving processor retains knowledge of the results.
-Quorums are defined as subsets of the set of Acceptors such that any two subsets (that is, any two Quorums) share at least one member. Typically, a Quorum is any majority of participating Acceptors. For example, given the set of Acceptors {A,B,C,D}, a majority Quorum would be any three Acceptors: {A,B,C}, {A,C,D}, {A,B,D}, {B,C,D}. More generally, arbitrary positive weights can be assigned to Acceptors and a Quorum defined as any subset of Acceptors with the summary weight greater than half of the total weight of all Acceptors.
-
 
 #### NoSql
 
@@ -556,6 +568,18 @@ On balance, however, a Client-server configuration is preferable to peer-to-peer
 
 Well, why not start off with a peer-to-peer network architecture and then move up to client-server when the time comes?  Because, unless there is some overwhelming consideration to the contrary, it is likely more cost-effective and productivity-effective to begin with client-server, despite the initial cost difference.
 
+#### Master-Slave
+首先是Master-Slave结构，对于这种加构，Slave一般是Master的备份。在这样的系统中，一般是如下设计的：  
+1. 读写请求都由Master负责。
+2. 写请求写到Master上后，由Master同步到Slave上。
+
+从Master同步到Slave上，你可以使用异步，也可以使用同步，可以使用Master来push，也可以使用Slave来pull。 通常来说是Slave来周期性的pull，所以，是`最终一致性`。这个设计的问题是，如果Master在pull周期内垮掉了，那么会导致这个时间片内的数据丢失。如果你不想让数据丢掉，Slave只能成为Read-Only的方式等Master恢复。
+当然，如果你可以容忍数据丢掉的话，你可以马上让Slave代替Master工作（对于只负责计算的结点来说，没有数据一致性和数据丢失的问题，Master-Slave的方式就可以解决单点问题了） 当然，Master Slave也可以是强一致性的， 比如：当我们写Master的时候，Master负责先写自己，等成功后，再写Slave，两者都成功后返回成功，整个过程是同步的，如果写Slave失败了，那么两种方法，一种是标记Slave不可用报错并继续服务（等Slave恢复后同步Master的数据，可以有多个Slave，这样少一个，还有备份，就像前面说的写三份那样），另一种是回滚自己并返回写失败。（注：一般不先写Slave，因为如果写Master自己失败后，还要回滚Slave，此时如果回滚Slave失败，就得手工订正数据了）你可以看到，如果Master-Slave需要做成强一致性有多复杂。
+
+#### Master-Master
+Master-Master，又叫Multi-master，是指一个系统存在两个或多个Master，每个Master都提供read-write服务。这个模型是Master-Slave的加强版，数据间同步一般是通过Master间的异步完成，所以是`最终一致性`。 Master-Master的好处是，一台Master挂了，别的Master可以正常做读写服务，他和Master-Slave一样，当数据没有被复制到别的Master上时，数据会丢失。很多数据库都支持Master-Master的Replication的机制。
+另外，如果多个Master对同一个数据进行修改的时候，这个模型的恶梦就出现了——对数据间的冲突合并，这并不是一件容易的事情。看看Dynamo的Vector Clock的设计（记录数据的版本号和修改者）就知道这个事并不那么简单，而且Dynamo对数据冲突这个事是交给用户自己搞的。就像我们的SVN源码冲突一样，对于同一行代码的冲突，只能交给开发者自己来处理。
+
 #### Consensus Protocols
 ##### Two-phase commit protocol (2PC)
 __两阶段提交协议__  
@@ -661,6 +685,9 @@ This protocol is the most basic of the Paxos family. Each instance of the Basic 
 Note that an Acceptor can accept multiple proposals. These proposals may even have different values in the presence of certain failures. However, the Paxos protocol will guarantee that the Acceptors will ultimately agree on a single value.  
 
 Notice that when Acceptors accept a request, they also acknowledge the leadership of the Proposer. Hence, `Paxos can be used to select a leader in a cluster of nodes.`
+
+**Quorums** express the safety properties of Paxos by ensuring at least some surviving processor retains knowledge of the results.
+Quorums are defined as subsets of the set of Acceptors such that any two subsets (that is, any two Quorums) share at least one member. Typically, a Quorum is any majority of participating Acceptors. For example, given the set of Acceptors {A,B,C,D}, a majority Quorum would be any three Acceptors: {A,B,C}, {A,C,D}, {A,B,D}, {B,C,D}. More generally, arbitrary positive weights can be assigned to Acceptors and a Quorum defined as any subset of Acceptors with the summary weight greater than half of the total weight of all Acceptors.
 
 Here is a graphic representation of the Basic Paxos protocol. Note that the values returned in the Promise message are null the first time a proposal is made, since no Acceptor has accepted a value before in this round.
 
@@ -889,6 +916,45 @@ Conclusion: If the subgraph of loyal generals is connected, this problem can be 
 
 * Some spacecraft such as the SpaceX Dragon flight system and the NASA Crew Exploration Vehicle consider Byzantine fault tolerance in their design.
 
+##### Consensus Protocol Comparations
+
+下图来自：Google App Engine的co-founder Ryan Barrett在2009年的google i/o上的演讲《Transaction Across DataCenter》
+
+items       |Backups        |M/S        |MM         |2PC        |Paxos
+------------|---------------|-----------|-----------|-----------|------
+Consistency |Weak           |Eventual   |Eventual   |Strong     |Strong
+Transactions|No             |Full       |Local      |Full       |Full
+Latency     |Low            |Low        |Low        |High       |High
+Throughput  |High           |High       |High       |Low        |Medium
+Data Loss   |Lots           |Some       |Some       |None       |None
+Failover    |Down           |Read only  |Read/Write |Read/Write |Read/Write
+
+![distributed_consensus_protocol_compare_img_1]
+
+##### Two Armies Problem
+正如前文所说，拜占庭将军问题和两军问题实质是不一样的。国内大量解释拜占庭将军问题的文章将两者混为一谈，其实是混淆了两个问题的实质，由此造成了许多误解。这两个问题看起来的确有点相似，但是问题的前提和研究方向都截然不同。
+
+![distributed_2armies_img_1]
+
+如图1所示，白军驻扎在沟渠里，蓝军则分散在沟渠两边。白军比任何一支蓝军都更为强大，但是蓝军若能同时合力进攻则能够打败白军。他们不能够远程的沟通，只能派遣通信兵穿过沟渠去通知对方蓝军协商进攻时间。是否存在一个能使蓝军必胜的通信协议，这就是两军问题。  
+看到这里您可能发现两军问题和拜占庭将军问题有一定的相似性，但我们必须注意的是，通信兵得经过敌人的沟渠，在这过程中他可能被捕，也就是说，两军问题中信道是不可靠的，并且其中没有叛徒之说，这就是两军问题和拜占庭将军问题的根本性不同。由此可见，大量混淆了拜占庭将军问题和两军问题的文章并没有充分理解两者。  
+两军问题的根本问题在于信道的不可靠，反过来说，如果传递消息的信道是可靠的，两军问题可解。然而，并不存在这样一种信道，所以两军问题在经典情境下是不可解的，为什么呢？  
+倘若1号蓝军（简称1）向2号蓝军（简称2）派出了通信兵，若1要知道2是否收到了自己的信息，1必须要求2给自己传输一个回执，说“你的信息我已经收到了，我同意你提议的明天早上10点9分准时进攻”。  
+然而，就算2已经送出了这条信息，2也不能确定1就一定会在这个时间进攻，因为2发出的回执1并不一定能够收到。所以，1必须再给2发出一个回执说“我收到了”，但是1也不会知道2是否收到了这样一个回执，所以1还会期待一个2的回执。  
+虽然看似很可笑，但在这个系统中永远需要存在一个回执，这对于两方来说都并不一定能够达成十足的确信。更要命的是，我们还没有考虑，通信兵的信息还有可能被篡改。由此可见，经典情形下两军问题是不可解的，并不存在一个能使蓝军一定胜利的通信协议。  
+不幸的是，两军问题作为现代通信系统中必须解决的问题，我们尚不能将之完全解决，这意味着你我传输信息时仍然可能出现丢失、监听或篡改的情况。但我们能不能通过一种相对可靠的方式来解决大部分情形呢？这需要谈到TCP协议。事实上，搜索“两军问题与三次握手”，您一定可以找到大量与TCP协议相关的内容。若您是通信方面的专家，权当笔者是班门弄斧，这里仅用最浅显易懂的方式科普TCP协议的原理和局限，可能存在一些毛刺，请多包涵。  
+
+![distributed_2armies_img_2]
+
+TCP协议中，A先向B发出一个随机数x，B收到x了以后，发给A另一个随机数y以及x+1作为答复，这样A就知道B已经收到了，因为要破解随机数x可能性并不大；然后A再发回y+1给B，这样B就知道A已经收到了。这样，A和B之间就建立一个可靠的连接，彼此相信对方已经收到并确认了信息。  
+而事实上，A并不会知道B是否收到了y+1；并且，由于信道的不可靠性，x或者y都是可能被截获的，这些问题说明了即使是三次握手，也并不能够彻底解决两军问题，只是在现实成本可控的条件下，我们把TCP协议当作了两军问题的现实可解方法。
+
+![distributed_2armies_img_3]
+
+那么，是否能够找到一个理论方法来真正的破解两军问题呢？答案是有的，量子通讯协议，笔者并没有能力弄清这个颇为高深的问题。据我的理解，处于量子纠缠态的两个粒子，无论相隔多远都能够彼此同步，光是直观的来看，这个效应可以用来实现保密通讯。  
+但是由于测不准原理，一测量粒子状态就会改变其状态，所以通讯时还必须通过不可靠信道发送另一条信息。尽管这个“另一条信息”是不可靠的，但是由于已经存在了一条绝对可靠的信道（量子纠缠），保证了另一条信道即使不可靠也能保证消息是可靠的，否则至少被窃取了一定能够被发现。  
+因此我们可以相信，至少理论上两军问题是可解的，即存在一种方法，即使利用了不可靠的信道，也能保证信息传递的可靠性。所以，在确保了信道可靠的基础上，我们可以回到拜占庭将军问题上继续讨论。
+
 #### Web Security techniques
 
 1. 以`“保护”`为目的的第一代网络安全技术
@@ -909,6 +975,277 @@ Conclusion: If the subgraph of loyal generals is connected, this problem can be 
 
 多方安全计算的技术、门槛密码技术、Byzantine协议技术等成为入侵容忍技术的理论基础。
 
+#### REST-Representational state transfer
+[For more information][restful_1]  
+
+In computing, __representational state transfer (REST)__ is an architectural style consisting of a coordinated set of components, connectors, and data elements within a distributed hypermedia system, where the focus is on component roles and a specific set of interactions between data elements rather than implementation details.Its purpose is to induce `performance, scalability`, `simplicity`, `modifiability`, visibility, portability, and reliability. REST is the software architectural style of the World Wide Web.
+
+The term representational state transfer was introduced and defined in 2000 by Roy Fielding in his doctoral dissertation at UC Irvine. REST has been applied to describe desired web architecture, to identify existing problems, to compare alternative solutions and to ensure that protocol extensions would not violate the core constraints that make the web successful.` Fielding used REST to design HTTP 1.1 and Uniform Resource Identifiers (URI).`
+To the extent that systems conform to the constraints of REST they can be called RESTful. `RESTful systems typically, but not always, communicate over Hypertext Transfer Protocol (HTTP) with the same HTTP verbs (GET, POST, PUT, DELETE, etc.) that web browsers use to retrieve web pages and to send data to remote servers.` `REST systems interface with external systems as web resources identified by Uniform Resource Identifiers (URIs), for example /people/tom, which can be operated upon using standard verbs such as GET /people/tom.`
+The name "Representational State" is intended to evoke an image of how a well-designed Web application behaves: `a network of web pages (a virtual state-machine)`, where the user progresses through the application by selecting links (state transitions), resulting in the next page (representing the next state of the application) being transferred to the user and rendered for their use.
+
+Scalability to support large numbers of components and interactions among components. Roy Fielding, one of the principal authors of the HTTP specification, describes REST's effect on scalability as follows:
+REST's client–server separation of concerns simplifies component implementation, reduces the complexity of connector semantics, improves the effectiveness of performance tuning, and increases the scalability of pure server components. Layered system constraints allow intermediaries—proxies, gateways, and firewalls—to be introduced at various points in the communication without changing the interfaces between components, thus allowing them to assist in communication translation or improve performance via large-scale, shared caching. REST enables intermediate processing by constraining messages to be self-descriptive: interaction is stateless between requests, standard methods and media types are used to indicate semantics and exchange information, and responses explicitly indicate cacheability.
+
+__Architectural constraints__  
+The architectural properties of REST are realized by applying specific interaction constraints to components, connectors, and data elements.One can characterise applications conforming to the REST constraints described in this section as "RESTful". If a service violates any of the required constraints, it cannot be considered RESTful. Complying with these constraints, and thus conforming to the REST architectural style, enables any kind of distributed hypermedia system to have desirable non-functional properties, such as performance, scalability, simplicity, modifiability, visibility, portability, and reliability.
+
+__The formal REST constraints are__  
+
+* Client–server  
+A uniform interface separates clients from servers. This separation of concerns means that, for example, clients are not concerned with data storage, which remains internal to each server, so that the portability of client code is improved. Servers are not concerned with the user interface or user state, so that servers can be simpler and more scalable. Servers and clients may also be replaced and developed independently, as long as the interface between them is not altered.
+
+* Stateless  
+The client–server communication is further constrained by no client context being stored on the server between requests. `Each request from any client contains all the information necessary to service the request, and session state is held in the client.` The session state can be transferred by the server to another service such as a database to maintain a persistent state for a period and allow authentication. The client begins sending requests when it is ready to make the transition to a new state. While one or more requests are outstanding, the client is considered to be in transition. The representation of each application state contains links that may be used the next time the client chooses to initiate a new state-transition.
+
+* Cacheable  
+As on the World Wide Web, clients and intermediaries can cache responses. Responses must therefore, implicitly or explicitly, define themselves as cacheable, or not, to prevent clients from reusing stale or inappropriate data in response to further requests. Well-managed caching partially or completely eliminates some client–server interactions, further improving scalability and performance.(PS:not global caching)
+
+* Layered system  
+A client cannot ordinarily tell whether it is connected directly to the end server, or to an intermediary along the way. Intermediary servers may improve system scalability by enabling load balancing and by providing shared caches. They may also enforce security policies.
+
+* Code on demand(optional)  
+Servers can temporarily extend or customize the functionality of a client by the transfer of executable code. Examples of this may include compiled components such as `Java applets` and `client-side scripts such as JavaScript.`
+
+* Uniform interface  
+`The uniform interface constraint is fundamental to the design of any REST service.` The uniform interface simplifies and decouples the architecture, which enables each part to evolve independently. The 4 constraints for this uniform interface are: 
+    1. Identification of resources  
+    Individual resources are identified in requests, for example using URIs in web-based REST systems. The resources themselves are conceptually separate from the representations that are returned to the client. For example, the server may send data from its database as HTML, XML or JSON, none of which are the server's internal representation.
+    2. Manipulation of resources through these representations  
+    When a client holds a representation of a resource, including any metadata attached, it has enough information to modify or delete the resource.
+    3. Self-descriptive messages  
+    Each message includes enough information to describe how to process the message. For example, which parser to invoke may be specified by an Internet media type (previously known as a MIME type).
+    4. Hypermedia as the engine of application state (HATEOAS)  
+    Clients make state transitions only through actions that are dynamically identified within hypermedia by the server (`e.g., by hyperlinks` withinhypertext). Except for simple fixed entry points to the application, a client does not assume that any particular action is available for any particular resources beyond those described in representations previously received from the server. There is no universally accepted format for representing links between two resources. RFC 5988 and [JSON Hypermedia API Language] (proposed) are two popular formats for specifying REST hypermedia links.
+
+__Applied to web services__  
+
+Web service APIs that adhere to the REST architectural constraints are called [RESTful APIs]. HTTP-based RESTful APIs are defined with the following aspects:  
+* base URI, such as http://example.com/resources/
+* an `Internet media type` for the data. This is often `JSON` but can be any other valid Internet media type (e.g., XML, Atom, microformats, application/vnd.collection+json, etc.)
+* standard HTTP methods (e.g., OPTIONS, GET, PUT, POST, and DELETE)
+* hypertext links to reference state
+* hypertext links to reference-related resources
+
+##### Relationship between URI and HTTP Methods
+
+The following table shows how HTTP methods are typically used in a RESTful API:  
+
+Uniform Resource Identifier (URI)   |GET |PUT |POST    |DELETE
+-----------|-----------------|----------------|---------------|--------------
+Collection(such as http://api.example.com/resources/)|List the URIs and perhaps other details of the collection's members.  |Replace the entire collection with another collection.  |Create a new entry in the collection. The new entry's URI is assigned automatically and is usually returned by the operation.|Delete the entire collection.
+Element(such as http://api.example.com/resources/item17) |Retrieve a representation of the addressed member of the collection, expressed in an appropriate Internet media type.   |Replace the addressed member of the collection, or if it does not exist,create it.  |Not generally used. Treat the addressed member as a collection in its own right and create a new entry in it.|Delete the addressed member of the collection.
+
+The PUT and DELETE methods are referred to as __idempotent__, meaning that the operation will produce the same result no matter how many times it is repeated. The `GET method` is a safe method (or nullipotent), meaning that calling it produces `no side-effects`. In other words, retrieving or accessing a record does not change it. The distinction between PUT/DELETE and GET are roughly analogous to the notion of Command-Query Separation (CQS). For example: A query operation (like GET) promises no side-effects (e.g. changes) in data being queried. Commands (like PUT/DELETE) answer no questions about the data, but compute changes applied to the data (e.g. UPDATE or INSERT to use database terms).  
+
+Unlike SOAP-based web services, there is no "official" standard for RESTful web APIs. This is because REST is an architectural style, while SOAP is a protocol. Even though REST is not a standard per se, most RESTful implementations make use of standards such as HTTP, URI, JSON, and XML.
+
+##### Some common mistakes about RESTful
+1. 最常见的一种设计错误，就是URI包含动词  
+因为”资源”表示一种实体，所以应该是名词，URI不应该有动词，动词应该放在HTTP协议中。
+
+举例来说，某个URI是/posts/show/1，其中show是动词，这个URI就设计错了，正确的写法应该是/posts/1，然后用GET方法表示show.
+
+如果某些动作是HTTP动词表示不了的，你就应该把动作做成一种资源。比如网上汇款，从账户1向账户2汇款500元，错误的URI是：
+```html
+POST /accounts/1/transfer/500/to/2
+```
+
+正确的写法是把动词transfer改成名词transaction，资源不能是动词，但是可以是一种服务
+```html
+POST /transaction HTTP/1.1
+Host: 127.0.0.1
+from=1&to=2&amount=500.00
+```
+
+2. 另一个设计误区，就是在URI中加入版本号  
+```html
+http://www.example.com/app/2.0/foo
+```
+
+因为不同的版本，可以理解成同一种资源的不同表现形式，所以应该采用同一个URI。版本号可以在HTTP请求头信息的Accept字段中进行区分（参见[Versioning REST Services][restful_2]）：  
+```html
+Accept: vnd.example-com.foo+json; version=1.1
+```
+
+##### SOAP Web Service vs RESTful Web Service
+
+1. SOAP WS支持既远程过程调用（例如，RPC）又支持消息中间件（MOM）方式进行应用集成。而Restful Web Service仅支持RPC集成方式。
+2. SOAP WS是传输协议无关的。它支持多种协议，比如，HTTP(S)、 Messaging、TCP、UDP SMTP等等。而REST是协议相关的`，只支持HTTP或者HTTPS协议`
+3. SOAP WS仅允许使用XML数据格式。定义的操作通过POST请求发送。其重点是通过操作名来获取服务，并将应用逻辑封装为服务。而REST方式则允许多种数据格式，例如，XML、JSON、文本、HTML等等。而且由于REST方式采用标准GET、PUT、POST和DELETE方法，因此所有的浏览器都可以支持。其重点是通过资源名来获取服务，并将数据封装为服务。AJAX支持REST方式，它可以使用XMLHttpRequest对象。无状态CRUD操作（创建、读、更新和删除）更加适合这种方式。
+4. 无法缓存SOAP方式读取的内容。而REST方式的则可以，而且性能和可扩展性都更好一些。  
+HTTP 协议通过 HTTP HEADER 域：If-Modified-Since/Last-Modified，If-None-Match/ETag 实现带条件的 GET 请求。
+REST 的应用可以充分地挖掘 HTTP 协议对缓存支持的能力。当客户端第一次发送 HTTP GET 请求给服务器获得内容后，该内容可能被缓存服务器 (Cache Server) 缓存。当下一次客户端请求同样的资源时，缓存可以直接给出响应，而不需要请求远程的服务器获得。而这一切对客户端来说都是透明的。
+5. SOAP WS支持SSL和WS-security，针对企业级应用可以有更多的安全保障，例如按需提升安全指数、通过第三方来保证身份认证信息的安全性、除了点到点SSL（point to point SSL）之外，更针对消息的不同部分来提供不同的保密算法等等。而REST只支持点到点SSL。而且无论是不是敏感消息，SSL都会加密整条消息。
+6. SOAP对于基于ACID的短寿命事务管理以及基于补偿事务管理的长寿命事务有深入的支持。同时，SOAP也支持分布式事务（译者：在一个分布式环境中涉及到多个资源管理器的事务）的两阶段提交（two-phase commit）方式。而REST由于基于HTTP协议，因此对于事务处理既不兼容ACID方式也不提供分布式事务的两阶段提交方式。  
+WS-Security、WS-Transactions和WS-Coordination等标准提供了上下文信息与对话状态管理
+7. 即便是要通过SOAP的第三方程序，SOAP通过内置的重试逻辑也可以提供端到端可靠性。REST没有一个标准的消息系统，因而寄希望于客户通过重连去解决通信失败问题。
+
+>测试SOAP WS可以使用SoapUI，测试RESTFul service可以采用Firefox的“poster”插件。
+
+#### CAP theorem
+
+![distributed_cap_img_1]  
+
+In theoretical computer science, the CAP theorem, also named Brewer's theorem after computer scientist Eric Brewer, states that it is impossible for a distributed computer system to simultaneously provide all three of the following guarantees:
+•   Consistency (all nodes see the same data at the same time)
+•   Availability (every request receives a response about whether it succeeded or failed)
+•   Partition tolerance (the system continues to operate despite arbitrary partitioning due to network failures)
+
+[A very living case study][distributed_cap_1]  
+[For more information][distributed_cap_2]  
+
+The CAP Theorem states that, in a distributed system (a collection of interconnected nodes that share data.), you can only have two out of the following three guarantees across a write/read pair: Consistency, Availability, and Partition Tolerance - one of them must be sacrificed. 
+
+* Consistency - A read is guaranteed to return the most recent write for a given client.
+* Availability - A non-failing node will return a reasonable response within a reasonable amount of time (no error or timeout).
+* Partition Tolerance - The system will continue to function when network partitions occur.
+
+Given that networks aren’t completely reliable, `you must tolerate partitions in a distributed system`, period. Fortunately, though, you get to choose what to do when a partition does occur. According to the CAP theorem, `this means we are left with two options: Consistency and Availability.`
+
+Before moving further, we need to set one thing straight. Object Oriented Programming != Network Programming! There are assumptions that we take for granted when building applications that share memory, which break down as soon as nodes are split across space and time.
+
+PS: In the following diagrams, C is a client trying to read latest value, supposed that value y in N1 is latest update, however, there is partition between N1 and N2, what will return if C trys to read the value? value x or an error message?
+
+* CP - Consistency/Partition Tolerance  
+Wait for a response from the partitioned node which could result in a timeout error. The system can also choose to return an error, depending on the scenario you desire. Choose Consistency over Availability when your business requirements dictate `atomic reads and writes`.
+
+![distributed_cap_img_2]  
+
+* AP - Availability/Partition Tolerance  
+Return the most recent version of the data you have, which could be stale. This system state will also accept writes that can be processed later when the partition is resolved. Choose Availability over Consistency when your business requirements allow for some flexibility around when the data in the system synchronizes. Availability is also a compelling option when the system needs to continue to function in spite of external errors (`shopping carts`, etc.)  
+现在众多的NoSQL都属于此类
+
+![distributed_cap_img_3]  
+
+[For more information][distributed_cap_3]  
+质疑3：应该构建不可变模型避免CAP的复杂性  
+【7】的文章标题就是锤死CAP，作者对CAP的不屑溢于言表！
+作者认为CAP的困境在于允许数据变更，每次变更就得数据同步，保持一致性，这样系统非常复杂。
+他认为数据就是客观存在的，不可变，只能增、查。传统的CURD变为CR。这个概念非常类似Cassandra中的顺序写的概念，任何的变更都是增加记录。通过对所有记录的操作进行合并，从而得到最终记录。
+因此，作者认为任何的数据模型都应该抽象为：Query=Function(all data)，任何的数据试图都是查询，查询是对全体数据施加了某个函数的结果。这个定义清晰简单，完全抛弃了CAP那些繁琐而又模糊的语义。因为每次操作都是队所有数据进行全局计算，也就没有了一致性问题！
+有这样的系统吗？有，Hadoop便是！作者认为，Hadoop的HDFS只支持数据增加，而Mapeduce却进行全局计算，完美地符合了他对数据处理的期望！
+Hadoop也存在某个节点数据丢失的问题，但随着流式计算，丢失的数据终究会随着系统的正常而被最终合并，因此数据最终是一致的。
+Hadoop不能进行实时计算咋办？作者又构建了一套基于Cassandra和ElephantDB的实时数据处理系统。。。。搞的无比复杂！
+
+#### Quorum NRW
+对于分布式系统，为了保证高可用性，一般设置N>=3。不同的N,W,R组合，是在可用性和一致性之间取一个平衡，以适应不同的应用
+
+插入一个知识点Quorum NRW模型：
+    N: 复制的节点数量
+    R: 成功读操作的最小节点数
+    W: 成功写操作的最小节点数
+只需W + R > N，就可以保证强一致性。
+
+此处我们的N=3
+当需要高可写的系统时，可以设置W=1 R=3
+当需要高可读的系统时，可以设置W=3 R=1
+
+从服务端角度，如何尽快将更新后的数据分布到整个系统，降低达到最终一致性的时间窗口，是提高系统的可用度和用户体验非常重要的方面。对于分布式数据系统：
+* N — 数据复制的份数
+* W — 更新数据是需要保证写完成的节点数
+* R — 读取数据的时候需要读取的节点数
+
+如果W+R>N，写的节点和读的节点重叠，则是强一致性。例如对于典型的一主一备同步复制的关系型数据库，N=2,W=2,R=1，则不管读的是主库还是备库的数据，都是一致的。
+
+如果W+R<=N，则是弱一致性。例如对于一主一备异步复制的关系型数据库，N=2,W=1,R=1，则如果读的是备库，就可能无法读取主库已经更新过的数据，所以是弱一致性。
+
+场景:  
+* 如果N=W,R=1，任何一个写节点失效，都会导致写失败，因此可用性会降低，但是由于数据分布的N个节点是同步写入的，因此可以保证强一致性。
+* 如果N=R,W=1，只需要一个节点写入成功即可，写性能和可用性都比较高。但是读取其他节点的进程可能不能获取更新后的数据，因此是弱一致性。这种情况下，如果W<(N+1)/2，并且写入的节点不重叠的话，则会存在写冲突 
+
+#### Consistency Model
+一致型的模型主要有三种：  
+1. Strong Consistency（强一致性）：新的数据一旦写入，在任意副本任意时刻都能读到新值。比如：文件系统，RDBMS，Azure Table都是强一致性的。
+2. Week Consistency（弱一致性）：不同副本上的值有新有旧，需要应用方做更多的工作获取最新值。比如Dynamo。
+3. Evantual Consistency（最终一致性）：一旦更新成功，各副本的数据最终将达到一致。
+
+从这三种一致型的模型上来说，我们可以看到，Weak和Eventually一般来说是异步冗余的，而Strong一般来说是同步冗余的(多写)，异步的通常意味着更好的性能，但也意味着更复杂的状态控制。同步意味着简单，但也意味着性能下降。
+
+当然，牺牲一致性，并不是完全不管数据的一致性，否则数据是混乱的，那么系统可用性再高分布式再好也没有了价值。牺牲一致性，只是不再要求关系型数据库中的强一致性，而是只要系统能达到最终一致性即可，考虑到客户体验，这个最终一致的时间窗口，要尽可能的对用户透明，也就是需要保障“用户感知到的一致性”。通常是通过数据的多份异步复制来实现系统的高可用和数据的最终一致性的，“用户感知到的一致性”的时间窗口则取决于数据复制到一致状态的时间。
+
+__最终一致性(eventually consistent)__  
+对于一致性，可以分为从客户端和服务端两个不同的视角。从客户端来看，一致性主要指的是多并发访问时更新过的数据如何获取的问题。从服务端来看，则是更新如何复制分布到整个系统，以保证数据最终一致。一致性是因为有并发读写才有的问题，因此在理解一致性的问题时，一定要注意结合考虑并发读写的场景。
+
+从客户端角度，多进程并发访问时，更新过的数据在不同进程如何获取的不同策略，决定了不同的一致性。对于关系型数据库，要求更新过的数据能被后续的访问都能看到，这是强一致性。如果能容忍后续的部分或者全部访问不到，则是弱一致性。如果经过一段时间后要求能访问到更新后的数据，则是最终一致性。
+
+`最终一致性根据更新数据后各进程访问到数据的时间和方式的不同`，又可以区分为：  
+1. Causal Consistency（因果一致性）  
+如果进程A通知进程B它已更新了一个数据项，那么进程B的后续访问将返回更新后的值，且一次写入将保证取代前一次写入。与进程A无因果关系的进程C的访问遵守一般的最终一致性规则。
+2. Read-your-writes Consistency（读你所写一致性）  
+当进程A自己更新一个数据项之后，它总是访问到更新过的值，绝不会看到旧值。这是因果一致性模型的一个特例。
+3. Session Consistency（会话一致性）  
+这是上一个模型的实用版本，它把访问存储系统的进程放到会话的上下文中。只要会话还存在，系统就保证“读己之所写”一致性。如果由于某些失败情形令会话终止，就要建立新的会话，而且系统的保证不会延续到新的会话。
+4. Monotonic Read Consistency（单调一致性）  
+如果进程已经看到过数据对象的某个值，那么任何后续访问都不会返回在那个值之前的值。
+5. 单调写一致性  
+系统保证来自同一个进程的写操作顺序执行。要是系统不能保证这种程度的一致性，就非常难以编程了。
+
+其中最重要的变体是第二条：Read-your-Writes Consistency。特别适用于数据的更新同步，用户的修改马上对自己可见，但是其他用户可以看到他老的版本。Facebook的数据同步就是采用这种原则。
+
+上述最终一致性的不同方式可以进行组合，例如单调读一致性和读己之所写一致性就可以组合实现。并且从实践的角度来看，这两者的组合，读取自己更新的数据，和一旦读取到最新的版本不会再读取旧版本，对于此架构上的程序开发来说，会少很多额外的烦恼。  
+从服务端角度，如何尽快将更新后的数据分布到整个系统，降低达到最终一致性的时间窗口，是提高系统的可用度和用户体验非常重要的方面。
+
+#### Fallacies of distributed computing
+The fallacies of distributed computing are a set of assumptions that L Peter Deutsch and others at Sun Microsystems originally asserted programmers new to distributed applications invariably make. These assumptions ultimately prove false, resulting either in the failure of the system, a substantial reduction in system scope, or in large, unplanned expenses required to redesign the system to meet its original goals.
+
+The fallacies are:
+1. The network is reliable.
+2. Latency is zero.
+3. Bandwidth is infinite.
+4. The network is secure.
+5. Topology doesn't change.
+6. There is one administrator.
+7. Transport cost is zero.
+8. The network is homogeneous
+
+The effects of the fallacies  
+1. Software applications are written with little error-handling on networking errors. During a network outage, such applications may stall or infinitely wait for an answer packet, permanently consuming memory or other resources. When the failed network becomes available, those applications may also fail to retry any stalled operations or require a (manual) restart.
+2. Ignorance of network latency, and of the packet loss it can cause, induces application- and transport-layer developers to allow unbounded traffic, greatly increasing dropped packets and wasting bandwidth.
+3. Ignorance of bandwidth limits on the part of traffic senders can result in bottlenecks over frequency-multiplexed media.
+4. Complacency regarding network security results in being blindsided by malicious users and programs that continually adapt to security measures.
+5. Changes in network topology can have effects on both bandwidth and latency issues, and therefore similar problems.
+6. Multiple administrators, as with subnets for rival companies, may institute conflicting policies of which senders of network traffic must be aware in order to complete their desired paths.
+7. The "hidden" costs of building and maintaining a network or subnet are non-negligible and must consequently be noted in budgets to avoid vast shortfalls.
+8. If a system assumes a homogeneous network, than it can lead to the same problems that result from the first three fallacies.
+
+#### 3 results of distribute computing
+一个网络服务会有三种状态：1）Success，2）Failure，3）Timeout，第三个绝对是恶梦，尤其在你需要维护状态的时候。
+
+#### Mobile Agent
+__移动Agent技术__  
+目前还没有一个关于移动Agent的确切定义，我们一般认为`移动Agent是一类能在自己控制之下从一台计算机移动到另一台计算机的自治程序，它们能为分布式应用提供方便的、高效的执行框架。`
+
+移动Agent是一类特殊的软件Agent，可以看成是软件Agent技术与分布式计算技术相结合的产物，它除了具有软件Agent的基本特性 ——自治性、响应性、主动性和推理性外，还具有移动性，`即它可以在网络上从一台主机自主地移动到另一台主机，代表用户完成指定的任务`。由于移动Agent 可以在异构的软、硬件网络环境中自由移动，因此这种新的计算模式能有效地降低分布式计算中的网络负载、提高通信效率、动态适应变化的网络环境，并具有很好的安全性和容错能力。但目前，`所有的移动Agent系统还都很不成熟`，存在着各种各样的缺陷。所以，我们可以把目前的众多Agent系统看成是实验室系统，它们离真正实用的产品还有很大的距离。
+
+#### Cache
+
+##### 缓存穿透及缓存雪崩
+
+__什么是缓存穿透？__  
+
+一般的缓存系统，都是按照key去缓存查询，如果不存在对应的value，就应该去后端系统查找（比如DB）。如果key对应的value是一定不存在的，并且对该key并发请求量很大，就会对后端系统造成很大的压力。这就叫做缓存穿透。
+ 
+如何避免？  
+1. 对查询结果为空的情况也进行缓存，缓存时间设置短一点，或者该key对应的数据insert了之后清理缓存。
+2. 对一定不存在的key进行过滤。可以把所有的可能存在的key放到一个大的Bitmap中，查询时通过该bitmap过滤。【感觉应该用的不多吧】(最常见的则是采用布隆过滤器)
+
+__什么是缓存雪崩？__  
+当缓存服务器重启或者大量缓存集中在某一个时间段失效，这样在失效的时候，也会给后端系统(比如DB)带来很大压力。
+
+如何避免？  
+1. 在缓存失效后，通过加锁或者队列来控制读数据库写缓存的线程数量。比如对某个key只允许一个线程查询数据和写缓存，其他线程等待。
+2. 不同的key，设置不同的过期时间，让缓存失效的时间点尽量均匀。
+3. 做二级缓存，A1为原始缓存，A2为拷贝缓存，A1失效时，可以访问A2，A1缓存失效时间设置为短期，A2设置为长期（此点为补充）
+
+__缓存数据的淘汰__  
+缓存淘汰的策略有两种  
+1. 定时去清理过期的缓存。 
+2. 当有用户请求过来时，再判断这个请求所用到的缓存是否过期，过期的话就去底层系统得到新数据并更新缓存。
+ 
+两者各有优劣，第一种的缺点是维护大量缓存的key是比较麻烦的，第二种的缺点就是每次用户请求过来都要判断缓存失效，逻辑相对比较复杂，具体用哪种方案，大家可以根据自己的应用场景来权衡。
+
+缓存预热可以防止缓存穿透和雪崩
 
 ---
 [distributed_misc_1]:http://www.enterprise-technology.net/network3.htm "p2p vs cs"
@@ -944,6 +1281,18 @@ Conclusion: If the subgraph of loyal generals is connected, this problem can be 
 [distributed_byzantine_2]:http://marknelson.us/2007/07/23/byzantine/ "The Byzantine Generals Problem"
 [distributed_byzantine_3]:http://pages.cs.wisc.edu/~sschang/OS-Qual/reliability/byzantine.htm "The Byzantine Generals Problem"
 [distributed_byzantine_4]:https://en.wikipedia.org/wiki/Byzantine_fault_tolerance "Byzantine fault tolerance"
+[distributed_consensus_protocol_compare_img_1]:/resources/img/java/distributed_consensus_protocol_compare_1.png "Consensus protocol compare"
+[restful_1]:https://en.wikipedia.org/wiki/Representational_state_transfer "Representational state transfer"
+[restful_2]:http://www.informit.com/articles/article.aspx?p=1566460 "Versioning REST Services"
+[distributed_cap_img_1]:/resources/img/java/distributed_cap_1.png "CAP Theorem"
+[distributed_cap_img_2]:/resources/img/java/distributed_cap_2.png "CAP Theorem example-cp"
+[distributed_cap_img_3]:/resources/img/java/distributed_cap_3.png "CAP Theorem example-ap"
+[distributed_cap_1]:http://ksat.me/a-plain-english-introduction-to-cap-theorem/ "CAP Theorem example"
+[distributed_cap_2]:http://robertgreiner.com/2014/08/cap-theorem-revisited/ "cap-theorem-revisited"
+[distributed_cap_3]:http://blog.csdn.net/chen77716/article/details/30635543 "cap theorem"
+[distributed_2armies_img_1]:/resources/img/java/distributed_2armies_1.png "Two Armies Problems"
+[distributed_2armies_img_2]:/resources/img/java/distributed_2armies_2.png "TCP协议的基本原理"
+[distributed_2armies_img_3]:/resources/img/java/distributed_2armies_3.png "量子隐形传态的原理图"
 
 
 

@@ -11,8 +11,6 @@ ___
 ### DO-DO
 
 - [ ] :heart_eyes_cat: keep pratising, long run and belly practise, arm massage
-
-- [ ] :kissing_cat: :one: bring darling to 美食街
 - [ ] :kissing_cat: :one: bring darling to 野餐
 - [ ] :kissing_cat: :one: transfer and revise Interview.doc to md document
 - [ ] :kissing_cat: :two: review coupang projects and techniques
@@ -134,6 +132,9 @@ ___
 - [ ] :kissing_cat: :two: go through other review preparation materials
     - [x] :arrow_right_hook: ~~spring~~
     - [x]:arrow_right_hook: ~~hibernate~~ 
+
+##### 2071-05-11
+- [x] :kissing_cat: :one: ~~bring darling to 美食街~~
 
 ##### 2017-04-26
 - [x] :kissing_cat: :two: ~~help darling to start learning english/economic books~~
