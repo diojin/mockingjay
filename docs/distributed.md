@@ -1,9 +1,6 @@
 ## Distributed
 ---
 
-* [NoSql](#nosql)
-    - [NoSql Categories](#nosql-categories)
-    - [NoSql Characteristics](#nosql-characteristics)
 * [Hadoop](#hadoop)
     - [Hive](#hive)
     - [HBase](#hbase)
@@ -1250,7 +1247,7 @@ __缓存数据的淘汰__
 ---
 [distributed_misc_1]:http://www.enterprise-technology.net/network3.htm "p2p vs cs"
 [hadoop_1]:/resources/img/java/hadoop_1.png "Hadoop framework"
-[hadostm_1op_2]:/resources/img/java/hadoop_2.png "Hadoop product line"
+[hadoop_2]:/resources/img/java/hadoop_2.png "Hadoop product line"
 [stm_1]: https://en.wikipedia.org/wiki/Software_transactional_memory#Java "Software_transactional_memory"
 [cluster_types_1]:https://www.centos.org/docs/5/html/Cluster_Suite_Overview/s1-clstr-basics-CSO.html "Cluster Types"
 [cluster_1]:http://www.jfox.info/java-ji-qun-ji-shu-mian-shi-de-yi-xie-zhi-shi-zhun-bei "Cluster Overview"
