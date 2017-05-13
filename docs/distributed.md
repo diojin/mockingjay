@@ -694,7 +694,7 @@ __Another message flow chart from other resource:__
 
 PS: there are some notices,   
 * MaxN and AcceptedN should be same thing in Basic Paxos
-* in 1st flow, acceptor notices all learners, however, in 2nd flow, proposer does the job
+* in 1st flow, acceptor notices all proposers and learners, however, in 2nd flow, proposer does the job
 
 至于Paxos中一直提到的一个全局唯一且递增的proposer number，其如何实现，引用如下：  
 >如何产生唯一的编号呢？在《Paxos made simple》中提到的是让所有的Proposer都从不相交的数据集合中进行选择，例如系统有5个Proposer，则可为每一个Proposer分配一个标识j(0~4)，则每一个proposer每次提出决议的编号可以为5*i + j(i可以用来表示提出议案的次数)
@@ -751,7 +751,7 @@ __Message flow: Fast Byzantine Multi-Paxos, steady state__
 * 大规模的应用都会实现自己的配置服务，比如用http web服务来实现配置中心化。它的缺点是更新后所有client无法立即得知，各节点加载的顺序无法保证，造成系统中的配置不是同一状态。
 4. membership用户角色/access control list  
 比如在权限设置中，用户一旦设置某项权限比如由管理员变成普通身份，这时应在所有的服务器上所有远程CDN立即生效，否则就会导致不能接受的后果。
-5. ID generation
+5. ID generation  
 通常简单的解决方法是用数据库自增ID, 这导致数据库切分困难，或程序生成GUID, 这通常导致ID过长。更优雅的做法是`利用paxos算法在多台replicas之间选择一个作为master`, 通过master来分配号码。当master发生故障时，再用paxos选择另外一个master。
 
 这里列举了一些常见的Paxos应用场合，对于类似上述的场合，如果用其它解决方案，一方面不能提供自动的高可用性方案，同时也远远没有Paxos实现简单及优雅。
@@ -855,7 +855,8 @@ Algorithm - recursive
 
 我们用集合Vi来表示i副官收到的命令集，这是一个集合，也就是满足互异性（没有重复的元素）等集合的条件。类似的，我们定义choice(V)函数来决定各个副官的选择，这个函数可以有非常多种形式，他只要满足了以下两个条件：  
 1. 如果集合V只包含了一个元素v，那么choice(V)=v
-2. choice(o)=RETREAT，其中o是空集
+2. choice(o)=RETREAT，其中o是空集  
+
 任何满足了这两个条件的函数都可以作为choice()，例如取平均值就可以。我们只需要根据具体情形定义choice()即可
 
 之后我们会发现SM(m)算法并不是一个递归算法，`我们只要让各个副官收到的V集相同`，choice(V)也一定能够得到相同的值。
@@ -884,8 +885,9 @@ PS: in short,
 ###### Missing Communication Paths
 Network topology or policy could keep a general sending/receiving messages to/from another general, this constraint makes Byzantine problem more general
 
-* Oral Message
-Conclusion: If the communication graph is 3m-regular and less than or equal to m generals are traitors, this problem can be solved.
+1. Oral Message  
+__Conclusion__:  
+If the communication graph is 3m-regular and less than or equal to m generals are traitors, this problem can be solved.
 
 __k regular set of neighbors of a node p__  
 * the set of all neighbors of p, whose size is k 
@@ -896,8 +898,8 @@ __k regular set of neighbors of a node p__
 __Solution:__  
 Lieutenants recursively forward orders to all its k regular neighbors
 
-* Signed Message
-Conclusion: If the subgraph of loyal generals is connected, this problem can be solved
+2. Signed Message  
+__Conclusion:__  If the subgraph of loyal generals is connected, this problem can be solved
 
 ###### Byzantine fault tolerance in practice
 
