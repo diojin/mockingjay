@@ -1000,17 +1000,17 @@ A client cannot ordinarily tell whether it is connected directly to the end serv
 Servers can temporarily extend or customize the functionality of a client by the transfer of executable code. Examples of this may include compiled components such as `Java applets` and `client-side scripts such as JavaScript.`
 
 * Uniform interface  
-`The uniform interface constraint is fundamental to the design of any REST service.` The uniform interface simplifies and decouples the architecture, which enables each part to evolve independently. The 4 constraints for this uniform interface are: 
+`The uniform interface constraint is fundamental to the design of any REST service.` The uniform interface simplifies and decouples the architecture, which enables each part to evolve independently. The 4 constraints for this uniform interface are:  
     1. Identification of resources  
     Individual resources are identified in requests, for example using URIs in web-based REST systems. The resources themselves are conceptually separate from the representations that are returned to the client. For example, the server may send data from its database as HTML, XML or JSON, none of which are the server's internal representation.
     2. Manipulation of resources through these representations  
     When a client holds a representation of a resource, including any metadata attached, it has enough information to modify or delete the resource.
     3. Self-descriptive messages  
-    Each message includes enough information to describe how to process the message. For example, which parser to invoke may be specified by an Internet media type (previously known as a MIME type).
+    Each message includes enough information to describe how to process the message. For example, which parser to invoke may be specified by an `Internet media type` (previously known as a MIME type).
     4. Hypermedia as the engine of application state (HATEOAS)  
-    Clients make state transitions only through actions that are dynamically identified within hypermedia by the server (`e.g., by hyperlinks` withinhypertext). Except for simple fixed entry points to the application, a client does not assume that any particular action is available for any particular resources beyond those described in representations previously received from the server. There is no universally accepted format for representing links between two resources. RFC 5988 and [JSON Hypermedia API Language] (proposed) are two popular formats for specifying REST hypermedia links.
+    Clients make state transitions only through actions that are dynamically identified within hypermedia by the server (`e.g., by hyperlinks` within hypertext). Except for simple fixed entry points to the application, a client does not assume that any particular action is available for any particular resources beyond those described in representations previously received from the server. There is no universally accepted format for representing links between two resources. RFC 5988 and [JSON Hypermedia API Language] (proposed) are two popular formats for specifying REST hypermedia links.
 
-__Applied to web services__  
+__Applied to web services__  
 
 Web service APIs that adhere to the REST architectural constraints are called [RESTful APIs]. HTTP-based RESTful APIs are defined with the following aspects:  
 * base URI, such as http://example.com/resources/
@@ -1079,10 +1079,10 @@ WS-Security、WS-Transactions和WS-Coordination等标准提供了上下文信息
 
 ![distributed_cap_img_1]  
 
-In theoretical computer science, the CAP theorem, also named Brewer's theorem after computer scientist Eric Brewer, states that it is impossible for a distributed computer system to simultaneously provide all three of the following guarantees:
-•   Consistency (all nodes see the same data at the same time)
-•   Availability (every request receives a response about whether it succeeded or failed)
-•   Partition tolerance (the system continues to operate despite arbitrary partitioning due to network failures)
+In theoretical computer science, the CAP theorem, also named Brewer's theorem after computer scientist Eric Brewer, states that it is impossible for a distributed computer system to simultaneously provide all three of the following guarantees:  
+* Consistency (all nodes see the same data at the same time)
+* Availability (every request receives a response about whether it succeeded or failed)
+* Partition tolerance (the system continues to operate despite arbitrary partitioning due to network failures)
 
 [A very living case study][distributed_cap_1]  
 [For more information][distributed_cap_2]  
