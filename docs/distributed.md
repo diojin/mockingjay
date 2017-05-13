@@ -105,14 +105,14 @@ HBase是一个分布式的、面向列的开源数据库，它不同于一般的
 ![mapreduce_example_1]
 
 
-map数据输入
-Hadoop针对文本文件缺省使用LineRecordReader类来实现读取，一行一个key/value对，key取偏移量，value为行内容。
-如下是map1的输入数据： 
-Key1                  Value1 
-0         Hello World Bye World
-如下是map2的输入数据： 
-Key1                Value1 
-0         Hello Hadoop GoodBye Hadoop
+map数据输入  
+Hadoop针对文本文件缺省使用LineRecordReader类来实现读取，一行一个key/value对，key取偏移量，value为行内容。  
+如下是map1的输入数据：  
+Key1                  Value1   
+0         Hello World Bye World  
+如下是map2的输入数据：   
+Key1                Value1   
+0         Hello Hadoop GoodBye Hadoop  
 
 
 ### Cluster
@@ -134,15 +134,15 @@ __HTTPSession Failover__
 主流的Java EE供应商都实现了HTTPSession失败转移。当浏览器在访问有状态的Web应用时，在该服务器的内存中会创建会话对象。与此同时将能唯一确定会话对象的HTTPSession ID发送至浏览器。浏览器将该ID作为cookie存储，并在下次请求该Web应用时将此cookie发送至Web服务器。
 为了支持会话失败转移，Web服务器中的`会话对象将被备份下来`，以备服务器失败时防止会话信息丢失。负载均衡器将检测到实例的失败，并将后续请求分发到其他服务器实例上。由于会话对象已经被备份下来了，处理请求的新服务器实例就能恢复该会话的信息，继续正确处理会话。
 
-要实现上述功能，需要引入以下内容：
+要实现上述功能，需要引入以下内容：  
 __全局HTTPSession ID__  
 上面已经讲过，HTTPSession ID用来标识特定服务器实例中的内存会话对象。在Java EE中，HTTPSession ID根据JVM实例来产生。每个JVM实例能驻留多个Web应用，每个应用能为不同的用户保存HTTPSession。HTTPSession ID是在当前JVM实例中访问相关会话对象的关键。在会话失败转移的实现中，不同的JVM实例不能生成相同的HTTPSession ID。如若不然，在失败转移发生时，就不知道哪个对象是应该恢复的对象。所以，需要引入全局HTTPSession ID机制。
 
 __会话持久的方法__  
-* 数据库持久化办法
+* 数据库持久化办法  
     一些的Java EE集群产品都支持使用JDBC通过关系型数据库备份会话状态。
     通常，执行数据库的事务会造成一些额外的开销，所以本方法的主要缺陷在于当并发数据量较大时可能无法提供需要的可扩展性。大部分采用数据库会话持久化方法的应用服务器供应商都建议尽量减少HTTPSession存储的对象.
-* 内存复制办法
+* 内存复制办法  
     Tomcat、JBoss、WebLogic、Websphere之流的Java EE服务器都提供了另一种实现：内存复制。在上图中描述了使用内存复制技术来实现会话状态备份的场景。本方法的性能很好。对比数据库持久化技术，在原服务器和一台或多台备份服务器之间进行直接内存复制对网络通信的影响很小。但是，不同厂商的服务器对内存复制技术的应用方式不同(在下面有具体描述)，有的厂商采用的技术就不再需要“恢复”的过程了，即会话数据备份时已驻留在备份服务器的内存中，当备份服务器接管时，所有的数据已经存在。
 
 #### Cluster types
@@ -156,7 +156,7 @@ There are 4 major types of clusters:
 
 __Storage clusters__ provide a consistent file system image across servers in a cluster, allowing the servers to simultaneously read and write to a single shared file system. A storage cluster simplifies storage administration by limiting the installation and patching of applications to one file system. Also, with a cluster-wide file system, a storage cluster eliminates the need for redundant copies of application data and `simplifies backup and disaster recovery`. __Red Hat Cluster Suite__ provides storage clustering through Red Hat GFS.
 
-__High-availability clusters__ provide continuous availability of services by `eliminating single points of failure` and by `failing over` services from one cluster node to another in case a node becomes inoperative. Typically, services in a high-availability cluster read and write data (via read-write mounted file systems). Therefore, a high-availability cluster must maintain data integrity as one cluster node takes over control of a service from another cluster node. Node failures in a high-availability cluster are not visible from clients outside the cluster. (High-availability clusters are sometimes referred to as failover clusters.) Red Hat Cluster Suite provides high-availability clustering through its High-availability Service Management component.
+__High-availability clusters__ provide continuous availability of services by `eliminating single points of failure` and by `failing over` services from one cluster node to another in case a node becomes inoperative. Typically, services in a high-availability cluster read and write data (via read-write mounted file systems). Therefore, a high-availability cluster must maintain data integrity as one cluster node takes over control of a service from another cluster node. Node failures in a high-availability cluster are not visible from clients outside the cluster. (High-availability clusters are sometimes referred to as failover clusters.) Red Hat Cluster Suite provides high-availability clustering through its High-availability Service Management component.  
 常说的双机热备、双机互备等都属于高可用集群的范畴
 
 __Load-balancing clusters__ dispatch network service requests to multiple cluster nodes to balance the request load among the cluster nodes. Load balancing provides cost-effective scalability because you can match the number of nodes according to load requirements. If a node in a load-balancing cluster becomes inoperative, the load-balancing software detects the failure and redirects requests to other cluster nodes. Node failures in a load-balancing cluster are not visible from clients outside the cluster. Red Hat Cluster Suite provides load-balancing through LVS (Linux Virtual Server).
@@ -170,7 +170,7 @@ __按集群层次划分__
 
 __Load Balance Algorithm__  
 
-[For more information 1][cluster_load_balance_algorithm_1]
+[For more information 1][cluster_load_balance_algorithm_1]  
 [For more information 2][cluster_load_balance_algorithm_2]
 
 * Static算法
