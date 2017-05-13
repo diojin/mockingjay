@@ -222,8 +222,8 @@ Fastest: The Fastest method passes a new connection based on the fastest respons
 **The Long Term Resource Monitoring algorithms** are the best choice if you have a significant number of persistent connections. **Fastest** works okay in this scenario also if you don’t have access to any of the dynamic solutions.
 
 * 最少连接：系统把新连接分配给当前连接数目最少的服务器。`该算法在各个服务器运算能力基本相似的环境中非常有效。`
-Least Connections: With this method, the system passes a new connection to the server that has the least number of current connections. Least Connections methods work best in environments where the servers or other equipment you are load balancing have similar capabilities. This is a dynamic load balancing method, distributing connections based on various aspects of real-time server performance analysis, such as the current number of connections per node or the fa`stest node response time. This Application Delivery Controller method is rarely available in a simple load balancer.
-最少连接数均衡算法对内部中需负载的每一台服务器都有一个数据记录，记录当前该服务器正在处理的连接数量，当有新的服务连接请求时，将把当前请求分配给连接数最少的服务器，使均衡更加符合实际情况，负载更加均衡。`此种均衡算法适合长时处理的请求服务，如FTP。
+Least Connections: With this method, the system passes a new connection to the server that has the least number of current connections. Least Connections methods work best in environments where the servers or other equipment you are load balancing have similar capabilities. This is a dynamic load balancing method, distributing connections based on various aspects of real-time server performance analysis, such as the current number of connections per node or the fastest node response time. This Application Delivery Controller method is rarely available in a simple load balancer.
+最少连接数均衡算法对内部中需负载的每一台服务器都有一个数据记录，记录当前该服务器正在处理的连接数量，当有新的服务连接请求时，将把当前请求分配给连接数最少的服务器，使均衡更加符合实际情况，负载更加均衡。`此种均衡算法适合长时处理的请求服务，如FTP`。
 
 * 观察算法：该算法同时利用最小连接算法和最快算法来实施负载均衡。服务器根据当前的连接数和响应时间得到一个分数，分数较高代表性能较好，会得到更多的连接。
 Observed: The Observed method uses a combination of the logic used in the Least Connections and Fastest algorithms to load balance connections to servers being load-balanced. With this method, servers are ranked based on a combination of the number of current connections and the response time. Servers that have a better balance of fewest connections and fastest response time receive a greater proportion of the connections. This Application Delivery Controller method is rarely available in a simple load balancer.
@@ -235,7 +235,7 @@ You can see with some of these algorithms that persistent connections would caus
 
 ### SOA
 
-__Service-Oriented Architecture__ is `anapplication architecture` in which all functions, or services, are `defined using a description language` and `have invokable interfaces` that are called to perform business processes. Each interaction is `independent `of each and every other interaction and the interconnect protocols of the communicating devices (i.e., the infrastructure components that determine the communication system do not affect the interfaces).
+__Service-Oriented Architecture__ is `an application architecture` in which all functions, or services, are `defined using a description language` and `have invokable interfaces` that are called to perform business processes. Each interaction is `independent `of each and every other interaction and the interconnect protocols of the communicating devices (i.e., the infrastructure components that determine the communication system do not affect the interfaces).
 
 SOA架构，是一种`粗粒度`、开放式、`松耦合`的服务结构，要求软件产品在开发过程中，按照相关的标准或协议，进行`分层开发`。通过这种分层设计或架构体系可以使软件产品变得更加弹性和灵活，且尽可能的与第三方软件产品互补兼容，以达到快速扩展，满足或响应市场或客户需求的多样化、多变性。
 
@@ -296,11 +296,11 @@ SOA体系架构带来的主要观点是`业务驱动IT`，即业务驱动和业�
 (粗粒度性：粗粒度服务提供一项特定的业务功能，采用粗粒度服务接口的优点在于使用者和服务层之间不必再进行多次的往复，一次往复就足够了)
 
 利用SOA架构开发的时候，其基于松耦合的特性能给企业带来诸多的好处:  
-* 更易维护
+* 更易维护  
 　　业务服务提供者和业务服务使用者的松散耦合关系及对开放标准的采用确保了该特性的实现。建立在以 SOA基础上的信息系统，当需求发生变化的时候，不需要修改提供业务服务的接口，只需要调整业务服务流程或者修改操作即可，整个应用系统也更容易被维护。
-* 更高的可用性
+* 更高的可用性  
 　　该特点是在于服务提供者和服务使用者的松散耦合关系上得以发挥与体现。使用者无须了解提供者的具休实现细节
-* 更好的伸缩性
+* 更好的伸缩性  
 　　依靠业务服务设计、开发和部署等所采用的架构模型实现伸缩性。使得服务提供者可以互相彼此独立地进行调整，以满足新的服务需求。
 
 现在，国内许多企业已经使用了SOA架构，但是是否它就真的没有缺点，答案显然不是：  
@@ -371,7 +371,7 @@ Instead, most NoSQL databases offer a concept of `"eventual consistency"` in whi
 
 分类  |Examples举例  |典型应用场景  |数据模型    |优点  |缺点
 ---------|-------------|---------------------|-----------------|--------|------
-key-value(键值)|Tokyo Cabinet/Tyrant, __Redis__, Voldemort, __Oracle BDB__|`内容缓存`，主要用于`处理大量数据的高访问负载`，也用于一些日志系统等等| [Key 指向 Value 的键值对，通常用hash table来实现| 查找速度快|  `数据无结构化`，`通常只被当作字符串或者二进制数据`. 如果DBA只对部分值进行查询或更新的时候，Key/value就显得效率低下了
+key-value(键值)|Tokyo Cabinet/Tyrant, __Redis__, Voldemort, __Oracle BDB__|`内容缓存`，主要用于`处理大量数据的高访问负载`，也用于一些日志系统等等| Key 指向 Value 的键值对，通常用hash table来实现| 查找速度快|  `数据无结构化`，`通常只被当作字符串或者二进制数据`. 如果DBA只对部分值进行查询或更新的时候，Key/value就显得效率低下了
 wide column(列存储数据库)|__Cassandra__, __HBase__, Riak|`分布式的文件系统`|    以列簇式存储，将同一列数据存在一起|   查找速度快，可扩展性强，`更容易进行分布式扩展`|  功能相对局限
 document(文档型数据库)|__CouchDB__, __MongoDb__|Web应用(与Key-Value类似，Value是`结构化的`，不同的是数据库能够了解Value的内容)| Key-Value对应的键值对，`Value为结构化数据`, 比如JSON|  `数据结构要求不严格，表结构可变`，不需要像关系型数据库一样需要预先定义表结构|  `查询性能不高，而且缺乏统一的查询语法`
 graph(图形)数据库|Neo4J, InfoGrid, Infinite Graph|`社交网络，推荐系统`等, 专注于构建关系图谱|图结构|利用图结构相关算法。比如最短路径寻址，N度关系查找等|很多时候需要对整个图做计算才能得出需要的信息，而且这种结构不太好做分布式的集群方案
@@ -381,7 +381,7 @@ graph(图形)数据库|Neo4J, InfoGrid, Infinite Graph|`社交网络，推荐系
 ##### NoSql Characteristics
 对于NoSQL并没有一个明确的范围和定义，但是他们都普遍存在下面一些共同特征:  
 1. 不需要预定义模式：不需要事先定义数据模式，预定义表结构。数据中的每条记录都可能有不同的属性和格式。当插入数据时，并不需要预先定义它们的模式
-2. 无共享架构：相对于将所有数据存储的存储区域网络中的全共享架构。NoSQL往往将数据划分后存储在各个本地服务器上。因为从本地磁盘读取数据的性能往往好于通过网络传输读取数据的性能，从而提高了系统的性能。
+2. 无共享架构：相对于将所有数据存储的存储区域网络中的全共享架构, NoSQL往往将数据划分后存储在各个本地服务器上。因为从本地磁盘读取数据的性能往往好于通过网络传输读取数据的性能，从而提高了系统的性能。
 3. 弹性可扩展：可以在系统运行的时候，动态增加或者删除结点。不需要停机维护，数据可以自动迁移
 4. 分区：相对于将数据存放于同一个节点，NoSQL数据库需要将数据进行分区，将记录分散在多个节点上面。并且通常分区的同时还要做复制。这样既提高了并行性能，又能保证没有单点失效的问题。
 5. 异步复制: 和RAID存储系统不同的是，NoSQL中的复制，往往是基于日志的异步复制。这样，数据就可以尽快地写入一个节点，而不会被网络传输引起迟延。缺点是并不总是能保证一致性，这样的方式在出现故障的时候，可能会丢失少量的数据。
@@ -397,7 +397,7 @@ Unlike the locking techniques used in most modern multithreaded applications, ST
 
 The benefit of this optimistic approach is increased concurrency: no thread needs to wait for access to a resource, and different threads can safely and simultaneously modify disjoint parts of a data structure that would normally be protected under the same lock.
 
-`However, in practice STM systems also suffer a performance hit compared to fine-grained lock-based systems on small numbers of processors (1 to 4 depending on the application)`. This is due primarily to the overhead associated with maintaining the log and the time spent committing transactions. `Even in this case performance is typically no worse than twice as slow.`[5] Advocates of STM believe this penalty is justified by the conceptual benefits of STM[citation needed].
+`However, in practice STM systems also suffer a performance hit compared to fine-grained lock-based systems on small numbers of processors (1 to 4 depending on the application)`. This is due primarily to the overhead associated with maintaining the log and the time spent committing transactions. `Even in this case performance is typically no worse than twice as slow.`[5] Advocates of STM believe this penalty is justified by the conceptual benefits of STM.
 
 In 2005, Tim Harris, Simon Marlow, Simon Peyton Jones, and Maurice Herlihy described an STM system built on Concurrent Haskell that enables arbitrary atomic operations to be composed into larger atomic operations, a useful concept impossible with lock-based programming. 
 
@@ -406,12 +406,12 @@ STM can be implemented as a lock-free algorithm or it can use locking.
 #### Big Data open source trendy technologies
 [For more informtaion][big-data-open-source-tech-1]
 
-* Storm and Kafka
-Storm and Kafka are the future of stream processing, and they are already in use at a number of high-profile companies including Groupon, Alibaba, and The Weather Channel.
-Born inside of Twitter, Storm is a “distributed real-time computation system”. `Storm does for real-time processing what Hadoop did for batch processing.` Kafka for its part is a `messaging system` developed at LinkedIn to serve as the foundation for their activity stream and the data processing pipeline behind it.
-When paired together, you get the stream, you get it in-real time, and you get it at linear scale.
+* Storm and Kafka
+Storm and Kafka are the future of stream processing, and they are already in use at a number of high-profile companies including Groupon, Alibaba, and The Weather Channel.  
+Born inside of Twitter, Storm is a “distributed real-time computation system”. `Storm does for real-time processing what Hadoop did for batch processing.` Kafka for its part is a `messaging system` developed at LinkedIn to serve as the foundation for their activity stream and the data processing pipeline behind it.  
+When paired together, you get the stream, you get it in-real time, and you get it at linear scale.  
 
-Why should you care?
+Why should you care?  
 `With Storm and Kafka, you can conduct stream processing at linear scale`, assured that every message gets processed in real-time, reliably. In tandem, Storm and Kafka can handle data velocities of tens of thousands of messages every second.
 Stream processing solutions like Storm and Kafka have caught the attention of many enterprises due to their superior approach to ETL (extract, transform, load) and data integration.
 Storm and Kafka are also great at `in-memory analytics`, and `real-time decision support`. Companies are quickly realizing that batch processing in Hadoop does not support real-time business needs. Real-time streaming analytics is a must-have component in any enterprise Big Data solution or stack, because of how elegantly they handle the “three V’s” — volume, velocity and variety.
