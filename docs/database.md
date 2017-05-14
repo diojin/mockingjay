@@ -4,6 +4,9 @@
 * [General](#general)
     - [Optimization](#optimization)
 * [Oracle](#oracle)
+    - [Optimizer Access Path](#oracle-optimizer-access-path)
+    - [Misc](#oracle-misc)
+        + [High Water Mark (HWM)](#high-water-mark-hwm)
 * [Miscellaneous](#miscellaneous)
 
 ### General
@@ -135,4 +138,88 @@ There are several aspects to optimize,
 
 ### Oracle
 
+##### Oracle Optimizer Access Path
+[For more information][oracle-optimizer-access-path-1]  
+
+__Access Path__  
+Access paths are ways in which data is retrieved from the database. In general, index access paths are useful for statements that retrieve a small subset of table rows, whereas full scans are more efficient when accessing a large portion of the table. Online transaction processing (OLTP) applications, which consist of short-running SQL statements with high selectivity, often are characterized by the use of index access paths. Decision support systems, however, tend to use partitioned tables and perform full scans of the relevant partitions.
+
+There are 6 data access paths that the database can use to locate and retrieve any row in any table:   
+1. Full Table Scans
+2. Rowid Scans
+3. Index Scans
+4. Cluster Access
+5. Hash Access
+6. Sample Table Scans
+
+1. Full Table Scans  
+This type of scan reads all rows from a table and filters out those that do not meet the selection criteria. `During a full table scan, all blocks in the table that are under the high water mark are scanned.` The high water mark indicates the amount of used space, or space that had been formatted to receive data. Each row is examined to determine whether it satisfies the statement's WHERE clause.
+
+When Oracle Database performs a full table scan, the blocks are read sequentially. Because the blocks are adjacent, the database can make I/O calls larger than a single block to speed up the process. The size of the read calls range from one block to the number of blocks indicated by the initialization parameter DB_FILE_MULTIBLOCK_READ_COUNT. Using multiblock reads, the database can perform a full table scan very efficiently. The database reads each block only once.
+
+Full table scans are cheaper than index range scans when accessing a large fraction of the blocks in a table. Full table scans can use larger I/O calls, and making fewer large I/O calls is cheaper than making many smaller calls.
+
+The optimizer uses a full table scan in any of the following cases:
+
+•   Lack of Index
+•   Large Amount of Data
+If the optimizer thinks that the query requires most of the blocks in the table, then it uses a full table scan, even though indexes are available.
+•   Small Table
+If a table contains less than DB_FILE_MULTIBLOCK_READ_COUNT blocks under the high water mark, which the database can read in a single I/O call, then a full table scan might be cheaper than an index range scan, regardless of the fraction of tables being accessed or indexes present.
+•   High Degree of Parallelism
+A high degree of parallelism for a table skews the optimizer toward full table scans over range scans. Examine the DEGREE column inALL_TABLES for the table to determine the degree of parallelism.
+
+
+
+
+
+
+
+
+2. Rowid Scans
+3. Index Scans
+4. Cluster Access
+5. Hash Access
+6. Sample Table Scans
+
+#### Oracle Misc
+
+##### High Water Mark (HWM)
+[For more information][oracle-misc-high-water-mark-1]  
+
+The __high water mark (HWM)__ is the boundary between used and unused space `in a segment`. As requests for new free blocks that cannot be satisfied by existing `free lists` are received, the block to which the high water mark points becomes a used block, and the high water mark is advanced to the next block. In other words, the segment space to the left of the high water mark is used, and the space to the right of it is unused.  
+Figure B-5 shows a segment consisting of three extents containing 10K, 20K, and 30K of space, respectively. The high water mark is in the middle of the second extent. Thus, the segment contains 20K of used space to the left of the high water mark, and 40K of unused space to the right of the high water mark.  
+![oracle-misc-high-water-mark-img-1]  
+
+所有的oracle段 都有一个在段(Segment)内容纳数据的上限，我们把这个上限称为"high water mark"或HWM。这个HWM是一个标记，用来说明已经有多少没有使用的数据块分配给这个segment。HWM通常增长的幅度为一次5个数据块，`原则上HWM只会增大，不会缩小，即使将表中的数据全部删除，HWM还是为原值`，由于这个特点，使HWM很象一个水库的历史最高水位，这也就是HWM的原始含义，当然不能说一个水库没水了，就说该水库的历史最高水位为0。`但是如果我们在表上使用了truncate命令，则该表的HWM会被重新置为0`
+
+__HWM数据库的操作有如下影响：__  
+* 全表扫描通常要读出直到HWM标记的所有的属于该表数据库块，即使该表中没有任何数据。
+* 即使HWM以下有空闲的数据库块，键入在插入数据时使用了append关键字，则在插入时使用HWM以上的数据块，此时HWM会自动增大。
+
+__低HWM__  
+在手动段空间管理（Manual Segment Space Management）中，段中只有一个HWM，但是在Oracle9i Release才添加的自动段空间管理（Automatic Segment Space Management）中，又有了一个`低HWM`的概念出来。为什么有了HWM还又有一个低HWM呢，这个是因为自动段空间管理的特性造成的。在手段段空间管理中，当数据插入以后，如果是插入到新的数据块中，数据块就会被自动格式化等待数据访问。而在自动段空间管理中，数据插入到新的数据块以后，数据块并没有被格式化，而是在第一次在第一次访问这个数据块的时候才格式化这个块。`所以我们又需要一条水位线，用来标示已经被格式化的块`。这条水位线就叫做低HWM。一般来说，低HWM肯定是低于等于HWM的。
+
+__修正ORACLE表的高水位线__  
+`在ORACLE中，执行对表的删除操作不会降低该表的高水位线。而全表扫描将始终读取一个段(extent)中所有低于高水位线标记的块`。如果在执行删除操作后不降低高水位线标记，则将导致查询语句的性能低下。  
+下面的方法都可以降低高水位线标记:  
+1. 执行alter指令  
+    1. 执行表重建指令  
+    alter table table_name move;  
+    (在线转移表空间ALTER TABLE 。。。 MOVE TABLESPACE 。。。ALTER TABLE 。。。 MOVE 后面不跟参数也行，不跟参数表还是在原来的表空间，move后记住重建索引。如果以后还要继续向这个表增加数据，没有必要move，只是释放出来的空间，只能这个表用，其他的表或者segment无法使用该空间)  
+    2. 执行alter table table_name shrink space;  
+    注意，此命令为Oracle 10g新增功能，再执行该指令之前必须允许行移动alter table table_name enable row movement;  
+    3. alter table table_name deallocate unused
+2. 复制要保留的数据到临时表t，drop原表，然后rename临时表t为原表
+3. emp/imp
+4. 尽量truncate吧
+
+
 ### Miscellaneous
+
+
+---
+[oracle-optimizer-access-path-1]:http://docs.oracle.com/cd/E11882_01/server.112/e41573/optimops.htm#PFGRF001 "Oracle-The Query Optimizer"
+[oracle-misc-high-water-mark-1]:http://www.cnblogs.com/linjiqin/archive/2012/01/15/2323030.html "High water mark"
+[oracle-misc-high-water-mark-img-1]:/resources/img/java/database_oracle_hwm_1.png "Figure B-5 High Water Mark"
+
