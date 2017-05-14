@@ -132,6 +132,7 @@ ___
 - [ ] :kissing_cat: :two: go through other review preparation materials
     - [x] :arrow_right_hook: ~~spring~~
     - [x]:arrow_right_hook: ~~hibernate~~ 
+    - [x]:arrow_right_hook: ~~distributed~~ 
 
 ##### 2071-05-11
 - [x] :kissing_cat: :one: ~~bring darling to 美食街~~
