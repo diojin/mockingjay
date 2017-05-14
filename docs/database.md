@@ -7,6 +7,7 @@
     - [Optimizer Access Path](#oracle-optimizer-access-path)
     - [Misc](#oracle-misc)
         + [High Water Mark (HWM)](#high-water-mark-hwm)
+        + [index clustering factor](#index-clustering-factor)
 * [Miscellaneous](#miscellaneous)
 
 ### General
@@ -88,7 +89,7 @@ There are several aspects to optimize,
         通常情况下, 用UNION替换WHERE子句中的OR将会起到较好的效果.   对索引列使用OR将造成全表扫描. 注意, 以上规则只针对多个索引列有效.  如果有column没有被索引, 查询效率可能会因为你没有选择OR而降低.   
         3. 用IN来替代OR
         4. 避免使用耗费资源的操作  
-        `带有DISTINCT,UNION,MINUS,INTERSECT,ORDER BY的SQL语句会启动SQL引擎执行耗费资源的排序(SORT)功能.`  
+        `带有DISTINCT,UNION,MINUS,INTERSECT,ORDER BY, GROUP BY的SQL语句会启动SQL引擎执行耗费资源的排序(SORT)功能.`  
         `DISTINCT需要一次排序操作, 而其他的至少需要执行两次排序`. 通常, 带有UNION, MINUS, INTERSECT的SQL语句都可以用其他方式重写.  如果你的数据库的`SORT_AREA_SIZE`调配得好, 使用UNION , MINUS, INTERSECT也是可以考虑的, 毕竟它们的可读性很强
         5. 用>=替代>  
         高效:  SELECT * FROM EMP WHERE DEPTNO >=4;  
@@ -155,29 +156,87 @@ There are 6 data access paths that the database can use to locate and retrieve a
 1. Full Table Scans  
 This type of scan reads all rows from a table and filters out those that do not meet the selection criteria. `During a full table scan, all blocks in the table that are under the high water mark are scanned.` The high water mark indicates the amount of used space, or space that had been formatted to receive data. Each row is examined to determine whether it satisfies the statement's WHERE clause.
 
-When Oracle Database performs a full table scan, the blocks are read sequentially. Because the blocks are adjacent, the database can make I/O calls larger than a single block to speed up the process. The size of the read calls range from one block to the number of blocks indicated by the initialization parameter DB_FILE_MULTIBLOCK_READ_COUNT. Using multiblock reads, the database can perform a full table scan very efficiently. The database reads each block only once.
+When Oracle Database performs a full table scan, the blocks are read sequentially. Because the blocks are adjacent, the database can make I/O calls larger than a single block to speed up the process. The size of the read calls range from one block to the number of blocks indicated by the initialization parameter **DB_FILE_MULTIBLOCK_READ_COUNT**. `Using multiblock reads`, the database can perform a full table scan very efficiently. The database reads each block only once.
 
 Full table scans are cheaper than index range scans when accessing a large fraction of the blocks in a table. Full table scans can use larger I/O calls, and making fewer large I/O calls is cheaper than making many smaller calls.
 
-The optimizer uses a full table scan in any of the following cases:
-
-•   Lack of Index
-•   Large Amount of Data
+__The optimizer uses a full table scan in any of the following cases:__  
+* Lack of Index
+* Large Amount of Data  
 If the optimizer thinks that the query requires most of the blocks in the table, then it uses a full table scan, even though indexes are available.
-•   Small Table
+* Small Table  
 If a table contains less than DB_FILE_MULTIBLOCK_READ_COUNT blocks under the high water mark, which the database can read in a single I/O call, then a full table scan might be cheaper than an index range scan, regardless of the fraction of tables being accessed or indexes present.
-•   High Degree of Parallelism
-A high degree of parallelism for a table skews the optimizer toward full table scans over range scans. Examine the DEGREE column inALL_TABLES for the table to determine the degree of parallelism.
+* High Degree of Parallelism  
+A high degree of parallelism for a table skews the optimizer toward full table scans over range scans. Examine the DEGREE column in ALL_TABLES for the table to determine the degree of parallelism.
+* higher index clustering factor  
+use full table scan instead of index scan for large range scan
+
+2. Rowid Scans  
+The rowid of a row specifies the data file and data block containing the row and the location of the row in that block. `Locating a row by specifying its rowid is the fastest way to retrieve a single row, because the exact location of the row in the database is specified.`  
+To access a table by rowid, `Oracle Database first obtains the rowids of the selected rows,` either from the statement's WHERE clause or through an index scan of one or more of the table's indexes. Oracle Database then locates each selected row in the table based on its rowid.  
+__When the Optimizer Uses Rowids__  
+`This is generally the second step after retrieving the rowid from an index.` The table access might be required for any columns in the statement not present in the index.  
+Access by rowid does not need to follow every index scan. `If the index contains all the columns needed for the statement, then table access by rowid might not occur.`  
+
+3. Index Scans  
+In this method, a row is retrieved by traversing the index, using the indexed column values specified by the statement. An index scan retrieves data from an index based on the value of one or more columns in the index. To perform an index scan, Oracle Database searches the index for the indexed column values accessed by the statement. If the statement accesses only columns of the index, then Oracle Database reads the indexed column values directly from the index, rather than from the table.  
+`The index contains not only the indexed value, but also the rowids of rows in the table having that value.` Therefore, if the statement accesses other columns in addition to the indexed columns, then Oracle Database can find the rows in the table by using either a table access by rowid or a cluster scan.  
+__An index scan can be one of the following types:__  
+* Assessing I/O for Blocks, not Rows(index clustering factor)
+* Index Unique Scans
+* Index Range Scans
+* Index Range Scans Descending
+* Index Skip Scans
+* Full Scans
+* Fast Full Index Scans
+* Index Joins
+* Bitmap Indexes  
+
+    1. index clustering factor - Assessing I/O for Blocks, not Rows  
+    Oracle Database performs I/O by blocks. Therefore, the optimizer's decision to use full table scans is influenced by the percentage of blocks accessed, not rows. This is called the __index clustering factor__.  
+    Although the clustering factor is a property of the index, the clustering factor actually relates to the spread of similar indexed column values within data blocks in the table. `A lower clustering factor indicates that the individual rows are concentrated within fewer blocks in the table.` Conversely, a high clustering factor indicates that the individual rows are scattered more randomly across blocks in the table. Therefore, a high clustering factor means that it costs more to use a range scan to fetch rows by rowid, because more blocks in the table need to be visited to return the data(PS: in thi case, high index clustering factor, the index is not used for large range scan by optimizer).   
+    2. Index Unique Scans  
+    The database uses this access path when the user specifies `all columns of a unique (B-tree) index` or an index created as a result of `a primary key` constraint `with equality conditions.`  
+    3. Index Range Scans  
+    The optimizer uses a range scan when it finds `one or more leading columns of an index specified in conditions`, such as the following:  
+        * col1 = :b1
+        * col1 < :b1
+        * col1 > :b1
+        * AND  
+        combination of the preceding conditions for leading columns in the index
+        * col1 like 'ASD%', wild-card searches are not be in a leading position  
+    Range scans can use unique or non-unique indexes  
+    `Range scans avoid sorting when index columns constitute the ORDER BY/GROUP BY clause`  
+    4. Index Range Scans Descending  
+    An index range scan descending is identical to an index range scan, except that the data is returned in descending order. `Indexes, by default, are stored in ascending order`.   
+    __Usually, the database uses this scan__  
+        * when ordering data in a descending order to return the most recent data first
+        * or when seeking a value less than a specified value  
+    5. Index Skip Scans  
+    Skip scanning lets a composite index be split logically into smaller subindexes. In skip scanning, `the initial column of the composite index is not specified in the query`. In other words, it is skipped.  
+    The database determines the number of logical subindexes by the number of distinct values in the initial column. `Skip scanning is advantageous when there are few distinct values in the leading column of the composite index` and many distinct values in the nonleading key of the index.  
+    6. Full (Index) Scans  
+    A full (index) index scan `eliminates a sort operation`, because the data is ordered by the index key. `It reads the blocks singly`.   
+    __Oracle Database may use a full scan in any of the following situations:__  
+        1. `An ORDER BY clause` that meets the following requirements is present in the query:  
+        * All of the columns in the ORDER BY clause must be in the index.
+        * The order of the columns in the ORDER BY clause must match the order of the leading index columns.  
+        The ORDER BY clause can contain all of the columns in the index or a subset of the columns in the index.  
+        2. The query requires `a sort merge join`. The database can perform a full index scan instead of doing a full table scan followed by a sort when the query meets the following requirements:  
+        * All of the columns referenced in the query must be in the index.
+        * The order of the columns referenced in the query must match the order of the leading index columns.  
+        The query can contain all of the columns in the index or a subset of the columns in the index.  
+        3. `A GROUP BY clause` is present in the query  
+        * the columns in the GROUP BY clause are present in the index. 
+        * The columns do not need to be in the same order in the index and the GROUP BY clause.   
+        The GROUP BY clause can contain all of the columns in the index or a subset of the columns in the index.
 
 
 
+    - Fast Full Index Scans
+    - Index Joins
+    - Bitmap Indexes  
 
-
-
-
-
-2. Rowid Scans
-3. Index Scans
 4. Cluster Access
 5. Hash Access
 6. Sample Table Scans
@@ -214,6 +273,47 @@ __修正ORACLE表的高水位线__
 3. emp/imp
 4. 尽量truncate吧
 
+##### index clustering factor
+发现字段上有索引，但是执行计划就是不走索引, 原因之一是索引的集群因子过高导致的  
+
+__The clustering factor is:__  
+Indicates the amount of order of the rows in the table based on the values of the index.   
+1. If the value is near the number of blocks(or very low), then the table 
+is very well ordered. In this case, the index entries in a 
+single leaf block tend to point to rows in the same data 
+blocks. 
+2. If the value is near the number of rows(or very high), then the table 
+is very randomly ordered. In this case, it is unlikely 
+that index entries in the same leaf block point to rows 
+in the same data blocks. 
+
+The clustering factor is useful as `a rough measure of the number of I/Os` required to read an entire table by means of an index:  
+1. If the clustering factor is high,then Oracle Database performs a relatively high number of I/Os during a large index range scan.The index entries point to random table blocks,so the database may have to read and reread the same blocks over and over again to retrieve the data pointed to by the index.  
+2. If the clustering factor is low,then Oracle Database performs a relatively low number of I/Os during a large index range scan.The index keys in arange tend to point to the same data blcok,so the database does not have to read and reread the same blocks over and over.
+
+__The clustering factor is relevant for index scans because it can show:__  
+1. Whether the database will use an index for large range scans  
+PS: if clustering factor is too high, optimizer will use full table scan instead of large range scans by the index.
+2. The degree of table organization in relation to the index key;
+3. Whether you should consider using an `index-organized table`,`partitioning`,or `table cluster` if rows must be ordered by the index key.
+
+__Clustering Factor的计算方式如下：__  
+1. 扫描一个索引(large index range scan)
+2. 比较某行的rowid和前一行的rowid，如果这两个rowid不属于同一个数据块，那么cluster factor增加1
+3. 整个索引扫描完毕后，就得到了该索引的clustering factor。
+
+如果clustering factor接近于表存储的块数，说明这张表是按照索引字段的顺序存储的。  
+如果clustering factor接近于行的数量，那说明这张表不是按索引字段顺序存储的。  
+在计算索引访问成本的时候，这个值十分有用。Clustering Factor乘以选择性参数(selectivity)就是访问索引的开销。
+
+The clustering_facotr column in the `user_indexes` view 
+is a measure of how organized the data is compared to the indexed column.
+
+how to improve it(reduce index clustering factor)?  
+1. `index-organized table`,`partitioning`,or `table cluster`
+If you want an index to be very clustered -- consider using index organized tables. They force the rows into a specific physical location based on their index entry. 
+2. rebuild of the table  
+Otherwise, a rebuild of the table is the only way to get it clustered (but you really don't want to get into that habit for what will typically be of marginal overall improvement). 
 
 ### Miscellaneous
 
