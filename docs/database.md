@@ -80,10 +80,14 @@ There are several aspects to optimize,
         6. On, Where, Having 的过滤顺序  
         避免使用HAVING子句, `HAVING 只会在检索出所有记录之后才对结果集进行过滤. 这个处理需要排序,总计等操作.`   如果能通过WHERE子句限制记录的数目,那就能减少这方面的开销. (非oracle中)on、where、having这三个都可以加条件的子句中，`on是最先执行，where次之，having最后`，因为on是先把不符合条件的记录过滤后才进行统计，它就可以减少中间运算要处理的数据，按理说应该速度是最快的，where也应该比having快点的，因为它过滤数据后才进行sum，在两个表联接时才用on的，所以在一个表的时候，就剩下where跟having比较了。在这单表查询统计的情况下，如果要过滤的条件没有涉及到要计算字段，那它们的结果是一样的，只是where可以使用rushmore技术，而having就不能，在速度上后者要慢如果要涉及到计算的字段，就表示在没计算之前，这个字段的值是不确定的，根据上篇写的工作流程，where的作用时间是在计算之前就完成的，而having就是在计算后才起作用的，所以在这种情况下，两者的结果会不同。`在多表联接查询时，on比where更早起作用。系统首先根据各个表之间的联接条件，把多个表合成一个临时表后，再由where进行过滤，然后再计算，计算完后再由having进行过滤。`由此可见，要想过滤条件起到正确的作用，首先要明白这个条件应该在什么时候起作用，然后再决定放在那里
     2. 语法细节的优化  
-        1. 用IN来替代OR
+        1. 用UNION-ALL替代UNION
         2. 用UNION替换OR (适用于索引列)  
         通常情况下, 用UNION替换WHERE子句中的OR将会起到较好的效果.   对索引列使用OR将造成全表扫描. 注意, 以上规则只针对多个索引列有效.  如果有column没有被索引, 查询效率可能会因为你没有选择OR而降低.   
-        3. 用>=替代>  
+        3. 用IN来替代OR
+        4. 避免使用耗费资源的操作  
+        `带有DISTINCT,UNION,MINUS,INTERSECT,ORDER BY的SQL语句会启动SQL引擎执行耗费资源的排序(SORT)功能.`  
+        `DISTINCT需要一次排序操作, 而其他的至少需要执行两次排序`. 通常, 带有UNION, MINUS, INTERSECT的SQL语句都可以用其他方式重写.  如果你的数据库的`SORT_AREA_SIZE`调配得好, 使用UNION , MINUS, INTERSECT也是可以考虑的, 毕竟它们的可读性很强
+        5. 用>=替代>  
         高效:  SELECT * FROM EMP WHERE DEPTNO >=4;  
         低效:  SELECT * FROM EMP WHERE DEPTNO >3;  
         两者的区别在于, 前者DBMS将直接跳到第一个DEPT等于4的记录而后者将首先定位到DEPTNO=3的记录并且向前扫描到第一个DEPT大于3的记录.
@@ -123,9 +127,10 @@ There are several aspects to optimize,
             AND (BUFFER_GETS-DISK_READS)/BUFFER_GETS < 0.8;
 
 5. Optimization Misc
-
-
-
+    1. 尽量避免使用游标  
+    因为游标的效率较差，如果游标操作的数据超过1万行，那么就应该考虑改写。  
+    与临时表一样，游标并不是不可使用。对小型数据集使用 FAST_FORWARD 游标通常要优于其他逐行处理方法，尤其是在必须引用几个表才能获得所需的数据时。在结果集中包括“合计”的例程通常要比使用游标执行的速度快。如果开发时 间允许，基于游标的方法和基于集的方法都可以尝试一下，看哪一种方法的效果更好。
+    2. 在所有的存储过程和触发器的开始处设置 SET NOCOUNT ON ，在结束时设置 SET NOCOUNT OFF 。无需在执行存储过程和触发器的每个语句后向客户端发送 DONE_IN_PROC 消息。 
 
 
 ### Oracle
