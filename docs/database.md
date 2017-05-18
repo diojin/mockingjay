@@ -71,8 +71,8 @@ There are several aspects to optimize,
 
 4. SQL optimization
     1. 解析过程优化  
-        1. SELECT子句中避免使用 '*'  
-        ORACLE在解析的过程中, 会将'*' 依次转换成所有的列名, 这个工作是通过查询数据字典完成的, 这意味着将耗费更多的时间
+        1. SELECT子句中避免使用 '\*'  
+        ORACLE在解析的过程中, 会将'\*' 依次转换成所有的列名, 这个工作是通过查询数据字典完成的, 这意味着将耗费更多的时间
         2. 使用表的别名(Alias)  
         当在SQL语句中连接多个表时, 请使用表的别名并把别名前缀于每个Column上.这样一来,就可以减少解析的时间并减少那些由Column歧义引起的语法错误.  
         3. sql语句用大写  
@@ -146,12 +146,12 @@ __Access Path__
 Access paths are ways in which data is retrieved from the database. In general, index access paths are useful for statements that retrieve a small subset of table rows, whereas full scans are more efficient when accessing a large portion of the table. Online transaction processing (OLTP) applications, which consist of short-running SQL statements with high selectivity, often are characterized by the use of index access paths. Decision support systems, however, tend to use partitioned tables and perform full scans of the relevant partitions.
 
 There are 6 data access paths that the database can use to locate and retrieve any row in any table:   
-1. Full Table Scans
-2. Rowid Scans
-3. Index Scans
-4. Cluster Access
-5. Hash Access
-6. Sample Table Scans
+* Full Table Scans
+* Rowid Scans
+* Index Scans
+* Cluster Access
+* Hash Access
+* Sample Table Scans
 
 1. Full Table Scans  
 This type of scan reads all rows from a table and filters out those that do not meet the selection criteria. `During a full table scan, all blocks in the table that are under the high water mark are scanned.` The high water mark indicates the amount of used space, or space that had been formatted to receive data. Each row is examined to determine whether it satisfies the statement's WHERE clause.
@@ -229,17 +229,24 @@ __An index scan can be one of the following types:__
         3. `A GROUP BY clause` is present in the query  
         * the columns in the GROUP BY clause are present in the index. 
         * The columns do not need to be in the same order in the index and the GROUP BY clause.   
-        The GROUP BY clause can contain all of the columns in the index or a subset of the columns in the index.
+        The GROUP BY clause can contain all of the columns in the index or a subset of the columns in the index.  
+    7. Fast Full Index Scans  
+    Fast full index scans are an alternative to a full table scan when` the index contains all the columns that are needed for the query, and at least one column in the index key has the NOT NULL constraint`. A fast full scan accesses the data in the index itself, `without accessing the table`.   
+    `The database cannot use this scan to eliminate a sort operation because the data is not ordered by the index key.` The database reads the entire index `using multiblock reads`, unlike a full index scan, and can scan in parallel.  
+    You can specify fast full index scans with the initialization parameter OPTIMIZER_FEATURES_ENABLE or the INDEX_FFS hint. A fast full scan is faster than a normal full index scan because it can use multiblock I/O and can run in parallel just like a table scan.  
+    8. Index Joins  
+    An index join is a `hash join` of several indexes that `together contain all the table columns referenced in the query`. If the database uses an index join, then `table access is not needed` because the database can retrieve all the relevant column values from the indexes.   
+    `The database cannot use an index join to eliminate a sort operation.`
+    9. Bitmap Indexes  
+    A bitmap join uses a bitmap for key values and a mapping function that converts each bit position to a rowid. Bitmaps can efficiently merge indexes that correspond to `several conditions in a WHERE clause`, `using Boolean operations to resolve AND and OR conditions`.
 
+4. Cluster Access  
+The database uses a `cluster scan` to retrieve all rows that have the same cluster key value from a table stored in `an indexed cluster`. `In an indexed cluster, the database stores all rows with the same cluster key value in the same data block.` To perform a cluster scan, Oracle Database first obtains the rowid of one of the selected rows by scanning the cluster index. Oracle Database then locates the rows based on this rowid.
 
-
-    - Fast Full Index Scans
-    - Index Joins
-    - Bitmap Indexes  
-
-4. Cluster Access
-5. Hash Access
-6. Sample Table Scans
+5. Hash Access  
+The database uses a `hash scan` to locate rows in `a hash cluster` based on a hash value. `In a hash cluster, all rows with the same hash value are stored in the same data block`. To perform a hash scan, Oracle Database first obtains the hash value by applying a hash function to a cluster key value specified by the statement. Oracle Database then scans the data blocks containing rows with that hash value.
+6. Sample Table Scans  
+A sample table scan retrieves `a random sample` of data from a `simple table` or `a complex SELECT statement, such as a statement involving joins and views`. The database uses this access path when a statement's `FROM clause includes the SAMPLE clause or the SAMPLE BLOCK clause`. 
 
 #### Oracle Misc
 

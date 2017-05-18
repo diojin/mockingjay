@@ -406,7 +406,7 @@ STM can be implemented as a lock-free algorithm or it can use locking.
 #### Big Data open source trendy technologies
 [For more informtaion][big-data-open-source-tech-1]
 
-* Storm and Kafka
+* Storm and Kafka  
 Storm and Kafka are the future of stream processing, and they are already in use at a number of high-profile companies including Groupon, Alibaba, and The Weather Channel.  
 Born inside of Twitter, Storm is a “distributed real-time computation system”. `Storm does for real-time processing what Hadoop did for batch processing.` Kafka for its part is a `messaging system` developed at LinkedIn to serve as the foundation for their activity stream and the data processing pipeline behind it.  
 When paired together, you get the stream, you get it in-real time, and you get it at linear scale.  
@@ -416,7 +416,7 @@ Stream processing solutions like Storm and Kafka have caught the attention of ma
 Storm and Kafka are also great at `in-memory analytics`, and `real-time decision support`. Companies are quickly realizing that batch processing in Hadoop does not support real-time business needs. Real-time streaming analytics is a must-have component in any enterprise Big Data solution or stack, because of how elegantly they handle the “three V’s” — volume, velocity and variety.  
 Storm and Kafka are the two technologies on the list that we’re most committed to at Infochimps, and it is reasonable to expect that they’ll be a formal part of our platform soon.
 
-* Drill and Dremel
+* Drill and Dremel  
 Drill and Dremel make `large-scale, ad-hoc querying of data` possible, with radically lower latencies that are especially apt for `data exploration`. `They make it possible to scan over petabytes of data in seconds`, to answer ad hoc queries and presumably, power compelling visualizations.  
 Drill and Dremel `put power in the hands of business analysts, and not just data engineers`. The business side of the house will love Drill and Dremel.
 Drill is the open source version of what Google is doing with Dremel (Google also offers Dremel-as-a-Service with its BigQuery offering). Companies are going to want to make the tool their own, which why Drill is the thing to watch mostly closely. Although it’s not quite there yet, strong interest by the development community is helping the tool mature rapidly.  
@@ -438,7 +438,7 @@ Because it has `an unusually strong community around it`, you can find R librari
 R is a also wonderful way to future-proof your Big Data program. In the last few months, literally thousands of new features have been introduced, replete with publicly available knowledge bases for every analysis type you’d want to do as an organization.  
 `Also, R works very well with Hadoop`, making it an ideal part of an integrated Big Data approach.  
 `To keep an eye on: Julia is an interesting and growing alternative to R, because it combats R’s notoriously slow language interpreter problem. The community around Julia isn’t nearly as strong right now, but if you have a need for speed`
-
+
 * Gremlin and Giraph  
 Gremlin and Giraph help empower `graph analysis`, and are `often used coupled with graph databases like Neo4j or InfiniteGraph`, or `in the case of Giraph, working with Hadoop`. Golden Orb is another high-profile example of a graph-based project picking up steam.  
 Graph databases are pretty cutting edge. They have interesting differences with relational databases, which mean that sometimes you might want to take a graph approach rather than a relational approach from the very beginning.  
@@ -457,7 +457,7 @@ Hana highly benefits any applications with unusually fast processing needs, such
 The biggest drawback of Hana is that “in-memory” means that it by definition leverages access to solid state memory, which has clear advantages, but is much more expensive than conventional disk storage.  
 For organizations that don’t mind the added operational cost, Hana means incredible speed for very-low latency big data processing.
 
-* Honorable mention: D3
+* Honorable mention: D3  
 D3 doesn’t make the list quite yet, but it’s close, and worth mentioning for that reason.  
 D3 is a `javascript document visualization library` that revolutionizes how powerfully and creatively we can visualize information, and make data truly interactive. It was created by Michael Bostock and came out of his work at the New York Times, where he is the Graphics Editor.  
 For example, you can use D3 to generate an HTML table from an array of numbers. Or, you can use the same data to create an interactive  bar chart with smooth transitions and interaction.  
