@@ -4,7 +4,11 @@
 * [General](#general)
     - [Optimization](#optimization)
 * [Oracle](#oracle)
-    - [Optimizer Access Path](#oracle-optimizer-access-path)
+    - [Tuning](#oracle-tuning)
+        + [Optimizer Access Path](#oracle-optimizer-access-path)
+        + [Types of Joins](#oracle-types-of-joins)
+    - [Index](#oracle-index)
+        + [Clustered index vs non clustered index](#oracle-clustered-index-vs-non-clustered-index)
     - [Misc](#oracle-misc)
         + [High Water Mark (HWM)](#high-water-mark-hwm)
         + [index clustering factor](#index-clustering-factor)
@@ -136,9 +140,8 @@ There are several aspects to optimize,
     与临时表一样，游标并不是不可使用。对小型数据集使用 FAST_FORWARD 游标通常要优于其他逐行处理方法，尤其是在必须引用几个表才能获得所需的数据时。在结果集中包括“合计”的例程通常要比使用游标执行的速度快。如果开发时 间允许，基于游标的方法和基于集的方法都可以尝试一下，看哪一种方法的效果更好。
     2. 在所有的存储过程和触发器的开始处设置 SET NOCOUNT ON ，在结束时设置 SET NOCOUNT OFF 。无需在执行存储过程和触发器的每个语句后向客户端发送 DONE_IN_PROC 消息。 
 
-
 ### Oracle
-
+#### Oracle Tuning
 ##### Oracle Optimizer Access Path
 [For more information][oracle-optimizer-access-path-1]  
 
@@ -248,6 +251,88 @@ The database uses a `hash scan` to locate rows in `a hash cluster` based on a ha
 6. Sample Table Scans  
 A sample table scan retrieves `a random sample` of data from a `simple table` or `a complex SELECT statement, such as a statement involving joins and views`. The database uses this access path when a statement's `FROM clause includes the SAMPLE clause or the SAMPLE BLOCK clause`. 
 
+##### Oracle Types of Joins
+[For more information][oracle-optimizer-types-join-1]  
+[For more information][oracle-optimizer-types-join-2]  
+
+There are majorly 3 join types:   
+1. Nested Loop Joins
+2. Hash Joins
+3. Sort Merge Joins
+
+other 2 joins are different join concerns  
+1. Cartesian Joins
+2. Outer Joins
+
+* Nested Loop Joins  
+__Nested loop joins are useful when the following conditions are true:__  
+1. The database joins small subsets of data.
+2. The join condition is an efficient method of accessing the second table.
+
+If the optimizer(CBO) chooses to use some other join method, then you can use the `USE_NL(table1 table2)` hint, where table1 and table2 are the aliases of the tables being joined.
+
+`It is important to ensure that the inner table is driven from (dependent on) the outer table.` If the inner table's access path is independent of the outer table, then the same rows are retrieved for every iteration of the outer loop, degrading performance considerably. In such cases, hash joins joining the two independent row sources perform better.
+
+`JOIN的顺序很重要，驱动表的记录集一定要小`，返回结果集的响应时间是最快的  
+
+A nested loop join involves the following steps:  
+1. The optimizer determines the driving table and designates it as the outer table.
+2. The other table is designated as the inner table.
+3. For every row in the outer table, Oracle Database accesses all the rows in the inner table. The outer loop is for every row in the outer table and the inner loop is for every row in the inner table.` The outer loop appears before the inner loop in the execution plan`, as follows:  
+NESTED LOOPS   
+  outer_loop   
+  inner_loop  
+
+```sql
+select/*+ use_nl( test1, test2) */ * from test1, test2   
+where test1.object_id = test2.object_id and rownum < 2;
+```
+
+* Hash Joins  
+The database uses hash joins to `join large data sets`. The optimizer `uses the smaller of two tables` or data sources to build a hash table on the join key `in memory`. It then scans the larger table, probing the hash table to find the joined rows.  
+This method is best when the smaller table fits in available memory. The cost is then limited to a single read pass over the data for the two tables.  
+The optimizer uses a hash join to join two tables if they are joined using an `equijoin` and if either of the following conditions are true:
+1. A large amount of data must be joined.
+2. A large fraction of a small table must be joined.  
+
+USE_HASH(table_name1 table_name2)  
+
+* Sort Merge Joins  
+Sort merge joins can join rows from `two independent sources`. `Hash joins generally perform better than sort merge joins`. However, sort merge joins can perform better than hash joins if both of the following conditions exist:  
+1. The row sources are sorted already.
+2. A sort operation does not have to be done.
+
+USE_MERGE(table_name1 table_name2)  
+
+However, if a sort merge join involves choosing a slower access method (an index scan as opposed to a full table scan), then the benefit of using a sort merge might be lost.  
+(在全表扫描比索引范围扫描再通过rowid进行表访问更可取的情况下，sort merge join会比nested loops性能更佳。)  
+Sort merge joins are useful when the join condition between two tables is an `inequality condition such as <, <=, >, or >=.` `Sort merge joins perform better than nested loop joins for large data sets`. You cannot use hash joins unless there is an equality condition.   
+In a merge join, there is no concept of a driving table. The join consists of two steps:  
+1. Sort join operation: Both the inputs are sorted on the join key.
+2. Merge join operation: The sorted lists are merged together.
+
+`The optimizer can choose a sort merge join over a hash join for joining large amounts of data if any of the following conditions are true:`  
+1. The join condition between two tables is not an equijoin.
+2. Because of sorts required by other operations, the optimizer finds it is cheaper to use a sort merge than a hash join.  
+3. PS: HASH_JOIN_ENABLED=false
+
+它为最优化的吞吐量而设计，并且在结果没有全部找到前不返回数据。
+
+* Cartesian join  
+The database uses a Cartesian join when one or more of the tables does not have any join conditions to any other tables in the statement. The optimizer joins every row from one data source with every row from the other data source, creating the Cartesian product of the two sets.
+
+#### Oracle Index
+##### Oracle Clustered index vs non clustered index
+[For more information][oracle-index-1]  
+A table or view can contain the following types of indexes:  
+1. Clustered  
+    1. Clustered indexes `sort and store the data rows in the table or view` based on their key values. These are the columns included in the index definition. There can be `only one clustered index per table`, because the data rows themselves can be sorted in only one order(PS: same order as clustered index).  
+    2. `The only time the data rows in a table are stored in sorted order is when the table contains a clustered index`. When a table has a clustered index, the table is called a clustered table. If a table has no clustered index, its data rows are stored in an unordered structure called a heap.  
+2. Nonclustered  
+    1. Nonclustered indexes have a structure separate from the data rows. A nonclustered index contains the nonclustered index key values and each key value entry has a pointer to the data row that contains the key value.  
+    2. The pointer from an index row in a nonclustered index to a data row is called a row locator. The structure of the row locator depends on whether the data pages are stored in a heap or a clustered table. For a heap, a row locator is a pointer to the row. For a clustered table, the row locator is the clustered index key.  
+    3. You can add nonkey columns to the leaf level of the nonclustered index to by-pass existing index key limits, 900 bytes and 16 key columns, and execute fully covered, indexed, queries. For more information, see Create Indexes with Included Columns.  
+
 #### Oracle Misc
 
 ##### High Water Mark (HWM)
@@ -329,4 +414,6 @@ Otherwise, a rebuild of the table is the only way to get it clustered (but you r
 [oracle-optimizer-access-path-1]:http://docs.oracle.com/cd/E11882_01/server.112/e41573/optimops.htm#PFGRF001 "Oracle-The Query Optimizer"
 [oracle-misc-high-water-mark-1]:http://www.cnblogs.com/linjiqin/archive/2012/01/15/2323030.html "High water mark"
 [oracle-misc-high-water-mark-img-1]:/resources/img/java/database_oracle_hwm_1.png "Figure B-5 High Water Mark"
-
+[oracle-optimizer-types-join-1]:http://docs.oracle.com/cd/E11882_01/server.112/e41573/optimops.htm#PFGRF94636 "The Query Optimizer-Overview of Joins"
+[oracle-optimizer-types-join-2]:http://blog.csdn.net/chengweipeng123/article/details/7235387 "表的连接方式"
+[oracle-index-1]:https://msdn.microsoft.com/en-us/library/ms190457.aspx "Clustered and Nonclustered Indexes Described"
