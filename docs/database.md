@@ -7,12 +7,14 @@
     - [Tuning](#oracle-tuning)
         + [Optimizer Access Path](#oracle-optimizer-access-path)
         + [Types of Joins](#oracle-types-of-joins)
-    - [Index](#oracle-index)
-        + [Clustered index vs non clustered index](#oracle-clustered-index-vs-non-clustered-index)
+    - [Partitioning](#oracle-partitioning)
     - [Misc](#oracle-misc)
         + [High Water Mark (HWM)](#high-water-mark-hwm)
         + [index clustering factor](#index-clustering-factor)
+        + [Clustered index vs non clustered index](#oracle-clustered-index-vs-non-clustered-index)
+        + [Oracle index-organized table & heap-organized table](#oracle-index-organized-table-heap-organized-table)
 * [Miscellaneous](#miscellaneous)
+    - [Partitioning](#partitioning)
 
 ### General
 
@@ -321,18 +323,90 @@ In a merge join, there is no concept of a driving table. The join consists of tw
 * Cartesian join  
 The database uses a Cartesian join when one or more of the tables does not have any join conditions to any other tables in the statement. The optimizer joins every row from one data source with every row from the other data source, creating the Cartesian product of the two sets.
 
-#### Oracle Index
-##### Oracle Clustered index vs non clustered index
-[For more information][oracle-index-1]  
-A table or view can contain the following types of indexes:  
-1. Clustered  
-    1. Clustered indexes `sort and store the data rows in the table or view` based on their key values. These are the columns included in the index definition. There can be `only one clustered index per table`, because the data rows themselves can be sorted in only one order(PS: same order as clustered index).  
-    2. `The only time the data rows in a table are stored in sorted order is when the table contains a clustered index`. When a table has a clustered index, the table is called a clustered table. If a table has no clustered index, its data rows are stored in an unordered structure called a heap.  
-2. Nonclustered  
-    1. Nonclustered indexes have `a structure separate from the data rows`. A nonclustered index contains the nonclustered index key values and each key value entry has a pointer to the data row that contains the key value.  
-    2. The pointer from an index row in a nonclustered index to a data row is called a row locator. The structure of the row locator depends on whether the data pages are stored in a heap or a clustered table. For a heap, a row locator is a pointer to the row. For a clustered table, the row locator is the clustered index key.  
-    3. You can add nonkey columns to the leaf level of the nonclustered index to by-pass existing index key limits, 900 bytes and 16 key columns, and execute fully covered, indexed, queries. For more information, see Create Indexes with Included Columns. 
+#### Oracle Partitioning
+[For more information][oracle-partitioning-1]  
+ORACLE的分区(Partitioning Option)是一种处理超大型表的技术。分区是一种“分而治之”的技术，通过将大表和索引分成可以管理的小块，从而避免了对每个表作为一个大的、单独的对象进行管理，为大量数据提供了可伸缩的性能。  
+* 分区通过将操作分配给更小的存储单元，减少了需要进行管理操作的时间
+* 通过增强的并行处理提高了性能
+* 通过屏蔽故障数据的分区，还增加了可用性
 
+__在Oracle 11g中，Oracle支持三种普通分区以及两种组合分区:__  
+ORACLE的分区表的划分方法包括：  
+1. 按字段值进行划分的范围分区(RANGE)
+2. 按字段的HASH 函数值进行的划分HASH 分区
+3. 按字段值列表进行划分的列表 (LIST) 分区方法
+Oracle支持两种组合分区:  
+4. 先按范围划分，再按HASH 划分的RANGE-HASH组合分区
+5. 先按范围进行分区，再按LIST进行子分区的RANGE-LIST组合分区。
+
+管理员可以指定每个分区的存储属性，分区在宿主文件系统(Storage subsystem)中的放置情况，这样便增加了对超大型数据库的控制粒度(granularity)。`分区可以被单独地删除、卸载或装入、备份、恢复，因此减少了需要进行管理操作的时间。`
+
+`还可以为表分区创建单独的索引分区`，从而减少了需要进行索引维护操作的时间。此外，还提供了`种类繁多的局部和全局的索引技术`。
+
+`分区操作也可以被并行执行。`
+
+分区技术还提高了数据的可用性。当部分数据由于故障或其它原因不可用时，其它分区内的数据可用不收影响继续使用。
+
+分区对应用是透明的，可以通过标准的SQL语句对分区表进行操作。Oracle 的优化器在访问数据时会分析数据的分区情况，在进行查询时，那些不包含任何查询数据的分区将被忽略，从而大大提高系统的性能。
+
+* Range分区  
+`范围分区是最常使用的一种分区。`
+
+范围分区根据分区字段（Partition Key）的值实现数据和分区的映射。
+分区的字段可以是一个或多个字段(an ordered list of columns)组合。分区字段可以是除ROWID，LONG，LONG，LOB TIMESTAMP WITH TIME ZONE之外其他数据库内嵌数据类型。
+在创建范围分区时，应指定各分区的值域和各个分区的存储特性。
+__适用情景__  
+1. 范围分区特别适用于待处理分区数据在分布上具有逻辑范围或范围值域，如数据在按月份进行分区。`当数据能够在所有分区上均匀分布时范围分区能获得非常好的性能，若因数据分布不均匀而导致各个分区数据在数据量上变化很大，则应考虑采用其他的分区方法。`  
+2. 范围分区也适用于数据随时间变化而增长的情景。  
+3. 范围分区亦适用于数据归档和定期维护的需要，若能结合业务的需要定义好范围分区可实现按分区归档和数据维护的需要。
+
+通过设定分区的值域(partition bond)，范围分区可以显式地指定数据的分布。
+
+```sql
+CREATE TABLE sales_range
+(salesman_id NUMBER(5),
+salesman_name VARCHAR2(30),
+sales_amount NUMBER(10),
+sales_date DATE)
+COMPRESS
+PARTITION BY RANGE(sales_date) —- partition key
+(PARTITION sales_jan2000 VALUES LESS THAN(TO_DATE(’02/01/2000′,’DD/MM/YYYY’)),
+PARTITION sales_feb2000 VALUES LESS THAN(TO_DATE(’03/01/2000′,’DD/MM/YYYY’)),
+PARTITION sales_mar2000 VALUES LESS THAN(TO_DATE(’04/01/2000′,’DD/MM/YYYY’)),
+PARTITION sales_apr2000 VALUES LESS THAN(TO_DATE(’05/01/2000′,’DD/MM/YYYY’)));
+
+CREATE TABLE sales
+( invoice_no NUMBER,
+sale_year INT NOT NULL,
+sale_month INT NOT NULL,
+sale_day INT NOT NULL )
+PARTITION BY RANGE (sale_year, sale_month, sale_day) –partition key
+( PARTITION sales_q1 VALUES LESS THAN (1999, 04, 01) TABLESPACE tsa,
+PARTITION sales_q2 VALUES LESS THAN (1999, 07, 01) TABLESPACE tsb,
+PARTITION sales_q3 VALUES LESS THAN (1999, 10, 01) TABLESPACE tsc,
+PARTITION sales_q4 VALUES LESS THAN (2000, 01, 01) TABLESPACE tsd 
+);
+```
+
+* List分区  
+List分区以可以实现将`无关、无序的离散数据集`组合到一个分区。
+
+* Hash分区  
+`哈希分区是实现数据在各个分区上均匀分区的最佳分区方式`  
+
+`当数据与时间的关系不紧密时，哈希分区可用于替代范围分区。`  
+因为数据的分布完全由哈希算法决定，因此采用哈希分区主要是希望通过将数据均匀分布到各个分区以获得性能上的提升。  
+由于哈希分区的实现是基于哈希函数，因此不支持如删除哈希分区、合并哈希分区以及拆分哈希分区操作等一些分区操作。但支持增加、交换、移动、缩减等分区操作。
+
+```sql
+-- 下面的示例是创建一个4个HASH 分区表的例子，并为各个分区指定了表空间。
+CREATE TABLE scubagear
+( id NUMBER,
+name VARCHAR2 (60))
+PARTITION BY HASH (id) –-哈希分区
+PARTITIONS 4 –-分区数
+STORE IN (gear1, gear2, gear3, gear4);
+```
 
 
 #### Oracle Misc
@@ -409,8 +483,67 @@ If you want an index to be very clustered -- consider using index organized tabl
 2. rebuild of the table  
 Otherwise, a rebuild of the table is the only way to get it clustered (but you really don't want to get into that habit for what will typically be of marginal overall improvement). 
 
+##### Oracle Clustered index vs non clustered index
+[For more information][oracle-index-1]  
+A table or view can contain the following types of indexes:  
+1. Clustered  
+    1. Clustered indexes `sort and store the data rows in the table or view` based on their key values. These are the columns included in the index definition. There can be `only one clustered index per table`, because the data rows themselves can be sorted in only one order(PS: same order as clustered index).  
+    2. `The only time the data rows in a table are stored in sorted order is when the table contains a clustered index`. When a table has a clustered index, the table is called a clustered table. If a table has no clustered index, its data rows are stored in an unordered structure called a heap.  
+2. Nonclustered  
+    1. Nonclustered indexes have `a structure separate from the data rows`. A nonclustered index contains the nonclustered index key values and each key value entry has a pointer to the data row that contains the key value.  
+    2. The pointer from an index row in a nonclustered index to a data row is called a row locator. The structure of the row locator depends on whether the data pages are stored in a heap or a clustered table. For a heap, a row locator is a pointer to the row. For a clustered table, the row locator is the clustered index key.  
+    3. You can add nonkey columns to the leaf level of the nonclustered index to by-pass existing index key limits, 900 bytes and 16 key columns, and execute fully covered, indexed, queries. For more information, see Create Indexes with Included Columns. 
+
+A clustered index is a special type of index that reorders the way records in the table are physically stored. Therefore table can have only one clustered index. `The leaf nodes of a clustered index contain the data pages.`
+
+A nonclustered index is a special type of index in which the logical order of the index does not match the physical stored order of the rows on disk. The leaf node of a nonclustered index does not consist of the data pages. Instead, `the leaf nodes contain index rows.`
+
+缺省情况下建立的索引是非聚簇索引，但有时它并不是最佳的。在非群集索引下，数据在物理上随机存放在数据页上。合理的索引设计要建立在对各种查询的分析和预测上。一般来说：   
+1. 有大量重复值、且经常有范围查询（ > ,< ，> =,< =）和order by、group by发生的列，可考虑建立群集索引 
+2. 组合索引要尽量使关键查询形成索引覆盖，其前导列一定是使用最频繁的列
+
+下表给出了何时使用聚簇索引与非聚簇索引???:  
+
+动作              |使用聚簇索引  |使用非聚簇索引
+------------------|-------------|-------------
+小数目的不同值     |应           |不应
+大数目的不同值     |不应         |应
+
+##### Oracle index-organized table & heap-organized table
+__An index-organized table__ is a table stored `in a variation of a B-tree index structure`. In a heap-organized table, rows are inserted where they fit. In an index-organized table, rows are stored in an index defined on the primary key for the table. `Each index entry in the B-tree also stores the non-key column values. Thus, the index is the data, and the data is the index.` Applications manipulate index-organized tables just like heap-organized tables, using SQL statements.
+
+`Index-organized tables are useful when related pieces of data must be stored together or data must be physically stored in a specific order.` This type of table is often used for information retrieval, spatial (see "Overview of Oracle Spatial"), and OLAP applications (see "OLAP").
+
+__heap-organized table__  
+A table in which the data rows are stored in no particular order on disk. `By default, CREATE TABLE creates a heap-organized table.`
+
 ### Miscellaneous
 
+#### Partitioning
+[For more information][general-partitioning-1]  
+A partition is a division of a logical database or its constituent elements into distinct independent parts. Database partitioning is normally done for  
+* manageability
+* performance or availability reasons, as for load balancing
+
+__Types of partitioning__  
+Current high end relational database management systems provide for different criteria to split the database. `They take a partitioning key and assign a partition based on certain criteria.`   
+Common criteria are:    
+* Range partitioning   
+Selects a partition by determining if the partitioning key is inside a certain range. An example could be a partition for all rows where the column zipcode has a value between 70000 and 79999.
+* List partitioning  
+A partition is assigned a list of values. If the partitioning key has one of these values, the partition is chosen. For example all rows where the column Country is either Iceland, Norway, Sweden, Finland or Denmark could build a partition for the Nordic countries.
+* Hash partitioning   
+The value of a hash function determines membership in a partition. Assuming there are four partitions, the hash function could return a value from 0 to 3.
+* Composite partitioning  
+allows for certain combinations of the above partitioning schemes, by for example first applying a range partitioning and then a hash partitioning.  Consistent hashing could be considered a composite of hash and list partitioning where the hash reduces the key space to a size that can be listed.
+* Round-robin partitioning  
+PS: rows evenly distributed, good for sequential query, very difficult for range query(since all partitions need to be read for range query)
+
+__Partitioning methods__  
+* Horizontal partitioning
+* Vertical partitioning (Column partitioning)  
+
+PS: Table partitioned vertically on a column, and the column can’t be modified, ex. DB2
 
 ---
 [oracle-optimizer-access-path-1]:http://docs.oracle.com/cd/E11882_01/server.112/e41573/optimops.htm#PFGRF001 "Oracle-The Query Optimizer"
@@ -419,3 +552,6 @@ Otherwise, a rebuild of the table is the only way to get it clustered (but you r
 [oracle-optimizer-types-join-1]:http://docs.oracle.com/cd/E11882_01/server.112/e41573/optimops.htm#PFGRF94636 "The Query Optimizer-Overview of Joins"
 [oracle-optimizer-types-join-2]:http://blog.csdn.net/chengweipeng123/article/details/7235387 "表的连接方式"
 [oracle-index-1]:https://msdn.microsoft.com/en-us/library/ms190457.aspx "Clustered and Nonclustered Indexes Described"
+[oracle-index-2]:http://docs.oracle.com/cd/E11882_01/server.112/e40540/indexiot.htm#CNCPT911 "Indexes and Index-Organized Tables"
+[oracle-partitioning-1]:http://www.askmaclean.com/archives/category/oracle/oracle-partitioning "Oracle 数据分区创建和使用的咨询"
+[general-partitioning-1]:https://en.wikipedia.org/wiki/Partition_(database) "Partition (database)"
