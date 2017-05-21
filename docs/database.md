@@ -601,6 +601,14 @@ PS: Table partitioned vertically on a column, and the column can’t be modified
 ##### Concurrent read/write issues
 ##### Isolation Level and lock
 
+Isolation Level\Phenomenons |Dirty Read|Lost Update|Unrepeatable 
+Read|Phantom Records
+--------------------|-------|-------|-------|------
+Read uncommitted    |yes    |yes    |yes    |yes
+Read committed      |no     |`yes`  |yes    |yes
+Repeatable read     |no     |no     |no     |yes
+Snapshot            |no     |no     |no     |no
+Serializable        |no     |no     |no     |no
 
 
 ---
