@@ -8,13 +8,17 @@
         + [Optimizer Access Path](#oracle-optimizer-access-path)
         + [Types of Joins](#oracle-types-of-joins)
     - [Partitioning](#oracle-partitioning)
+    - [Concurrency](#oracle-concurrency)
     - [Misc](#oracle-misc)
         + [High Water Mark (HWM)](#high-water-mark-hwm)
         + [index clustering factor](#index-clustering-factor)
         + [Clustered index vs non clustered index](#oracle-clustered-index-vs-non-clustered-index)
-        + [Oracle index-organized table & heap-organized table](#oracle-index-organized-table-heap-organized-table)
+        + [Oracle index-organized table & heap-organized table](#oracle-index-organized-table--heap-organized-table)
 * [Miscellaneous](#miscellaneous)
     - [Partitioning](#partitioning)
+    - [Concurrency](#concurrency)
+        + [Concurrent read/write issues](#concurrent-readwrite-issues)
+        + [Isolation Level and lock](#isolation-level-and-lock)
 
 ### General
 
@@ -422,10 +426,37 @@ __表分区原则__
 * 表的可用性  
 当对表的部分数据可用性要求很高时，应考虑进行表分区。
 
+__索引分区(oracle)__  
+`对表进行分区的规则同样适用对索引进行分区。`  
+表（无论分区与否）上的索引可以是分区的也可以是非分区的。  
+分区表可以有分区的或者不分区的B-Tree索引。
 
-
+__Oracle 提供了如下三种分区索引：__  
+1. Local Prefixed Index
+2. Local Non-Prefixed Index
+3. Global Prefixed Index
 
-
+Local (Prefixed/Non-Prefixed) Index指的是索引分区内的索引键值指向的记录都对应到基表的一个分区，即`索引分区和基表分区是equipartitioned（分区一一对应）`  
+
+Global Index是指索引分区与表分区相互独立，不存在索引分区和表分区之间的一一对应关系  
+
+若分区索引的partition key 是基表(Base table)的partition key的严格左前缀，则称之为Local Prefixed Index。  
+
+若索引分区的partition key不是基表partition key的严格左前缀(left prefix)，则称之为Local Non-prefixed Index。
+
+若一个全局分区索引按其索引字段的严格左前缀进行分区则称之为Global Prefixed Index。反之，若全局分区索引不采用其索引字段的左前缀进行分区则称为Global Non-prefixed Index。`Oracle不支持采用Global Non-prefixed Index。`  
+例：假设索引基于字段（A、B、C），则可以采用（A、B、C）、（A、B）、（A、C）或者A作为全局分区的Partition Key；但不可以采用（B、C）、B或者C作为Partition Key。
+
+Oracle的Global Partition Index，支持分别按Range或Hash进行全局索引划分
+
+`采用HASH全局分区索引，索引键值被HASH按分区字段(Partition Key)分散到不同的分区上，有效地降低了竞争和提高了性能。`包含有“=”或者“IN”等条件子句的查询能够有效地利用全局HASH索引分区的特性，在以下两种情景尤其适用：  
+1. `在并发多用户应用（OLTP）中若索引的部分页节点数据库存在竞争，则采用HASH进行全局索引分区能有效提高性能；`
+2. 若索引所对应的索引字段在应用上存在单调增的特性，则容易导致索引一直进行右扩，索引树严重不均衡，最右端的索引块容易成为“热点”，导致性能下降；
+
+上述索引分别适应于不同的性能和数据管理需求，一般可通过下图所定义的规则，可确定分区索引类型：  
+![oracle-partitioning-img-1]  
+
+#### Oracle Concurrency
 
 
 
@@ -565,6 +596,13 @@ __Partitioning methods__
 
 PS: Table partitioned vertically on a column, and the column can’t be modified, ex. DB2
 
+#### Concurrency
+
+##### Concurrent read/write issues
+##### Isolation Level and lock
+
+
+
 ---
 [oracle-optimizer-access-path-1]:http://docs.oracle.com/cd/E11882_01/server.112/e41573/optimops.htm#PFGRF001 "Oracle-The Query Optimizer"
 [oracle-misc-high-water-mark-1]:http://www.cnblogs.com/linjiqin/archive/2012/01/15/2323030.html "High water mark"
@@ -575,3 +613,4 @@ PS: Table partitioned vertically on a column, and the column can’t be modified
 [oracle-index-2]:http://docs.oracle.com/cd/E11882_01/server.112/e40540/indexiot.htm#CNCPT911 "Indexes and Index-Organized Tables"
 [oracle-partitioning-1]:http://www.askmaclean.com/archives/category/oracle/oracle-partitioning "Oracle 数据分区创建和使用的咨询"
 [general-partitioning-1]:https://en.wikipedia.org/wiki/Partition_(database) "Partition (database)"
+[oracle-partitioning-img-1]:/resources/img/java/database_oracle_partitioning_index_1.png "Partitioned Index"
