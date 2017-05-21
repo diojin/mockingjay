@@ -601,8 +601,7 @@ PS: Table partitioned vertically on a column, and the column can’t be modified
 ##### Concurrent read/write issues
 ##### Isolation Level and lock
 
-Isolation Level\Phenomenons |Dirty Read|Lost Update|Unrepeatable 
-Read|Phantom Records
+Isolation Level\Phenomenons |Dirty Read|Lost Update|Unrepeatable Read|Phantom Records
 --------------------|-------|-------|-------|------
 Read uncommitted    |yes    |yes    |yes    |yes
 Read committed      |no     |`yes`  |yes    |yes
@@ -610,6 +609,12 @@ Repeatable read     |no     |no     |no     |yes
 Snapshot            |no     |no     |no     |no
 Serializable        |no     |no     |no     |no
 
+Isolation Level\Lock    |Range Lock |Read Lock  |Write Lock
+------------------------|-----------|-----------|------------
+Read Uncommitted        |no         |no         |no
+Read Committed          |no         |no         |yes
+Repeatable Read         |no         |yes        |yes
+Serializable            |yes        |yes        |yes
 
 ---
 [oracle-optimizer-access-path-1]:http://docs.oracle.com/cd/E11882_01/server.112/e41573/optimops.htm#PFGRF001 "Oracle-The Query Optimizer"
