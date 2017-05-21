@@ -14,11 +14,28 @@
         + [index clustering factor](#index-clustering-factor)
         + [Clustered index vs non clustered index](#oracle-clustered-index-vs-non-clustered-index)
         + [Oracle index-organized table & heap-organized table](#oracle-index-organized-table--heap-organized-table)
+        + [Table clusters (clustered tables)](#table-clusters-clustered-tables)
+            * [Indexed Clusters](#oracle-indexed-clusters)
+            * [Hash Clusters](#oracle-hash-clusters)
+        + [for update nowait vs for update](#for-update-nowait-vs-for-update)
+        + [Temporary segment](#oracle-temporary-segment)
+        + [Temporary Table](#oracle-temporary-table)
+        + [truncate vs delete](#oracle-truncate-vs-delete)
+        + [Uncategorized](#oracle-uncategorized)
+            * [account: sys and system](#oracle-account-sys-and-system)
+            * [dba vs sysdba](#dba-vs-sysdba)
+            * [new schema objects](#oracle-new-schema-objects)
 * [Miscellaneous](#miscellaneous)
     - [Partitioning](#partitioning)
     - [Concurrency](#concurrency)
         + [Concurrent read/write issues](#concurrent-readwrite-issues)
         + [Isolation Level and lock](#isolation-level-and-lock)
+        + [write skew anomaly](#write-skew-anomaly)
+        + [concurrency control mechanisms](#concurrency-control-mechanisms)
+    - [Differences between Union and Union All](#differences-between-union-and-union-all)
+    - [In vs Exists vs Not In vs Not Exists](#in-vs-exists-vs-not-in-vs-not-exists)
+        + [In vs Exists](#in-vs-exists)
+        + [Not In vs Not Exits](#not-in-vs-not-exits)
 
 ### General
 
@@ -459,7 +476,6 @@ Oracle的Global Partition Index，支持分别按Range或Hash进行全局索引�
 #### Oracle Concurrency
 
 
-
 #### Oracle Misc
 
 ##### High Water Mark (HWM)
@@ -568,6 +584,199 @@ __An index-organized table__ is a table stored `in a variation of a B-tree index
 __heap-organized table__  
 A table in which the data rows are stored in no particular order on disk. `By default, CREATE TABLE creates a heap-organized table.`
 
+##### Table clusters (clustered tables)
+[For more information][oracle-cluster-1]  
+`A table cluster is a group of tables that share common columns and store related data in the same blocks.` `When tables are clustered, a single data block can contain rows from multiple tables.` For example, a block can store rows from both the employees and departments tables rather than from only a single table.
+
+`The cluster key value is the value of the cluster key columns for a particular set of rows`. All data that contains the same cluster key value, such as department_id=20, is physically stored together. `Each cluster key value is stored only once in the cluster and the cluster index, no matter how many rows of different tables contain the value.`
+
+`You can consider clustering tables when they are primarily queried (but not modified) and records from the tables are frequently queried together or joined. `Because table clusters store related rows of different tables in the same data blocks, properly used table clusters offer the following benefits over nonclustered tables:  
+1. Disk I/O is reduced for joins of clustered tables.
+2. Access time improves for joins of clustered tables.
+3. Less storage is required to store related table and index data because the cluster key value is not stored repeatedly for each row.  
+
+Typically, clustering tables is not appropriate in the following situations:  
+1. The tables are frequently updated.
+2. The tables frequently require a full table scan.
+3. The tables require truncating.
+
+###### Oracle Indexed Clusters
+`An indexed cluster is a table cluster that uses an index to locate data.` `The cluster index is a B-tree index on the cluster key`. A cluster index must be created before any rows can be inserted into clustered tables.
+
+Assume that you create the cluster employees_departments_cluster with the cluster key department_id, as shown in Example. Because the HASHKEYS clause is not specified, this cluster is an indexed cluster. Afterward, you create an index namedidx_emp_dept_cluster on this cluster key.
+
+```sql
+CREATE CLUSTER employees_departments_cluster
+   (department_id NUMBER(4))
+SIZE 512;
+
+CREATE INDEX idx_emp_dept_cluster ON CLUSTER employees_departments_cluster;
+
+-- You then create the employees and departments tables in the cluster, specifying the department_id column as the cluster key, as follows 
+
+CREATE TABLE employees ( ... )
+   CLUSTER employees_departments_cluster (department_id);
+ 
+CREATE TABLE departments ( ... )
+   CLUSTER employees_departments_cluster (department_id);
+```
+
+Finally, you add rows to the employees and departments tables. The database physically stores all rows for each department from the employees and departments tables in the same data blocks. `The database stores the rows in a heap` and locates them with the index. 
+
+Figure below shows the employees_departments_cluster table cluster, which contains employees and departments. The database stores rows for employees in department 20 together, department 110 together, and so on. If the tables are not clustered, then the database does not ensure that the related rows are stored together.   
+![oracle-cluster-img-1]  
+
+The cluster index is separately managed, just like an index on a nonclustered table, and can exist in a separate tablespace from the table cluster.
+
+
+###### Oracle Hash Clusters
+A hash cluster is like an indexed cluster, `except the index key is replaced with a hash function`. No separate cluster index exists. `In a hash cluster, the data is the index.`  
+
+With an indexed table or indexed cluster, Oracle Database locates table rows using key values stored in a separate index. To find or store a row in an indexed table or table cluster, the database must perform at least two I/Os:
+* One or more I/Os to find or store the key value in the index
+* Another I/O to read or write the row in the table or table cluster
+
+To find or store a row in a hash cluster, Oracle Database applies the hash function to the cluster key value of the row. The resulting hash value corresponds to a data block in the cluster, which the database reads or writes on behalf of the issued statement.
+
+Hashing is an optional way of storing table data to improve the performance of data retrieval. Hash clusters may be beneficial when the following conditions are met:  
+* A table is `queried much more often than modified.`
+* The hash key column is queried frequently with `equality conditions`
+* You can reasonably guess the number of hash keys and the size of the data stored with each key value.
+
+##### for update nowait vs for update
+For following operations,   
+sql_1:select 1 from dual for update;  
+sql_2:select 1 from dual for update;  
+sql_3:select 1 from dual for update nowait;  
+
+1. 执行sql_1,不提交,表dual被锁
+2. 分支1):执行sql_2,sql_2被阻塞,等待sql_1提交
+3. 分支2):执行sql_3,因为有nowait,所以立即返回错误信息 "ORA-00054 : 资源正忙,但指定以NOWAIT方式获取资源"
+
+总结:nowait关键字,通知Oracle该sql语句采用非阻塞的方式修改或删除数据,如果发现涉及到的数据被占有(被锁),则立即通知Oracle该资源被占用,返回错误信息
+
+##### Oracle Temporary segment
+When processing queries, ORACLE often requires temporary workspace for intermediate stages of SQL statement processing. This disk space is called temporary segment, which is automatically allocated by ORACLE. The following commands may require the use of a temporary segment:  
+* CREATE INDEX
+* SELECT ... ORDER BY
+* SELECT DISTINCT ...
+* SELECT ... GROUP BY
+* SELECT ... UNION
+* SELECT ... INTERSECT
+* SELECT ... MINUS
+
+##### Oracle Temporary Table
+临时表，最主要的好处是，操作不留任何痕迹、不产生日志，所以速度快
+
+create [global] temporary table ,加上[global]就是全局的临时表（所有数据库连接会话都是可见的），
+不加则为私有的（在一个数据库连接会话期间有效）
+
+创建Oracle 临时表，还可以有两种类型的临时表：  
+1. 会话级的临时表
+2. 事务级的临时表 
+
+* 会话级的临时表  
+因为这这个临时表中的数据和你的当前会话有关系，当你当前SESSION 不退出的情况下，临时表中的数据就还存在，而当你退出当前SESSION 的时候，临时表中的数据就全部没有了，当然这个时候你如果以另外一个SESSION 登陆的时候是看不到另外一个SESSION 中插入到临时表中的数据的。即两个不同的SESSION 所插入的数据是互不相干的。当某一个SESSION 退出之后临时表中的数据就被截断(truncate table ，即数据清空)了。会话级的临时表创建方法：  
+```sql
+Create [Global] Temporary Table Table_Name
+(Col1 Type1,Col2 Type2...) On Commit Preserve Rows;
+```
+* 事务级临时表  
+指该临时表与事务相关，`当进行事务提交或者事务回滚的时候，临时表中的数据将自行被截断`，其他的内容和会话级的临时表的一致(包括退出SESSION 的时候，事务级的临时表也会被自动截断)。事务级临时表的创建方法：  
+```sql
+Create [Global] Temporary Table Table_Name
+(Col1 Type1,Col2 Type2...) On Commit Delete Rows;
+```
+
+##### Oracle truncate vs delete
+两者都可以用来删除表中所有的记录。  
+区别在于：truncate是DDL操作，它移动HWK，不需要 rollback segment .而Delete是DML操作, 需要rollback segment 且花费较长时间.
+
+##### Oracle Uncategorized
+
+__Oracle服务/实例的创建过程__  
+* 创建实例
+* 启动实例
+* 创建数据库(system表空间是必须的)
+
+__启动过程__  
+* 实例启动
+* 装载数据库
+* 打开数据库
+
+oracle提供了建表参数`nologging`，使对该表的操作不参与事物的回滚
+
+__根据其他表数据更新表__  
+一条更新语句是不能更新多张表的，除非使用触发器隐含更新.   
+根据其他表数据更新你要更新的表
+一般形式：  
+* MYSQL/Sybase  
+```sql
+update a
+set 字段1=b表字段表达式,
+字段2=b表字段表达式
+from b 
+where 逻辑表达式
+```
+* oracle 8i
+```sql
+update a
+set 字段1=（select 字段表达式 from b where ...）,
+字段2=（select 字段表达式 from b where ...）
+where 逻辑表达式
+```
+
+__动态执行sql语句__  
+* MYSQL  
+```sql
+declare @count int
+declare @sql nvarchar(200)
+set @sql = n''select count(*) from sysobjects''
+exec sp_executesql @sql,n''@i int output'',@count output
+```
+* oracle 8i  
+    1. 程序包dbms_sql  
+    执行一个语句的过程：  
+    打开游标（open_cursor，对于非查询语句，无此过程）
+    分析语句（parse)
+    绑定变量（bind_variable）
+    执行语句（execute)
+    关闭游标（close_cursor,对于非查询语句，无此过程)
+    2. execute immediate ls_sql
+
+外连接语法:  
+字段1 = 字段2(+) （左连接）
+字段1(+) = 字段2 （右连接）
+
+
+###### Oracle account: sys and system
+sys存储oracle服务或者实例的信息及所有用户的数据字典信息
+
+system用户拥有数据字典是视图信息，有了这些视图，我们的查询数据库的信息就特别方便
+
+缺省情况下，system用户拥有dba系统角色权限，而sys不仅拥有dba的权限还拥有sysdba的权限
+
+###### Oracle dba vs sysdba
+sysdba，是管理oracle实例的，它的存在不依赖于整个数据库完全启动，只要实例启动了，他就已经存在，以sysdba身份登陆，装载数据库、打开数据库.   
+只有数据库打开了，或者说整个数据库完全启动后，dba角色才有了存在的基础
+
+###### Oracle new schema objects
+* 实例化视图  
+又称显形图：实例化说明他有自己的存储空间，视图：说明他的数据来源于其他表数据。  
+实例化视图中的数据，设置为隔一段时间更新数据，更新的模式可以定义为完全更新和增量更新
+* 快照  
+基本上同实例化视图,只不过数据来源不同,`快照数据来愿于远程数据库`，而`实例化视图则来源于本地数据表`
+* 序列  
+相当于ms sql中的identity列，他是一个数字顺序列表
+* 程序包  
+他是过程、函数、全局变量的集合，他封装了私有变量、私有过程和私有函数. 如：dbms_out包
+* 同义词  
+是对数据库中的对象的`别名`, 同义词可以是全局的也可以是私有的（属于某个用户的）如：tab,col等
+* 抽象的数据类型  
+类似于c中的结构体或pascal记录类型  
+table%rowtype,这是一个特别的抽象的数据类型，该类型的分量就是tab的字段  
+table.tname%type,这定义了一个和tab的字段tname相同的数据类型的变量  
+
 ### Miscellaneous
 
 #### Partitioning
@@ -599,12 +808,37 @@ PS: Table partitioned vertically on a column, and the column can’t be modified
 #### Concurrency
 
 ##### Concurrent read/write issues
+There are 4 types of issues:  
+1. Dirty Read (Uncommitted Dependency)
+2. Lost Updates
+3. Nonrepeatable Read (Inconsistent Analysis)
+4. Phantom Reads
+
+* Dirty Read (Uncommitted Dependency)  
+Uncommitted dependency occurs when a second transaction selects a row that is being updated by another transaction. The second transaction is reading data that has not been committed yet and may be changed by the transaction updating the row.
+
+* Lost Update  
+Lost updates occur when two or more transactions select the same row and then update the row based on the value originally selected. Each transaction is unaware of other transactions. The last update overwrites updates made by the other transactions, which results in lost data.  
+The "lost update" problem relates to concurrent reads and updates to data, in a system where readers do not block writers. It is not necessary for the transactions to be exactly simultaneous.
+1. Session #1 reads Account A, gets 100. 
+2. Session #2 reads Account A, gets 100. 
+3. Session #2 updates Account A to 150 (+50) and commits. 
+4. Session #1 updates Account A to 120 (+20) and commits.  
+In this scenario, because Session #1 does not know that another session has already modified the account, the update by Session #2 is overwritten ("lost").
+There are several ways to solve this, e.g. version numbers or before-and-after compares.
+
+* Nonrepeatable Read (Inconsistent Analysis)  
+Inconsistent analysis occurs when a second transaction accesses the same row several times and reads different data each time. Inconsistent analysis is similar to uncommitted dependency in that another transaction is changing the data that a second transaction is reading. However, in inconsistent analysis, the data read by the second transaction was committed by the transaction that made the change. Also, inconsistent analysis involves multiple reads (two or more) of the same row and each time the information is changed by another transaction; thus, the term nonrepeatable read.
+
+* Phantom Reads  
+Phantom reads occur when an insert or delete action is performed against a row that belongs to a range of rows being read by a transaction. The transaction's first read of the range of rows shows a row that no longer exists in the second or succeeding read, as a result of a deletion by a different transaction. Similarly, as the result of an insert by a different transaction, the transaction's second or succeeding read shows a row that did not exist in the original read.
+
 ##### Isolation Level and lock
 
 Isolation Level\Phenomenons |Dirty Read|Lost Update|Unrepeatable Read|Phantom Records
 --------------------|-------|-------|-------|------
 Read uncommitted    |yes    |yes    |yes    |yes
-Read committed      |no     |`yes`  |yes    |yes
+Read committed      |no     |__YES__|yes    |yes
 Repeatable read     |no     |no     |no     |yes
 Snapshot            |no     |no     |no     |no
 Serializable        |no     |no     |no     |no
@@ -616,7 +850,140 @@ Read Committed          |no         |no         |yes
 Repeatable Read         |no         |yes        |yes
 Serializable            |yes        |yes        |yes
 
+__Repeatable Read isolation level__  
+The Repeatable Read isolation level allows a transaction to acquire read locks on all rows of data it returns to an application, and write locks on all rows of data it inserts, updates, or deletes. By using the Repeatable Read isolation level, SELECT SQL statements issued multiple times within the same transaction will always yield the same result. A transaction using the Repeatable Read isolation level can retrieve and manipulate the same rows of data as many times as needed until it completes its task. However, no other transaction can insert, update, or delete a row of data that would affect the result table being accessed, until the isolating transaction releases its locks. That is, when the isolating transaction is either committed or rolled back.
+ 
+Transactions using the Repeatable Read isolation level wait until rows of data that are write-locked by other transactions are unlocked before they acquire their own locks. This prevents them from reading "dirty" data. In addition, because other transactions cannot update or delete rows of data that are locked by a transaction using the Repeatable Read isolation level, nonrepeatable read situations are avoided.
+
+__snapshot isolation__  
+A transaction executing under snapshot isolation appears to operate on a personal snapshot of the database, taken at the start of the transaction. When the transaction concludes, it will successfully commit only if the values updated by the transaction have not been changed externally since the snapshot was taken. Such a write-write conflict will cause the transaction to abort.  
+If built on multiversion concurrency control, snapshot isolation allows transactions to proceed without worrying about concurrent operations, and more importantly without needing to re-verify all read operations when the transaction finally commits. The only information that must be stored during the transaction is a list of updates made, which can be scanned for conflicts fairly easily before being committed.
+
+##### write skew anomaly
+In a __write skew anomaly__, two transactions (T1 and T2) concurrently read an overlapping data set (e.g. values V1 and V2), concurrently make disjoint updates (e.g. T1 updates V1, T2 updates V2), and finally concurrently commit, neither having seen the update performed by the other. Were the system serializable, such an anomaly would be impossible, as either T1 or T2 would have to occur "first", and be visible to the other. `In contrast, snapshot isolation permits write skew anomalies.`
+
+As a concrete example, imagine V1 and V2 are two balances held by a single person, Phil. The bank will allow either V1 or V2 to run a deficit, provided the total held in both is never negative (i.e. V1 + V2 ≥ 0). Both balances are currently $100. Phil initiates two transactions concurrently, T1 withdrawing $200 from V1, and T2 withdrawing $200 from V2.  
+If the database guaranteed serializable transactions, the simplest way of coding T1 is to deduct $200 from V1, and then verify that V1 + V2 ≥ 0 still holds, aborting if not. T2 similarly deducts $200 from V2 and then verifies V1 + V2 ≥ 0. Since the transactions must serialize, either T1 happens first, leaving V1 = -$100, V2 = $100, and preventing T2 from succeeding (since V1 + (V2 - $200) is now -$200), or T2 happens first and similarly prevents T1 from committing.  
+Under snapshot isolation, however, T1 and T2 operate on private snapshots of the database: each deducts $200 from an account, and then verifies that the new total is zero, using the other account value that held when the snapshot was taken. Since neither update conflicts, both commit successfully, leaving V1 = V2 = -$100, and V1 + V2 = -$200.  
+
+##### concurrency control mechanisms
+
+In a database scenario, there are two types of concurrency control mechanisms:  
+Optimistic locking is better to use `when the likelihood of a update conflict is low`. This is usually the case when the normal action is adding a record, like in an order entry system. `Pessimistic locking is used when the likelihood of such a conflict is high. `
+
+* Optimistic concurrency control  
+Optimistic concurrency control works on the assumption that resource conflicts between multiple users are unlikely, and it permits transactions to execute without locking any resources. The resources are checked only when transactions are trying to change data. This determines whether any conflict has occurred (for example, by checking a version number). If a conflict occurs, the application must read the data and try the change again.   
+Optimistic locking allows multiple users to access the same record for edits, counting on minimal conflicts over data. The "locking" happens after the user tries to save changes on top of someone else's changes. The program logic checks to see if the record has been changed since you opened it. If it has, an error is thrown and the update is rolled back. If no changes are detected, the record is saved as planned. 
+* Pessimistic concurrency control  
+Pessimistic concurrency control locks resources as needed, for the duration of a transaction.   
+Pessimistic locking anticipates contention for the same record, preventing users from selecting a record for editing when another user has already done so. This is often done by relying on the database itself. Most relational databases use this method, `only each may use a different standard for the "granularity" considered when making a lock.` As an example, SQL Server 2000 locks single rows, while others may lock the entire page or table containing the record to be changed. A drawback is that this type of locking requires that you remain connected to the database the whole time, which can be a bit much to ask. Also, this type of locking can back up on users waiting to access a given record.
+
+#### Differences between Union and Union All
+Union：对两个结果集进行并集操作，不包括重复行，同时进行默认规则的排序；  
+Union All：对两个结果集进行并集操作，包括重复行，不进行排序；   
+Intersect：对两个结果集进行交集操作，不包括重复行，同时进行默认规则的排序； 
+Minus：对两个结果集进行差操作，不包括重复行，同时进行默认规则的排序。 
+
+可以在最后一个结果集中指定Order by子句改变排序方式。 
+
+我们没有必要在每一个select结果集中使用order by子句来进行排序，我们可以在最后使用一条order by来对整个结果进行排序。例如：  
+```sql 
+select empno,ename from emp 
+union 
+select deptno,dname from dept 
+order by ename;
+```
+
+#### In vs Exists vs Not In vs Not Exists
+##### In vs Exists
+[For more information][general-misc-1]  
+__IN__  
+* BIG outer query and SMALL inner query = IN
+* get the LAST row (all rows) faster then the where exists
+
+__WHERE EXISTS__  
+* SMALL outer query and BIG inner query = WHERE EXISTS
+* find the first row faster in general than the IN will
+
+I verified it and the "rule of thumb" holds true. `BIG outer query and SMALL inner query = IN.  SMALL outer query and BIG inner query = WHERE EXISTS.`  Remember -- thats is a RULE OF THUMB and rules of thumb always have infinitely many exceptions to the rule.
+
+`If both the subquery and the outer table are huge -- either might work as well as the other -- depends on the indexes and other factors.`
+
+Well, there are infinitely many -- IO can affect the outcome of this.  The goal of the query can effect this (eg: the WHERE EXISTS will find the first row faster in general than the IN will -- the IN will get the LAST row (all rows) faster then the where exists).  If your goal is the FIRST row -- exists might totally blow away IN.  If you are a batch process (and hence getting to the LAST row is vital), use IN.
+
+and so on.  The point is:  be aware of their differences, `try them both when tuning`, understand conceptually what they do and you'll be able to use them to maximum effect.
+
+Well, the two are processed very very differently.  
+* for IN  
+```sql
+Select * from T1 where x in ( select y from T2 );
+
+-- is typically processed as:
+
+select * 
+  from t1, ( select distinct y from t2 ) t2
+ where t1.x = t2.y;
+```
+
+`The subquery is evaluated, distinct'ed, indexed (or hashed or sorted) and then joined to the original table -- typically.`
+
+* WHERE EXISTS  
+```sql
+select * from t1 where exists ( select null from t2 where y = x )
+
+-- That is processed more like:
+
+for x in ( select * from t1 )       -- 1st query
+loop
+   if ( exists ( select null from t2 where y = x.x )
+   then 
+      OUTPUT THE RECORD
+   end if
+end loop
+```
+It always results in a full scan of T1 whereas the 1st query can make use of an index on T1(x).
+
+So, when is "where exists" appropriate and inappropriate?  
+* Lets say the result of the subquery ( select y from T2 ) is "huge" and takes a long time.  
+But the table T1 is relatively small and executing ( select null from t2 where y = x.x ) is very very fast (`nice index on t2(y)`).  Then the exists will be faster as the time to full scan T1 and do the index probe into T2 could be less then the time to simply full scan T2 to build the subquery we need to distinct on.
+* Lets say the result of the subquery is small  
+then IN is typicaly more appropriate.
+* If both the subquery and the outer table are huge  
+either might work as well as the other -- depends on the indexes and other factors.
+
+##### Not In vs Not Exits
+"Not In" and "Not Exists" are not perfect substitutes.  
+
+"Not In" is different than "Not Exists", `but "Not Exists" and "Not In" are the same when the subquery you use in the "Not In" does not contain NULLS.`
+
+Both of "Not In" and "Not Exists" can be very efficient when there are no nulls (and "Not In" WITH THE CBO is pretty good -- using an "anti join" -- see the design/tuning for performance guide for details on that).  
+
+`With NULLS -- a "Not In" can be very in-efficient and many people substitute a "Not Exists" for it` (not realzing the ANSWER, just changed!!!)
+
+
+__Another opinion:__  
+请注意"Not In"逻辑上不完全等同于"Not Exists"，如果你误用了"Not In"，小心你的程序存在致命的BUG：  
+```sql
+create table t1 (c1 number,c2 number);
+create table t2 (c1 number,c2 number);
+
+insert into t1 values (1,2);
+insert into t1 values (1,3);
+insert into t2 values (1,2);
+insert into t2 values (1,null);
+
+select * from t1 where c2 not in (select c2 from t2);
+-- RESULT: no rows found
+select * from t1 where not exists (select 1 from t2 where t1.c2=t2.c2);
+-- RESULT: (1,3)
+```
+
+因此，请尽量不要使用"Not In"，而尽量使用"Not Exists"。如果子查询中返回的任意一条记录含有空值，则查询"Not In"将不返回任何记录，正如上面例子所示。  
+除非子查询字段有非空限制，这时可以使用not in.
+
 ---
+[general-misc-1]: https://asktom.oracle.com/pls/asktom/f?p=100:11:::::P11_QUESTION_ID:953229842074 "In vs Exists vs Not In vs Not Exists"
+[general-partitioning-1]:https://en.wikipedia.org/wiki/Partition_(database) "Partition (database)"
 [oracle-optimizer-access-path-1]:http://docs.oracle.com/cd/E11882_01/server.112/e41573/optimops.htm#PFGRF001 "Oracle-The Query Optimizer"
 [oracle-misc-high-water-mark-1]:http://www.cnblogs.com/linjiqin/archive/2012/01/15/2323030.html "High water mark"
 [oracle-misc-high-water-mark-img-1]:/resources/img/java/database_oracle_hwm_1.png "Figure B-5 High Water Mark"
@@ -625,5 +992,6 @@ Serializable            |yes        |yes        |yes
 [oracle-index-1]:https://msdn.microsoft.com/en-us/library/ms190457.aspx "Clustered and Nonclustered Indexes Described"
 [oracle-index-2]:http://docs.oracle.com/cd/E11882_01/server.112/e40540/indexiot.htm#CNCPT911 "Indexes and Index-Organized Tables"
 [oracle-partitioning-1]:http://www.askmaclean.com/archives/category/oracle/oracle-partitioning "Oracle 数据分区创建和使用的咨询"
-[general-partitioning-1]:https://en.wikipedia.org/wiki/Partition_(database) "Partition (database)"
 [oracle-partitioning-img-1]:/resources/img/java/database_oracle_partitioning_index_1.png "Partitioned Index"
+[oracle-cluster-1]:http://docs.oracle.com/cd/E11882_01/server.112/e40540/tablecls.htm#CNCPT608 "Overview of Table Clusters"
+[oracle-cluster-img-1]:/resources/img/java/database_oracle_clustered_table_1.png "Clustered Table Data"
