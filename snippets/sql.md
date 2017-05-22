@@ -186,6 +186,26 @@ Select (Select Month From A Where Month = To_Char(Sysdate, 'mm')) 月份,
 From Dual;
 ```
 
+##### Delete/Select all duplicated records based on certain columns
+```sql
+delete from company t1
+where exists (select t2.company_name from company t2
+where t2.company_name = t1.company_name
+group by t2.company_name
+having count(*) > 1);
+
+DELETE FROM table t
+WHERE t.rowid > (SELECT MIN(x.rowid)
+                            FROM table x
+                            WHERE x.column1 = t.column1
+                             ....
+                             AND      x.columnN = t.columnN );
+
+select * from table_name 
+where column in (select column FROM table_name GROUP BY column HAVING COUNT(字段) > 1);
+```
+
+
 #### Uncategorized
 
 
