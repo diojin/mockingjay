@@ -21,6 +21,7 @@
         + [Temporary segment](#oracle-temporary-segment)
         + [Temporary Table](#oracle-temporary-table)
         + [truncate vs delete](#oracle-truncate-vs-delete)
+        + [Oracle startup and shutdown](#oracle-startup-and-shutdown)
         + [Uncategorized](#oracle-uncategorized)
             * [account: sys and system](#oracle-account-sys-and-system)
             * [dba vs sysdba](#dba-vs-sysdba)
@@ -36,6 +37,7 @@
     - [In vs Exists vs Not In vs Not Exists](#in-vs-exists-vs-not-in-vs-not-exists)
         + [In vs Exists](#in-vs-exists)
         + [Not In vs Not Exits](#not-in-vs-not-exits)
+    - [Database Normal Form](#database-normal-form)
 
 ### General
 
@@ -692,6 +694,37 @@ Create [Global] Temporary Table Table_Name
 两者都可以用来删除表中所有的记录。  
 区别在于：truncate是DDL操作，它移动HWK，不需要 rollback segment .而Delete是DML操作, 需要rollback segment 且花费较长时间.
 
+##### Oracle startup and shutdown
+
+STARTUP NOMOUNT – 数据库实例启动  
+STARTUP MOUNT - 数据库装载  
+STARTUP OPEN – 数据库打开
+
+Database and Instance Startup:  
+1. Start database [reads Parameter file before this]
+    1. allocate & create SGA, Background processes
+2. Mount database
+    1. Associate database with previously started instance
+    2. Close database
+    3. Find and open control file
+    4. Read Redo /data file names from this file and confirm existence
+3. Open database
+    1. Open online log files and data files
+    2. Automatically perform instance recovery(SMON)
+    3. Acquire one/more rollback segments
+
+Database and Instance Shutdown:  
+1. Close database
+    1. Write all buffer data to disk
+    2. Close Online redo files and data files
+    3. Close database
+2. Dismount database
+    1. Close control files
+    2. Dissociate database from Instance
+3. Shut down instance
+    1. Remove SGA from memory
+    2. Terminate background processes
+
 ##### Oracle Uncategorized
 
 __Oracle服务/实例的创建过程__  
@@ -747,6 +780,13 @@ exec sp_executesql @sql,n''@i int output'',@count output
 外连接语法:  
 字段1 = 字段2(+) （左连接）
 字段1(+) = 字段2 （右连接）
+
+
+__归档模式 vs 非归档模式__  
+归档模式是指你可以备份所有的数据库 transactions并恢复到任意一个时间点。非归档模式则相反，不能恢复到任意一个时间点。但是非归档模式可以带来数据库性能上的少许提高
+
+__热备份 vs 冷备份__  
+热备份针对归档模式的数据库，在数据库仍旧处于工作状态时进行备份。而冷备份指在数据库关闭后，进行备份，适用于所有模式的数据库。热备份的优点在于当备份时，数据库仍旧可以被使用并且可以将数据库恢复到任意一个时间点。冷备份的优点在于它的备份和恢复操作相当简单，并且由于冷备份的数据库可以工作在非归档模式下,数据库性能会比归档模式稍好。（因为不必将archive log写入硬盘）
 
 
 ###### Oracle account: sys and system
@@ -980,6 +1020,35 @@ select * from t1 where not exists (select 1 from t2 where t1.c2=t2.c2);
 
 因此，请尽量不要使用"Not In"，而尽量使用"Not Exists"。如果子查询中返回的任意一条记录含有空值，则查询"Not In"将不返回任何记录，正如上面例子所示。  
 除非子查询字段有非空限制，这时可以使用not in.
+
+#### Database Normal Form
+
+PS: 简单的讲, 1NF就是原子属性, 2NF就是限制部分依赖, 3NF是限制传递依赖, BF范式是限制主键及候选键之间的依赖.
+
+* 第一范式（1NF）  
+在关系模式R中的每一个具体关系r中，如果每个属性值都是不可再分的最小数据单位，则称R是第一范式的关系。  
+
+* 第二范式（2NF）  
+如果关系模式R（U，F）中的所有非主属性都完全依赖于任意一个候选关键字，则称关系R 是属于第二范式的.   
+　　例：选课关系 SCI（SNO，CNO，GRADE，CREDIT）其中SNO为学号，CNO为课程号，GRADE为成绩，CREDIT为学分。 由以上条件，关键字为组合关键字(SNO，CNO)  
+　　在应用中使用以上关系模式有以下问题：  
+　　1. 数据冗余，假设同一门课由40个学生选修，学分就重复40次。 
+　　2. 更新异常，若调整了某课程的学分，相应的元组CREDIT值都要更新，有可能会出现同一门课学分不同。 
+　　3. 插入异常，如计划开新课，由于没人选修，没有学号关键字，只能等有人选修才能把课程和学分存入。 
+　　4. 删除异常，若学生已经结业，从当前数据库删除选修记录。某些门课程新生尚未选修，则此门课程及学分记录无法保存。   
+　　原因：非关键字属性CREDIT仅函数依赖于CNO，也就是CREDIT部分依赖组合关键字（SNO，CNO）而不是完全依赖。  
+　　解决方法：分成两个关系模式SC1（SNO，CNO，GRADE），C2（CNO，CREDIT）。新关系包括两个关系模式，它们之间通过SCN中的外关键字CNO相联系，需要时再进行联接，恢复了原来的关系
+
+* 第三范式（3NF）  
+如果关系模式R（U，F）中的所有非主属性对任何候选关键字都不存在传递信赖，则称关系R是属于第三范式的。   
+　　例：如S1（SNO，SNAME，DNO，DNAME，LOCATION）各属性分别代表学号，姓名，所在系，系名称，系地址。  
+　　关键字SNO决定各个属性。由于是单个关键字，没有部分依赖的问题，肯定是2NF。但这关系肯定有大量的冗余，有关学生所在的几个属性DNO，DNAME，LOCATION将重复存储，插入，删除和修改时也将产生类似以上例的情况。  
+　　原因：关系中存在传递依赖造成的。即SNO -> DNO。 而DNO -> SNO却不存在，DNO -> LOCATION, 因此关键字 SNO 对 LOCATION 函数决定是通过传递依赖 SNO -> LOCATION 实现的。也就是说，SNO不直接决定非主属性LOCATION。  
+　　解决目地：每个关系模式中不能留有传递依赖。   
+　　解决方法：分为两个关系 S（SNO，SNAME，DNO），D（DNO，DNAME，LOCATION）  
+　　注意：关系S中不能没有外关键字DNO。否则两个关系之间失去联系。  
+
+
 
 ---
 [general-misc-1]: https://asktom.oracle.com/pls/asktom/f?p=100:11:::::P11_QUESTION_ID:953229842074 "In vs Exists vs Not In vs Not Exists"
