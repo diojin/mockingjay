@@ -1,10 +1,107 @@
-### Index
+## Java Snippets
 ---
 
+* [Concurrent](#concurrent)
+    - [Misc](#concurrent-misc)
+        + [How to wait for child thread to end](#how-to-wait-for-child-thread-to-end)
 * [Stream](#stream)
 * [Functional operation](#functional-operation)
 
 
+### Concurrent
+#### Concurrent Misc
+##### How to wait for child thread to end
+1. ExecutorService  
+```java
+public class MainThread {
+     static ExecutorService executorService = Executors.newFixedThreadPool(1);
+
+     @SuppressWarnings(“rawtypes”)
+     public static void main(String[] args) throws InterruptedException, ExecutionException {
+          SubThread thread = new SubThread();
+          Future future = executorService.submit(thread);
+          executorService.shutdown();
+          try {
+            executorService.awaitTermination();
+          } catch (Exception e) {
+                   e.printStackTrace();
+          }
+          future.get();
+     }
+     public static class SubThread extends Thread{
+          @Override
+          public void run() {
+              try {
+                   sleep(5000L);
+              } catch (InterruptedException e) {
+                   e.printStackTrace();
+              }
+          }
+     }     
+}
+```
+2. CountDownLatch  
+```java
+public class MainThread {
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+          int threads = 5;
+          final CountDownLatch countDownLatch = new CountDownLatch(threads);
+          for(int i=0;i<threads;i++){
+              SubThread thread = new SubThread(2000*(i+1), countDownLatch);
+              thread.start();
+          }
+          countDownLatch.await();
+     }
+     public static class SubThread extends Thread{
+          private CountDownLatch countDownLatch;
+          private long work;          
+          public SubThread(long work, CountDownLatch countDownLatch) {
+              this.countDownLatch = countDownLatch;
+              this.work = work;
+          }
+
+          @Override
+          public void run() {
+              try{
+                sleep(work);
+              }finally{
+                   countDownLatch.countDown();
+              }
+              
+          }
+     }
+}
+```
+
+3. Thread#join  
+```java
+public class MainThread {
+    public static void main(String[] args) {
+         SubThread thread = new SubThread();
+         thread.start();
+         System.out.println(“now waiting sub thread done.”);
+         try {
+             thread.join();
+         } catch (InterruptedException e) {
+             e.printStackTrace();
+         }
+         System.out.println(“now all done.”);
+    }
+    public static class SubThread extends Thread{
+         @Override
+         public void run() {
+             try {
+                  sleep(5000L);
+             } catch (InterruptedException e) {
+                  e.printStackTrace();
+             }
+         }     
+    }
+}
+
+```
+4. CompletionService
+5. Customized, such as an implementation of AbstractQueuedSynchronizer  
 
 Stream
 ---

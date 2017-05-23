@@ -5,6 +5,16 @@
     - [Misc](#concurrent-misc)
         + [Immutable Class](#immutable-class)
         + [thread dump](#thread-dump)
+        + [Linux Thread Model](#linux-thread-model)
+        + [How to safely interrupt a thread](#how-to-safely-interrupt-a-thread)
+* [Servlet & JSP](#servlet--jsp)
+    - [Lifecycle of Servlet](#lifecycle-of-servlet)
+    - [Servlet single thread model](#servlet-single-thread-model)
+    - [forward vs redirect](#forward-vs-redirect)
+    - [JSP build-in objects and methods](#jsp-build-in-objects-and-methods)
+    - [JSP dynamic INCLUDE and static INCLUDE](jsp-dynamic-include-and-static-include)
+    - [JSP common directives](#jsp-common-directives)
+    - [JSP "commands"](#jsp-commands)
 * [Collections](#collections)
     - [Misc](#collections-misc)
 * [Web Service](#web-service)
@@ -82,6 +92,125 @@ __How to generate thread dump?__
 1. use jstack/jconsole
 2. kill [-QUIT/-3] <pid>, with correct JVM parameters  
     -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=C: mpjvmoutput.log
+
+##### Linux Thread Model
+LINUX实现的就是基于核心轻量级进程的"一对一"线程模型，一个线程实体对应一个核心轻量级进程，而线程之间的管理在核外函数库中实现
+
+##### How to safely interrupt a thread
+因为stop，destroy，suspend都被证明是不安全的，并且已过时，那么应该用什么替代呢？  
+
+1. interrupt(), with interrupting codes
+2. flag check, with interrupting codes
+```java
+volatile boolean flag;
+//... 
+run(){
+      while(flag = true){
+        // ...
+     }   
+}
+// 将flag设为flase
+```
+3. FutureTask#cancel(boolean) or ExecuteService#shutdown  
+safest way
+4. CompletionService
+
+### Servlet & JSP
+
+#### Lifecycle of Servlet
+Servlet被服务器实例化后，容器运行其`init`方法，请求到达时运行其`service`方法，service方法自动派遣运行与请求对应的doXXX方法（`doGet，doPost`）等，当服务器决定将实例销毁的时候调用其`destroy`方法。
+
+__init()__  
+
+init() 被调用的时间  
+Example:  
+```xml
+<servlet>  
+ <servlet-name>initservlet</servlet-name>  
+ <servlet-class>com.bb.eoa.util.initServlet</servlet-class>  
+ <init-param>  
+  <param-name>log4j-init-file</param-name>  
+  <param-value>config/log.properties</param-value>  
+ </init-param>  
+ <load-on-startup>1</load-on-startup>  
+</servlet>
+```
+
+The load-on-startup element indicates that this servlet should be loaded (instantiated and have its init() called) on the startup of the web application. The optional contents of these element must be an integer indicating the order in which the servlet should be loaded. If the value is a negative integer, or the element is not present, the container is free to load the servlet whenever it chooses. If the value is a positive integer or 0, the container must load and initialize the servlet as the application is deployed. The container must guarantee that servlets marked with lower integers are loaded before servlets marked with higher integers. The container may choose the order of loading of servlets with the same load-on-start-up value.
+
+在 Servlet 的生命期中，仅执行一次 init() 方法。它是在服务器装入 Servlet 时执行的。可以配置服务器，以在启动服务器或客户机首次访问 Servlet 时装入 Servlet。 
+
+缺省的 init() 方法设置了 Servlet 的初始化参数，并用它的 ServletConfig 对象参数来启动配置， 因此所有覆盖 init() 方法的 Servlet 应调用 super.init() 以确保仍然执行这些任务。在调用 service() 方法之前，应确保已完成了 init() 方法。
+
+__destroy()__  
+destroy() 调用时间  
+Called by the servlet container to indicate to a servlet that the servlet is being taken out of service. `This method is only called once all threads within the servlet's service method have exited or after a timeout period has passed.` After the servlet container calls this method, it will not call the service method again on this servlet. 
+
+#### forward vs redirect
+* forward  
+服务器请求资源，服务器直接访问目标地址的URL，把那个URL的响应内容读取过来，然后把这些内容再发给浏览器，浏览器根本不知道服务器发送的内容是从哪儿来的，所以它的地址栏中还是原来的地址。
+RequestDispatcher#forward  
+更加高效，在前者可以满足需要时，尽量使用forward()方法，并且，这样也有助于隐藏实际的链接。
+
+* redirect  
+就是服务器根据逻辑,发送一个状态码,告诉浏览器重新去请求那个地址，一般来说浏览器会用刚才请求的所有参数重新请求，所以session,request参数都可以获取。  
+HttpServletResponse#sendRedirct  
+在有些情况下，比如，需要跳转到一个其它服务器上的资源，则必须使用sendRedirect()方法。
+
+#### Servlet single thread model
+<%@ page isThreadSafe="false"%>
+
+
+#### JSP build-in objects and methods
+JSP共有以下9种基本内置组件（可与ASP的6种内部组件相对应）:  
+1. request  
+表示HttpServletRequest对象。它包含了有关浏览器请求的信息，并且提供了几个用于获取cookie, header, 和session数据的有用的方法。
+2. response  
+表示HttpServletResponse对象，并提供了几个用于设置送回浏览器的响应的方法（如cookies,头信息等）
+3. page  
+表示从该页面产生的一个servlet实例
+4. session  
+表示一个请求的javax.servlet.http.HttpSession对象。Session可以存贮用户的状态信息
+5. application  
+表示一个javax.servlet.ServletContext对象, 这有助于查找有关servlet引擎和servlet环境的信息 
+6. pageContext  
+表示一个javax.servlet.jsp.PageContext对象。它是用于方便存取各种范围的名字空间、servlet相关的对象的API，并且包装了通用的servlet相关功能的方法
+7. config  
+表示一个javax.servlet.ServletConfig对象。该对象用于存取servlet实例的初始化参数。 
+8. out  
+是javax.jsp.JspWriter的一个实例，并提供了几个方法使你能用于向浏览器回送输
+9. exception  
+针对错误网页，未捕捉的例外
+
+#### JSP dynamic INCLUDE and static INCLUDE
+* 动态INCLUDE  
+用jsp:include动作实现 <jsp:include page="included.jsp" flush="true" />它总是会检查所含文件中的变化，适合用于包含动态页面，并且可以带参数。
+* 静态INCLUDE  
+用include伪码实现,定不会检查所含文件的变化，适用于包含静态页面<%@ include file="included.htm" %>
+
+#### JSP common directives
+```html
+<%@page language="java" contenType="text/html;charset=gb2312" session="true" buffer="64kb" autoFlush="true" isThreadSafe="true" info="text" errorPage="error.jsp" isErrorPage="true" isELIgnored="true" pageEncoding="gb2312" import="java.sql.*" %>
+<!-- isErrorPage(是否能使用Exception对象)，isELIgnored(是否忽略EL表达式) -->
+<%@include file="filename"%>
+<%@taglib prefix="c" uri="http://......"%>
+```
+
+#### JSP "commands"
+JSP 共有以下6种基本动作:  
+1. jsp:include  
+在页面被请求的时候引入一个文件
+2. jsp:useBean  
+寻找或者实例化一个JavaBean
+3. jsp:setProperty  
+设置JavaBean的属性
+4. jsp:getProperty  
+输出某个JavaBean的属性
+5. jsp:forward  
+把请求转到一个新的页面
+6. jsp:plugin  
+根据浏览器类型为Java插件生成OBJECT或EMBED标记。
+
 
 ### Collections
 
