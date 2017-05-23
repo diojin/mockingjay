@@ -78,9 +78,9 @@ There are several aspects to optimize,
     4. Clustered index  
     应尽可能的避免更新 clustered 索引数据列  
     因为 clustered 索引数据列的顺序就是表记录的物理存储顺序，一旦该列值改变将导致整个表记录的顺序的调整，会耗费相当大的资源。若应用系统需要频繁更新 clustered 索引数据列，那么需要考虑是否应将该索引建为 clustered 索引。  
-    一般来说, 有大量重复值、且经常有范围查询（ > ,< ，> =,< =）和order by、group by发生的列，可考虑建立群集索引 
+    一般来说, 有`大量重复值`、且经常有范围查询（ > ,< ，> =,< =）和order by、group by发生的列，可考虑建立群集索引 
     5. 定期的重构索引是有必要的  
-    ALTER INDEX <INDEXNAME> REBUILD <TABLESPACENAME>
+    ALTER INDEX \<INDEXNAME\> REBUILD \<TABLESPACENAME\>
 
 2. Fundamental types
     1. 尽量使用数字型字段  
@@ -319,14 +319,12 @@ This method is best when the smaller table fits in available memory. The cost is
 The optimizer uses a hash join to join two tables if they are joined using an `equijoin` and if either of the following conditions are true:
 1. A large amount of data must be joined.
 2. A large fraction of a small table must be joined.  
-
 USE_HASH(table_name1 table_name2)  
 
 * Sort Merge Joins  
 Sort merge joins can join rows from `two independent sources`. `Hash joins generally perform better than sort merge joins`. However, sort merge joins can perform better than hash joins if both of the following conditions exist:  
 1. The row sources are sorted already.
-2. A sort operation does not have to be done.
-
+2. A sort operation does not have to be done.  
 USE_MERGE(table_name1 table_name2)  
 
 However, if a sort merge join involves choosing a slower access method (an index scan as opposed to a full table scan), then the benefit of using a sort merge might be lost.  
@@ -357,7 +355,7 @@ __在Oracle 11g中，Oracle支持三种普通分区以及两种组合分区:__
 ORACLE的分区表的划分方法包括：  
 1. 按字段值进行划分的范围分区(RANGE)
 2. 按字段的HASH 函数值进行的划分HASH 分区
-3. 按字段值列表进行划分的列表 (LIST) 分区方法
+3. 按字段值列表进行划分的列表 (LIST) 分区方法  
 Oracle支持两种组合分区:  
 4. 先按范围划分，再按HASH 划分的RANGE-HASH组合分区
 5. 先按范围进行分区，再按LIST进行子分区的RANGE-LIST组合分区。
@@ -373,11 +371,10 @@ Oracle支持两种组合分区:
 分区对应用是透明的，可以通过标准的SQL语句对分区表进行操作。Oracle 的优化器在访问数据时会分析数据的分区情况，在进行查询时，那些不包含任何查询数据的分区将被忽略，从而大大提高系统的性能。
 
 * Range分区  
-`范围分区是最常使用的一种分区。`
-
+`范围分区是最常使用的一种分区。`  
 范围分区根据分区字段（Partition Key）的值实现数据和分区的映射。
 分区的字段可以是一个或多个字段(an ordered list of columns)组合。分区字段可以是除ROWID，LONG，LONG，LOB TIMESTAMP WITH TIME ZONE之外其他数据库内嵌数据类型。
-在创建范围分区时，应指定各分区的值域和各个分区的存储特性。
+在创建范围分区时，应指定各分区的值域和各个分区的存储特性。  
 __适用情景__  
 1. 范围分区特别适用于待处理分区数据在分布上具有逻辑范围或范围值域，如数据在按月份进行分区。`当数据能够在所有分区上均匀分布时范围分区能获得非常好的性能，若因数据分布不均匀而导致各个分区数据在数据量上变化很大，则应考虑采用其他的分区方法。`  
 2. 范围分区也适用于数据随时间变化而增长的情景。  
@@ -416,7 +413,6 @@ List分区以可以实现将`无关、无序的离散数据集`组合到一个�
 
 * Hash分区  
 `哈希分区是实现数据在各个分区上均匀分区的最佳分区方式`  
-
 `当数据与时间的关系不紧密时，哈希分区可用于替代范围分区。`  
 因为数据的分布完全由哈希算法决定，因此采用哈希分区主要是希望通过将数据均匀分布到各个分区以获得性能上的提升。  
 由于哈希分区的实现是基于哈希函数，因此不支持如删除哈希分区、合并哈希分区以及拆分哈希分区操作等一些分区操作。但支持增加、交换、移动、缩减等分区操作。
@@ -451,11 +447,12 @@ __索引分区(oracle)__
 分区表可以有分区的或者不分区的B-Tree索引。
 
 __Oracle 提供了如下三种分区索引：__  
-1. Local Prefixed Index
+1. Local Prefixed Index
 2. Local Non-Prefixed Index
 3. Global Prefixed Index
 
-Local (Prefixed/Non-Prefixed) Index指的是索引分区内的索引键值指向的记录都对应到基表的一个分区，即`索引分区和基表分区是equipartitioned（分区一一对应）`  
+Local (Prefixed/Non-Prefixed)   
+Index指的是索引分区内的索引键值指向的记录都对应到基表的一个分区，即`索引分区和基表分区是equipartitioned（分区一一对应）`  
 
 Global Index是指索引分区与表分区相互独立，不存在索引分区和表分区之间的一一对应关系  
 
