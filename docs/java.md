@@ -17,6 +17,9 @@
     - [JSP "commands"](#jsp-commands)
 * [Collections](#collections)
     - [Misc](#collections-misc)
+        + [STL collections references](#stl-collections-references)
+        + [ArrayList vs Vector vs LinkedList](#arraylist-vs-vector-vs-linkedlist)
+        + [HashMap vs HashTable vs ConcurrentHashMap](#hashmap-vs-hashtable-vs-concurrenthashmap)
 * [Web Service](#web-service)
     - [SOAP](#soap)
     - [Related Techniques](#ws-related-techniques)
@@ -250,6 +253,40 @@ STL容器分两种，
 因为hash table所做的运算就是个%，而rbtree要比较很多，比如rbtree要看value的数据 ，每个节点要多出3个指针（或者偏移量） 如果需要其他功能，比如，统计某个范围内的key的数量，就需要加一个计数成员。
     
 且1s rbtree能进行大概50w+次插入，hash table大概是差不多200w次。不过很多的时候，其速度可以忍了，例如倒排索引差不多也是这个速度，而且单线程，且倒排表的拉链长度不会太大。`正因为基于树的实现其实不比hashtable慢到哪里去，所以数据库的索引一般都是用的B/B+树，而且B+树还对磁盘友好(B树能有效降低它的高度，所以减少磁盘交互次数)。比如现在非常流行的NoSQL数据库，像MongoDB也是采用的B树索引。`关于B树系列，请参考本blog内此篇文章：[从B树、B+树、B*树谈到R 树][collections_3]。更多请待后续实验论证。
+
+##### ArrayList vs Vector vs LinkedList
+1. ArrayList  
+    1. 数组方式存储数据, 索引数据快而插入数据慢  
+    2. 当元素超过它的初始大小时,只增加50%的大小，有利于节约内存空间。  
+2. Vector  
+    1. 数组方式存储数据  
+    2. 线程安全, 通常性能上较ArrayList差
+    3. 当元素超过它的初始大小时,Vector会将它的容量翻倍 
+    4. `Vector不进行边界检查`
+3. LinkedList  
+使用双向链表实现存储，按序号索引数据需要进行前向或后向遍历，但是插入数据时只需要记录本项的前后项即可，所以插入速度较快。
+
+##### HashMap vs HashTable vs ConcurrentHashMap
+
+比如,Hashtable缺省的初始大小为101,载入因子为0.75,即如果其中的元素个数超过75个,它就必须增加大小并重新组织元素，所以,如果你 知道在创建一个新的Hashtable对象时就知道元素的确切数目如为110,那么,就应将其初始大小设为110/0.75=148,这样,就可以避免重 新组织内存并增加大小。
+1. HashMap  
+2. HashTable  
+3. ConcurrentHashMap    
+    1. lock striping  
+    ConcurrentHashMap is a hash-based Map like HashMap, but it uses an entirely different locking strategy that offers better concurrency and scalability. Instead of synchronizing every method on a common lock, restricting access to a single thread at a time, it uses a finer-grained locking mechanism called lock striping to allow a greater degree of shared access. `Arbitrarily many reading threads can access the map concurrently`, `readers can access the map concurrently with writers`, and `a limited number of writers can modify the map concurrently`. The result is far higher throughput under concurrent access, with little performance penalty for single-threaded access.  
+    ConcurrentHashMap将hash表分为16个桶（默认值），诸如get,put,remove等常用操作只锁当前需要用到的桶。试想，原来只能一个线程进入，现在却能同时16个写线程进入（写线程才需要锁定，而读线程几乎不受限制，），并发性的提升是显而易见的。  
+    The allowed concurrency among update operations is guided by the optional concurrency Level constructor argument (default 16), which is used as a hint for internal sizing. The table is internally partitioned to try to permit the indicated number of concurrent updates without contention. Also, resizing this or any other kind of hash table is a relatively slow operation, so, when possible, it is a good idea to provide estimates of expected table sizes in constructors.
+    2. weakly consistent iterator  
+    ConcurrentHashMap, along with the other concurrent collections, further improve on the synchronized collection classes by providing iterators that do not throw ConcurrentModificationException, thus eliminating the need to lock the collection during iteration. The iterators returned by ConcurrentHashMap are weakly consistent instead of fail-fast. A weakly consistent iterator can `tolerate concurrent modification`, traverses elements as they existed when the iterator was constructed, and `may (but is not guaranteed to) reflect modifications to the collection after the construction of the iterator.`  
+    我们称为弱一致迭代器。在这种迭代方式中，当iterator被创建后集合再发生改变就不再是抛出 ConcurrentModificationException，取而代之的是在改变时new新的数据从而不影响原有的数据，iterator完成后再将头指针替换为新的数据，这样iterator线程可以使用原来老的数据，而写线程也可以并发的完成改变
+    3. semantics of methods that operate on the entire Map are weakened  
+    As with all improvements, there are still a few tradeoffs. The semantics of methods that operate on the entire Map, such as size and isEmpty, have been slightly weakened to reflect the concurrent nature of the collection. Since the result of size could be out of date by the time it is computed, it is really only an estimate, so size is allowed to return an approximation instead of an exact count.  
+    While at first this may seem disturbing, in reality methods like size and isEmpty are far less useful in concurrent environments because these quantities are moving targets. So the requirements for these operations were weakened to enable performance optimizations for the most important operations, primarily get, put, containsKey, and remove.  
+    4. no client side locking  
+    The one feature offered by the synchronized Map implementations but not by ConcurrentHashMap is the ability to lock the map for exclusive access. With Hashtable and synchronizedMap, acquiring the Map lock prevents any other thread from accessing it. This might be necessary in unusual cases such as adding several mappings atomically, or iterating the Map several times and needing to see the same elements in the same order. On the whole, though, this is a reasonable tradeoff: concurrent collections should be expected to change their contents continuously.  
+    Because it has so many advantages and so few disadvantages compared to Hashtable or synchronizedMap, replacing synchronized Map implementations with ConcurrentHashMap in most cases results only in better scalability. Only if your application needs to lock the map for exclusive access[3] is ConcurrentHashMap not an appropriate drop-in replacement.  
+    [3] Or if you are relying on the synchronization side effects of the synchronizedMap implementations.  
+    
 
 ### Web Service
 
