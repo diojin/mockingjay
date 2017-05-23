@@ -53,6 +53,7 @@ sql> alter table table_name LOGGING;
 5. As for deleting majority of data in table  
 pick up remaining data into a new table  
 drop source table  
+rename the new table back to original table  
 recreate index
 6. delete and commit in batch  
 单个事务中删除大量数据有几个缺点：  
@@ -125,6 +126,7 @@ sql> alter table table_name LOGGING;
 #### Oracle Examples
 ##### Example 1
 表TEST  
+
 C1          | C2 
 ------------|-------
 2005-01-01  | 1 
@@ -149,11 +151,11 @@ group by rollup(C1)
 ### Miscellaneous
 #### Examples
 ##### Example 1
-有员工表 empinfo( 
-Fempno varchar2(10) not null pk, 
-Fempname varchar2(20) not null, 
-Fage number not null, 
-Fsalary number not null); 
+有员工表 empinfo(  
+Fempno varchar2(10) not null pk,   
+Fempname varchar2(20) not null,   
+Fage number not null,   
+Fsalary number not null);   
 假如数据量很大约1000万条；写一个你认为最高效的SQL，用一个SQL计算以下四种员工,每种员工的数量:
 fsalary>9999 and fage > 35 
 fsalary>9999 and fage < 35 
@@ -194,7 +196,7 @@ where t2.company_name = t1.company_name
 group by t2.company_name
 having count(*) > 1);
 
-DELETE FROM table t
+DELETE FROM table t     -- best performance
 WHERE t.rowid > (SELECT MIN(x.rowid)
                             FROM table x
                             WHERE x.column1 = t.column1

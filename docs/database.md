@@ -488,7 +488,7 @@ Figure B-5 shows a segment consisting of three extents containing 10K, 20K, and 
 
 __HWM数据库的操作有如下影响：__  
 * 全表扫描通常要读出直到HWM标记的所有的属于该表数据库块，即使该表中没有任何数据。
-* 即使HWM以下有空闲的数据库块，键入在插入数据时使用了append关键字，则在插入时使用HWM以上的数据块，此时HWM会自动增大。
+* 即使HWM以下有空闲的数据库块，键入在插入数据时使用了append hint，则在插入时使用HWM以上的数据块，此时HWM会自动增大。
 
 __低HWM__  
 在手动段空间管理（Manual Segment Space Management）中，段中只有一个HWM，但是在Oracle9i Release才添加的自动段空间管理（Automatic Segment Space Management）中，又有了一个`低HWM`的概念出来。为什么有了HWM还又有一个低HWM呢，这个是因为自动段空间管理的特性造成的。在手段段空间管理中，当数据插入以后，如果是插入到新的数据块中，数据块就会被自动格式化等待数据访问。而在自动段空间管理中，数据插入到新的数据块以后，数据块并没有被格式化，而是在第一次在第一次访问这个数据块的时候才格式化这个块。`所以我们又需要一条水位线，用来标示已经被格式化的块`。这条水位线就叫做低HWM。一般来说，低HWM肯定是低于等于HWM的。
@@ -658,11 +658,11 @@ sql_3:select 1 from dual for update nowait;
 When processing queries, ORACLE often requires temporary workspace for intermediate stages of SQL statement processing. This disk space is called temporary segment, which is automatically allocated by ORACLE. The following commands may require the use of a temporary segment:  
 * CREATE INDEX
 * SELECT ... ORDER BY
-* SELECT DISTINCT ...
-* SELECT ... GROUP BY
-* SELECT ... UNION
-* SELECT ... INTERSECT
-* SELECT ... MINUS
+* SELECT DISTINCT ...
+* SELECT ... GROUP BY
+* SELECT ... UNION
+* SELECT ... INTERSECT
+* SELECT ... MINUS
 
 ##### Oracle Temporary Table
 临时表，最主要的好处是，操作不留任何痕迹、不产生日志，所以速度快
@@ -767,11 +767,11 @@ exec sp_executesql @sql,n''@i int output'',@count output
 * oracle 8i  
     1. 程序包dbms_sql  
     执行一个语句的过程：  
-    打开游标（open_cursor，对于非查询语句，无此过程）
-    分析语句（parse)
-    绑定变量（bind_variable）
-    执行语句（execute)
-    关闭游标（close_cursor,对于非查询语句，无此过程)
+    打开游标（open_cursor，对于非查询语句，无此过程）  
+    分析语句（parse)  
+    绑定变量（bind_variable）  
+    执行语句（execute)  
+    关闭游标（close_cursor,对于非查询语句，无此过程)  
     2. execute immediate ls_sql
 
 外连接语法:  
@@ -857,10 +857,10 @@ Uncommitted dependency occurs when a second transaction selects a row that is be
 * Lost Update  
 Lost updates occur when two or more transactions select the same row and then update the row based on the value originally selected. Each transaction is unaware of other transactions. The last update overwrites updates made by the other transactions, which results in lost data.  
 The "lost update" problem relates to concurrent reads and updates to data, in a system where readers do not block writers. It is not necessary for the transactions to be exactly simultaneous.
-1. Session #1 reads Account A, gets 100. 
-2. Session #2 reads Account A, gets 100. 
-3. Session #2 updates Account A to 150 (+50) and commits. 
-4. Session #1 updates Account A to 120 (+20) and commits.  
+    1. Session #1 reads Account A, gets 100. 
+    2. Session #2 reads Account A, gets 100. 
+    3. Session #2 updates Account A to 150 (+50) and commits. 
+    4. Session #1 updates Account A to 120 (+20) and commits.  
 In this scenario, because Session #1 does not know that another session has already modified the account, the update by Session #2 is overwritten ("lost").
 There are several ways to solve this, e.g. version numbers or before-and-after compares.
 
@@ -918,7 +918,7 @@ Pessimistic locking anticipates contention for the same record, preventing users
 #### Differences between Union and Union All
 Union：对两个结果集进行并集操作，不包括重复行，同时进行默认规则的排序；  
 Union All：对两个结果集进行并集操作，包括重复行，不进行排序；   
-Intersect：对两个结果集进行交集操作，不包括重复行，同时进行默认规则的排序； 
+Intersect：对两个结果集进行交集操作，不包括重复行，同时进行默认规则的排序；  
 Minus：对两个结果集进行差操作，不包括重复行，同时进行默认规则的排序。 
 
 可以在最后一个结果集中指定Order by子句改变排序方式。 
