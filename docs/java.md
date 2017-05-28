@@ -20,6 +20,8 @@
         + [STL collections references](#stl-collections-references)
         + [ArrayList vs Vector vs LinkedList](#arraylist-vs-vector-vs-linkedlist)
         + [HashMap vs HashTable vs ConcurrentHashMap](#hashmap-vs-hashtable-vs-concurrenthashmap)
+        + [Object#clone](#objectclone)
+* [Gabage Collector](#gabage-collector)
 * [Web Service](#web-service)
     - [SOAP](#soap)
     - [Related Techniques](#ws-related-techniques)
@@ -36,6 +38,11 @@
         + [Relations between acknowledgement, session, transaction](#relations-between-acknowledgement-session-transaction)
 * [Java SE](#java-se)
     - [Instrumentation](#instrumenmtation)
+    - [Misc](#java-se-misc)
+        + [hashcode](#java-hashcode)
+        + [differences between logic operator and condition operator](#differences-between-logic-operator-and-condition-operator)
+        + [String#intern](#stringintern)
+        + [I/O](#java-io)
 * [Java EE](#java-ee)
     - [J2EE Design Pattern](#j2ee-design-pattern)
 * [EJB](#ejb)
@@ -264,13 +271,24 @@ STL容器分两种，
     3. 当元素超过它的初始大小时,Vector会将它的容量翻倍 
     4. `Vector不进行边界检查`
 3. LinkedList  
-使用双向链表实现存储，按序号索引数据需要进行前向或后向遍历，但是插入数据时只需要记录本项的前后项即可，所以插入速度较快。
+使用双向链表实现存储，按序号索引数据需要进行前向或后向遍历，但是插入数据时只需要记录本项的前后项即可，所以插入速度较快。  
+LinkedList提供额外的get，remove，insert方法在LinkedList的首部或尾部。这些操作使LinkedList可被用作堆栈（stack），队列（queue）或双向队列（deque）
 
 ##### HashMap vs HashTable vs ConcurrentHashMap
 
-比如,Hashtable缺省的初始大小为101,载入因子为0.75,即如果其中的元素个数超过75个,它就必须增加大小并重新组织元素，所以,如果你 知道在创建一个新的Hashtable对象时就知道元素的确切数目如为110,那么,就应将其初始大小设为110/0.75=148,这样,就可以避免重 新组织内存并增加大小。
+
 1. HashMap  
+Hash table based implementation of the Map interface. This implementation provides all of the optional map operations, and permits null values and the null key. (The HashMap class is roughly equivalent to Hashtable, except that it is unsynchronized and permits nulls.)  
+An instance of HashMap has two parameters that affect its performance: `initial capacity` and `load factor`. The capacity is the number of buckets in the hash table, and the initial capacity is simply the capacity at the time the hash table is created. The load factor is a measure of how full the hash table is allowed to get before its capacity is automatically increased. When the number of entries in the hash table exceeds the product of the load factor and the current capacity, the hash table is rehashed (that is, internal data structures are rebuilt) so that the hash table has approximately `twice the number of buckets`.  
+HashMap允许将null作为一个entry的key或者value，而Hashtable不允许
 2. HashTable  
+    1. thread safe  
+    2. load factor  
+    比如,Hashtable缺省的初始大小为101,载入因子为0.75,即如果其中的元素个数超过75个,它就必须增加大小并重新组织元素，所以,如果你 知道在创建一个新的Hashtable对象时就知道元素的确切数目如为110,那么,就应将其初始大小设为110/0.75=148,这样,就可以避免重 新组织内存并增加大小。  
+    This class implements a hashtable, which maps keys to values. `Any non-null object can be used as a key or as a value`  
+    An instance of Hashtable has two parameters that affect its performance: initial capacity and load factor.   
+    Generally, the default load factor (.75) offers a good tradeoff between time and space costs.Higher values decrease the space overhead but increase the time cost to look up an entry (which is reflected in most Hashtable operations, including get and put).  
+    按照散列函数的定义，如果两个对象相同，即obj1.equals(obj2)=true，则它们的hashCode必须相同，但如果两个对象不同，则它们的hashCode不一定不同，如果两个不同对象的hashCode相同，这种现象称为冲突，冲突会导致操作哈希表的时间开销增大
 3. ConcurrentHashMap    
     1. lock striping  
     ConcurrentHashMap is a hash-based Map like HashMap, but it uses an entirely different locking strategy that offers better concurrency and scalability. Instead of synchronizing every method on a common lock, restricting access to a single thread at a time, it uses a finer-grained locking mechanism called lock striping to allow a greater degree of shared access. `Arbitrarily many reading threads can access the map concurrently`, `readers can access the map concurrently with writers`, and `a limited number of writers can modify the map concurrently`. The result is far higher throughput under concurrent access, with little performance penalty for single-threaded access.  
@@ -286,7 +304,33 @@ STL容器分两种，
     The one feature offered by the synchronized Map implementations but not by ConcurrentHashMap is the ability to lock the map for exclusive access. With Hashtable and synchronizedMap, acquiring the Map lock prevents any other thread from accessing it. This might be necessary in unusual cases such as adding several mappings atomically, or iterating the Map several times and needing to see the same elements in the same order. On the whole, though, this is a reasonable tradeoff: concurrent collections should be expected to change their contents continuously.  
     Because it has so many advantages and so few disadvantages compared to Hashtable or synchronizedMap, replacing synchronized Map implementations with ConcurrentHashMap in most cases results only in better scalability. Only if your application needs to lock the map for exclusive access[3] is ConcurrentHashMap not an appropriate drop-in replacement.  
     [3] Or if you are relying on the synchronization side effects of the synchronizedMap implementations.  
-    
+
+### Gabage Collector
+
+__Root Set__  
+大多数垃圾回收算法使用了根集(RootSet)这个概念；所谓根集就量正在执行的Java程序可以访问的引用变量的集合(包括局部变量、参数、类变量)，程序可以使用引用变量访问对象的属性和调用对象的方法。垃圾收集首选需要确定从根开始哪些是可达的和哪些是不可达的，从根集可达的对象都是活动对象，它们不能作为垃圾被回收，这也包括从根集间接可达的对象。而根集通过任意路径不可达的对象符合垃圾收集的条件，应该被回收。
+
+GC首先要判断该对象是否是时候可以收集, 常用的方法2种  
+1. 引用计数  
+引用计数存储对特定对象的所有引用数，也就是说，当应用程序创建引用以及引用超出范围时，JVM必须适当增减引用数。当某对象的引用数为0时，便可以进行垃圾收集。  
+基于引用计数器的垃圾收集器运行较快，不会长时间中断程序执行，适宜地必须 实时运行的程序。但引用计数器增加了程序执行的开销，因为每次对象赋给新的变量，计数器加1，而每次现有对象出了作用域生，计数器减1。  
+
+2. Tracing算法   
+Tracing算法是为了解决引用计数法的问题而提出，它使用了根集的概念。基于tracing算法的垃圾收集器从根集开始扫描，识别出哪些对象可达，哪些对象不可达，并用某种方式标记可达对象，例如对每个可达对象设置一个或多个位。
+
+__垃圾回收算法:__  
+1. 标记－清除收集器  
+这种收集器首先遍历对象图并标记可到达的对象，然后扫描堆栈以寻找未标记对象并释放它们的内存。这种收集器一般使用单线程工作并停止其他操作。 
+
+2. 标记－压缩收集器  
+有时也叫标记－清除－压缩收集器，与标记－清除收集器有相同的标记阶段。在第二阶段，则把标记对象复制到堆栈的新域中以便压缩堆栈。这种收集器也停止其他操作。  
+在基于Compacting算法的收集器的实现中，一般增加句柄和句柄表。
+
+3. 复制收集器  
+这种收集器将堆栈分为两个域，常称为半空间。每次仅使用一半的空间，JVM生成的新对象则放在另一半空间中。gc运行时，它把可到达对象复制到另一半空间，从而压缩了堆栈。这种方法适用于短生存期的对象，持续复制长生存期的对象则导致效率降低。 
+
+4. 分代收集器  
+复制垃圾收集器的一个缺陷是收集器必须复制所有的活动对象，这增加了程序等待时间，这是coping算法低效的原因。在程序设计中有这样的规律：多数对象存在的时间比较短，少数的存在时间比较长。因此，generation算法将堆分成两个或多个，每个子堆作为对象的一代(generation)。由于多数对象存在的时间比较短，随着程序丢弃不使用的对象，垃圾收集器将从最年轻的子堆中收集这些对象。在分代式的垃圾收集器运行后，上次运行存活下来的对象移到下一最高代的子堆中，由于老一代的子堆不会经常被回收，因而节省了时间
 
 ### Web Service
 
@@ -469,10 +513,7 @@ java agent 在JDK package specification中解释：一个agent 是被作为Jar �
 
 __Example:__  
 
-
-
-1. 命令行方法
-2. 
+1. 命令行方法  
 ```java
 import java.lang.instrument.ClassFileTransformer;
 public class PeopleClassFileTransformer implements ClassFileTransformer {
@@ -598,6 +639,91 @@ public class TestMainAgent {
 }
 
 ```
+
+#### Java SE Misc
+
+##### Java Hashcode
+
+What’s the default implementation of hashcode, will hashcode change during runtime?  
+PS: Memory address, will change. Need to go deeper.
+
+In the mark & sweep algorithm, the objects are moved of course. But the running program doesn't contain refrences to the objects directly. The variable in the thread of execution contains a reference to an object which in turn contains a reference to the actual object (that the thread actually created). So during GC when the object is moved, the indirect reference is updated. 
+
+----------       -----------      ----------------      -----------  
+| Thread |------>|Reference|----->| Intermediate |----->|  Actual |    
+|        |       |   Var   |      |   Reference  |      |  Object |  
+----------       -----------      ----------------      -----------  
+
+Object.hashcode() is a native method.  
+public native int hashCode();  
+That means it's implemented in platform specific code and is exposed as a native method. code for the same will be a compiled code and not available withing JDK
+
+The method in java.lang.Object is declared as native, which means the implementation is provided by the JVM and may vary depending on your runtime environment.
+
+##### differences between logic operator and condition operator
+逻辑操作(&,|,^)与条件操作(&&,||)的区别  
+1. 条件操作只能操作布尔型的,而逻辑操作不仅可以操作布尔型,而且可以操作数值型
+2. 逻辑操作不会产生短路
+
+##### Object#clone
+Clone有缺省行为，super.clone();他负责产生正确大小的空间，并逐位复制。
+
+##### String#intern
+
+>public String intern()
+>>Returns a canonical representation for the string object.  
+A pool of strings, initially empty, is maintained privately by the class String.  
+When the intern method is invoked, if the pool already contains a string equal to this String object as determined by the equals(Object) method, then the string from the pool is returned. Otherwise, this String object is added to the pool and a reference to this String object is returned.  
+>>It follows that for any two strings s and t, s.intern() == t.intern() is true if and only if s.equals(t) is true.
+
+Basically doing String.intern() on a series of strings will ensure that all strings having same contents share same memory. So if you have list of names where 'john' appears 1000 times, by interning you ensure only one 'john' is actually allocated memory.
+
+This can be useful to reduce memory requirements of your program. But be aware that the cache is maintained by JVM in permanent memory pool which is usually limited in size compared to heap so you should not use intern if you don't have too many duplicate values.
+
+On one hand, it is true that you can remove String duplicates by internalizing them. The problem is that the internalized strings go to the Permanent Generation, which is an area of the JVM that is reserved for non-user objects, like Classes, Methods and other internal JVM objects. The size of this area is limited, and is usually much smaller than the heap. `Calling intern() on a String has the effect of moving it out from the heap into the permanent generation`, and you risk running out of PermGen space.
+
+`From JDK 7 (I mean in HotSpot), something has changed.` 
+
+`In JDK 7, interned strings are no longer allocated in the permanent generation of the Java heap,` but are instead allocated in the main part of the Java heap (known as the young and old generations), along with the other objects created by the application. This change will result in more data residing in the main Java heap, and less data in the permanent generation, and thus may require heap sizes to be adjusted. Most applications will see only relatively small differences in heap usage due to this change, but larger applications that load many classes or make heavy use of the String.intern() method will see more significant differences.
+
+常量池(constant pool)指的是在编译期被确定，并被保存在已编译的.class文件中的一些数据。它包括了关于类、方法、接口等中的常量，也包括字符串常量。
+
+```java
+String s0=”kvill”;   
+String s1=”kvill”;   
+String s2=”kv” + “ill”;   
+System.out.println( s0==s1 );   // true 
+System.out.println( s0==s2 );   // true
+
+// 因为例子中的s0和s1中的”kvill”都是字符串常量，它们在编译期就被确定了，所以s0==s1为true；而”kv”和”ill”也都是字符串常量，当一个字符串由多个字符串常量连接而成时，它自己肯定也是字符串常量，所以s2也同样在编译期就被解析为一个字符串常量，所以s2也是常量池中”kvill”的一个引用。
+
+// 用new String() 创建的字符串不是常量，不能在编译期就确定，所以new String() 创建的字符串不放入常量池中，它们有自己的地址空间。   
+
+String s0=”kvill”;   
+String s1=new String(”kvill”);   
+String s2=”kv” + new String(“ill”);   
+System.out.println( s0==s1 );   // false 
+System.out.println( s0==s2 );   // false  
+System.out.println( s1==s2 );   // false   
+
+
+String s0= “kvill”;   
+String s1=new String(”kvill”);   
+String s2=new String(“kvill”);   
+s1.intern();   
+s2=s2.intern(); //把常量池中“kvill”的引用赋给s2   
+System.out.println( s0==s1);                    // false
+System.out.println( s0==s1.intern() );          // true  
+System.out.println( s0==s2 );                   // true
+```
+
+##### Java I/O 
+Class hierarchies of major classes.
+![javase_io_hierarchy_1]  
+![javase_io_hierarchy_2]  
+![javase_io_hierarchy_3]  
+![javase_io_hierarchy_4]  
+
 
 ### Java EE
 
@@ -897,3 +1023,7 @@ Ctrl+Shift+Space
 [j2ee_core_design_pattern_1]:/resources/img/java/Core_J2EE_Pattern_Catalog.png "Core_J2EE_Pattern_Catalog"
 [j2ee_core_design_pattern_2]:http://www.corej2eepatterns.com/index.htm "Core J2EE Pattern Catalog"
 [misc-terminologies-jat-1]:https://sourceforge.net/projects/javappstemplate/ "Jat - Java Application Template"
+[javase_io_hierarchy_1]:/resources/img/java/java_io_input_1.png "input hierarchy 1"
+[javase_io_hierarchy_2]:/resources/img/java/java_io_output_1.png "output hierarchy 1"
+[javase_io_hierarchy_3]:/resources/img/java/java_io_input_2.png "input hierarchy 2"
+[javase_io_hierarchy_4]:/resources/img/java/java_io_output_2.png "output hierarchy 2"

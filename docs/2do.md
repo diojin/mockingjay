@@ -22,6 +22,7 @@ ___
     - [ ] :arrow_right_hook: a few small pdfs
     - [ ] :arrow_right_hook: design pattern
     - [ ] :arrow_right_hook: books, such as concurrent in practise, jvm
+    - [ ] :arrow_right_hook: different singleton method
 - [ ] :kissing_cat: :two: changes in JDK 8 and previous versions
 - [ ] :kissing_cat: :two: update cv
 
@@ -134,6 +135,8 @@ ___
     - [x]:arrow_right_hook: ~~hibernate~~ 
     - [x]:arrow_right_hook: ~~distributed~~ 
     - [x]:arrow_right_hook: ~~database~~ 
+    - [x]:arrow_right_hook: ~~java core~~
+    - [x]:arrow_right_hook: ~~design pattern~~
 
 ##### 2071-05-11
 - [x] :kissing_cat: :one: ~~bring darling to 美食街~~

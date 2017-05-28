@@ -5,7 +5,10 @@
     - [Misc](#concurrent-misc)
         + [How to wait for child thread to end](#how-to-wait-for-child-thread-to-end)
 * [Stream](#stream)
-* [Functional operation](#functional-operation)
+* [Function Style Programming](#function-style-programming)
+* [Miscellaneous](#miscellaneous) 
+  - [Socket](#java-socket)
+  - [EJB2](#ejb2)
 
 
 ### Concurrent
@@ -120,7 +123,7 @@ __Functional in nature__. An operation on a stream produces a result, but does n
 
 **Consumable**. The elements of a stream are only visited once during the life of a stream. Like an Iterator, a new stream must be generated to revisit the same elements of the source.
 
-Functional Operation
+Function Style Programming
 ---
 #### examples
 1. case 1
@@ -135,4 +138,121 @@ public class VendorItemSubscriptionDTO {
 
     public static Function<VendorItemSubscriptionDTO, Long> TO_PRODUCT_ID = VendorItemSubscriptionDTO::getProductId;
 }
+```
+
+### Miscellaneous
+#### Java Socket
+##### example 1
+```java
+package test;
+import java.net.*;
+import java.io.*; 
+
+public class Server{
+  private ServerSocket ss;
+  private Socket socket;
+  private BufferedReader in;
+  private PrintWriter out;
+ 
+ public Server() {
+  try {
+   ss=new ServerSocket(10000);
+   while(true) {
+    socket = ss.accept();
+    String RemoteIP = socket.getInetAddress().getHostAddress();
+    String RemotePort = ":"+socket.getLocalPort();
+    System.out.println("A client come in!IP:"+RemoteIP+RemotePort);
+    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    String line = in.readLine();
+    System.out.println("Cleint send is :" + line);
+    out = new PrintWriter(socket.getOutputStream(),true);
+    out.println("Your Message Received!");
+    out.close();
+    in.close();
+    socket.close();
+   }
+  }catch (IOException e) {
+   out.println("wrong");
+  }
+ }
+
+ public static void main(String[] args) {
+  new Server();
+ }
+}
+```
+
+```java
+package test;
+import java.io.*;
+import java.net.*; 
+
+public class Client {
+ Socket socket;
+ BufferedReader in;
+ PrintWriter out;
+ public Client() {
+  try {
+   System.out.println("Try to Connect to 127.0.0.1:10000");
+   socket = new Socket("127.0.0.1",10000);
+   System.out.println("The Server Connected!");
+   System.out.println("Please enter some Character:");
+   BufferedReader line = new BufferedReader(new InputStreamReader(System.in));
+   out = new PrintWriter(socket.getOutputStream(),true);
+   out.println(line.readLine());
+   in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+   System.out.println(in.readLine());
+   out.close();
+   in.close();
+   socket.close();
+  }catch(IOException e) {
+   out.println("Wrong");
+  }
+ }
+
+ public static void main(String[] args) {
+  new Client();
+ }
+}
+
+```
+
+#### EJB2
+
+```java
+
+// Remote Interface 接口的代码：
+
+package Beans;
+import javax.ejb.EJBObject;
+import java.rmi.RemoteException;
+public interface Add extends EJBObject {
+  //some method declare 
+}
+
+// Home Interface 接口的代码：
+
+
+
+package Beans;
+import java.rmi.RemoteException;
+import jaax.ejb.CreateException;
+import javax.ejb.EJBHome;
+public interface AddHome extends EJBHome {
+  //some method declare
+}
+
+// EJB类的代码：
+
+package Beans;
+import java.rmi.RemoteException;
+import javax.ejb.SessionBean;
+import javx.ejb.SessionContext;
+public class AddBean Implements SessionBean
+{
+  //some method declare
+}
+
+
+
 ```
