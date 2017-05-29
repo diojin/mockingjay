@@ -6,9 +6,12 @@
         + [How to wait for child thread to end](#how-to-wait-for-child-thread-to-end)
 * [Stream](#stream)
 * [Function Style Programming](#function-style-programming)
+* [Design Pattern](#design-pattern)
+  - [Examples](#design-pattern-examples)
 * [Miscellaneous](#miscellaneous) 
   - [Socket](#java-socket)
   - [EJB2](#ejb2)
+  - [Examples](#misc-examples)
 
 
 ### Concurrent
@@ -140,6 +143,95 @@ public class VendorItemSubscriptionDTO {
 }
 ```
 
+### Design Pattern
+#### Design Pattern Examples
+
+##### Example 1
+>web应用，主要有两个部分，一个是帐户的管理，一个是客户购买商品。    
+其中帐户的管理主要是：  
+* 更改账号的状态，存到db 
+* 存入log 
+* 自动发送电子邮件给管理员，由管理员或者激活或者冻结 
+* 如果一个账户已经被激活并且被分配了一个帐户的管理，那么给这个帐户管理发送电子邮件 
+* 存入log  
+客户购买部分：  
+* 网上购物的日常流程（看，选，付款） 
+* 发一封确认邮件包括产品信息给客户 
+* 存入log  
+问题来喽，上面两个主要的过程都需要多次使用两个操作:发邮件和存log  
+那么，你选择怎样的设计模式（Design Pattern）呢？这个设计模式必须允许在多个独立的类中可以外推重复的片段（would allow extrapolating repeating sections of code in separate classes）。不但这样，这种设计模式还要支持适当的提取操作，比如市场调查模块，能够在每一个地方和市场有关的地方取得资料。（Support the appropriate level of abstraction to allow for additional handlers (ie. marketing modules) to be hooked into any business procedure. 
+）  
+实体化你的设计模式。  
+
+我的想法, Oberserver,  Template  
+
+PS:  
+1. Strategy, 复用发邮件和存日志的代码
+2. Decorator, 动态增加额外的操作,例如市场调查. 如果使用Template Method, 灵活性不大.
+3. Observer, 账户状态的改变涉及到几个同时的操作, 可以使用Observer
+
+##### Example 2
+
+>用php写一个在线编辑器的类，这个类要求是在最后生成工具栏之前，无论何时用什么样的顺序都能加上新的功能。  
+Requirements:  
+* Panel elements may be added in any order at any time before rendering 
+* The panel object class must be available globally (singleton)  
+
+PS:  
+1. Composite模式
+2. Singleton 模式
+
+##### Example 3
+
+>假设是原始社会,有石头,2块石头互磨可以变成石刀,石刀可以去砍木头,木头被砍成木材,木材可以组成椅子,请你用oo的思想把这些事物和他们之间的关系表达出来,但是要考虑到以后可能我会增加以下几点:    
+1. 有可能我还想让石刀去砍椅子,把椅子砍成木材, 
+2. 可能我还想让石头增加关系,例如互相砸,互相摔,而不只是磨,也可以变成石刀, 
+3. 也许我又要多添一百种不同的事物,再多添120种不同的关系...  
+也就是说我的要求可能是不断变化的,所以你要怎么样设计这个oo的模型,可以让我在实行1,2,3条的时候只做最小的修改....
+
+这里也许应该用Bridage模式， 把物体和行为分别抽象出来  
+
+PS:  
+for 1, 3 使用Mediator模式
+for 2, 使用bridge或Strategy模式
+
+##### Example 4
+>金额转换，阿拉伯数字的金额转换成中国传统的形式如：  
+（￥1011）－>（一千零一拾一元整）输出。
+
+建议看一下李建忠讲的＜C＃面向对象设计模式纵横谈＞ 第19讲，Chain Of Responsibility 职责链模式(行为型模式)
+
+##### Example 5
+> 如何用图例给出windows下的文件目录的设计模式    
+
+Composite
+
+##### Unreolved Examples
+
+>Design a remote control program a on a Pocket PC device(which is a PDA based on Microsoft Windows CE.Net),and support touch screen,GUI programming,and infrared port to communicate with the TVs).The functions are almost the same with the common TV remote(such as changing channel,volume,TV/AV change,ON/OFF and anything you think which should be on a TV remote).The additional functions are the undo,redo command.   
+Based on MVC pattern,give an Object-Oriented Design using UML diagrams and written text (plesase be in details)for the above requirements,.Explicitly all design patterns used and justify your use of them.No code required.
+
+PS: Observer, Command
+
+>There is a coffee shop to server HouseBlend and Espresso coffee.Each coffee can be served with the following condiments:Milk,Mocha.Using Decorator pattern to construct the coffee shop program to compute every beverage’s cost with its description.   
+Class beverage{   
+String decription;   
+String getDescription(){return description;}   
+Double cost();   
+}   
+Draw the pattern class diagram,and full code(class 
+CondimentDecorator,HouseBlend,Espresso,Milk,Mocha,StarBuzzCoffee and other classes required) to construct the program including a test drive(StarBuzzCoffee class). 
+
+>In object-oriented programming one is advised to avoid case(and if )statements.Select one design pattern that helps avoid case statements and explain how it helps.
+
+PS: State, Strategy
+
+>Factory Method and Abstract Factory design patterns are quite similar.How are they similar and how are they different?
+
+>JVM相当于那种设计模式
+
+
+
 ### Miscellaneous
 #### Java Socket
 ##### example 1
@@ -252,7 +344,7 @@ public class AddBean Implements SessionBean
 {
   //some method declare
 }
-
-
-
 ```
+
+
+#### Misc Examples

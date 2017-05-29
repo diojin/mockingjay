@@ -1,19 +1,21 @@
 ##Index
 ___
 
+
+
 * [Miscellaneous](#miscellaneous)
-    - [Code Snippets](#code-snippets)
-        + [su](#su)
+    - [find](#find)
+    - [su](#su)
 
 ___
 
 
-
 Miscellaneous
 ---
+####find
 
-####Code Snippets
-######su
+
+####su
 * swither to root
 
 >The su utility requests appropriate user credentials via PAM and switches to that user ID (the default user is the superuser).
