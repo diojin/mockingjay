@@ -20,15 +20,12 @@ ___
 - [ ] :kissing_cat: :two: go through other review preparation materials
     - [ ] :arrow_right_hook: algorithm
     - [ ] :arrow_right_hook: a few small pdfs
-    - [ ] :arrow_right_hook: design pattern
     - [ ] :arrow_right_hook: books, such as concurrent in practise, jvm
-    - [ ] :arrow_right_hook: different singleton method
 - [ ] :kissing_cat: :two: changes in JDK 8 and previous versions
 - [ ] :kissing_cat: :two: update cv
 
     - [ ] :smiley_cat: :one: annotation details + spring mvc annotations
-
-        - [ ] :cat: :one: update cv
+    
         - [ ] :cat: :one: clean chrome bookmarks
         - [ ] :cat: :one: upload books for money
         - [ ] :cat: :one: __docker__  — an image file that has all big data stuffs
@@ -138,7 +135,10 @@ ___
     - [x]:arrow_right_hook: ~~java core~~
     - [x]:arrow_right_hook: ~~design pattern~~
 
-##### 2071-05-11
+##### 2017-05-29
+- [x] :arrow_right_hook: ~~different singleton method~~
+
+##### 2011-05-11
 - [x] :kissing_cat: :one: ~~bring darling to 美食街~~
 
 ##### 2017-04-26
