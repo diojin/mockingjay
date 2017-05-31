@@ -43,6 +43,7 @@
         + [differences between logic operator and condition operator](#differences-between-logic-operator-and-condition-operator)
         + [String#intern](#stringintern)
         + [I/O](#java-io)
+        + [Exception](#java-exception)
 * [Java EE](#java-ee)
     - [J2EE Design Pattern](#j2ee-design-pattern)
 * [EJB](#ejb)
@@ -724,6 +725,10 @@ Class hierarchies of major classes.
 ![javase_io_hierarchy_3]  
 ![javase_io_hierarchy_4]  
 
+##### Java Exception
+![javase_exception_1]  
+
+将派生于Error或者RuntimeException的异常称为unchecked异常，所有其他的异常成为checked异常
 
 ### Java EE
 
@@ -1027,3 +1032,5 @@ Ctrl+Shift+Space
 [javase_io_hierarchy_2]:/resources/img/java/java_io_output_1.png "output hierarchy 1"
 [javase_io_hierarchy_3]:/resources/img/java/java_io_input_2.png "input hierarchy 2"
 [javase_io_hierarchy_4]:/resources/img/java/java_io_output_2.png "output hierarchy 2"
+[javase_exception_1]:/resources/img/java/java_misc_exception_1.png "Java Exception hierarchy"
+
