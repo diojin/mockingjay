@@ -728,6 +728,8 @@ Class hierarchies of major classes.
 ##### Java Exception
 ![javase_exception_1]  
 
+In Java, “checked” exceptions are checked at compile time.
+
 将派生于Error或者RuntimeException的异常称为unchecked异常，所有其他的异常成为checked异常
 
 ### Java EE
