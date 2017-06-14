@@ -311,8 +311,7 @@ public class AppConfig {
 ```
 
 __Working with externalized values__  
-1. Using the Environment API
-
+1. Using the Environment API  
 Externalized values may be looked up by injecting the Spring Environment into a @Configuration class using the @Autowired or the @Inject annotation: 
 ```java
 @Configuration
@@ -343,7 +342,7 @@ public class AppConfig {
 }
 ```
 
-2. Using the @Value annotation
+2. Using the @Value annotation  
 Externalized values may be 'wired into' @Configuration classes using the @Value annotation: 
 ```java
  @Configuration
@@ -768,7 +767,7 @@ __@Resource__
 2. Matches by Type
 3. Restricts by Qualifiers (ignored if match is found by name)
 
-While it could be argued that ‘@Resource’ will perform faster by name than ‘@Autowired’ and ‘@Inject’ it would be negligible. This isn’t a sufficient reason to favor one syntax over the others. I do however favor the ‘@Resource’ annotation for it’s concise notation style.
+While it could be argued that ‘@Resource’ will perform faster by name than ‘@Autowired’ and ‘@Inject’, it would be negligible. This isn’t a sufficient reason to favor one syntax over the others. I do however favor the ‘@Resource’ annotation for it’s concise notation style.
 
 ```java
 @Resource(name="person")
@@ -784,7 +783,8 @@ Spring Annotation Style Best Practices
 1. Explicitly name your component [@Component(“beanName”)]
 2. Use ‘@Resource’ with the ‘name’ attribute [@Resource(name=”beanName”)]
 3. Avoid ‘@Qualifier’ annotations unless you want to create a list of similar beans. For example you may want to mark a set of rules with a specific ‘@Qualifier’ annotation. This approach makes it simple to inject a group of rule classes into a list that can be used for processing data.
-4. Scan specific packages for components <context:component-scan base-package=”com.sourceallies.person” />. While this will result in more component-scan configurations, it reduces the chance that you’ll add unnecessary components to your Spring context.
+4. Scan specific packages for components <context:component-scan base-package=”com.sourceallies.person” />.   
+While this will result in more component-scan configurations, it reduces the chance that you’ll add unnecessary components to your Spring context.
 
 Following these guidelines will increase the readability and stability of your Spring annotation configurations.
 
@@ -800,7 +800,7 @@ __@Autowired__
 
 Marks a constructor, field, setter method or config method as to be autowired by Spring's dependency injection facilities. 
 
-@Autowired 标注作用于 Map 类型时，如果 Map 的 key 为 String 类型，则 Spring 会将容器中所有类型符合 Map 的 value 对应的类型的 Bean 增加进来，用 Bean 的 id 或 name 作为 Map 的 key。
+@Autowired 标注作用于 Map 类型时，如果 Map 的 key 为 String 类型，则 Spring 会将容器中所有类型符合 Map 的 value 对应的类型的 Bean 增加进来，用 Bean 的 id 或 name 作为 Map 的 key值。
 
 @Autowired 还有一个作用就是，如果将其标注在 BeanFactory 类型、ApplicationContext 类型、ResourceLoader 类型、ApplicationEventPublisher 类型、MessageSource 类型上，那么 Spring 会自动注入这些实现类的实例，不需要额外的操作。
 
@@ -1471,7 +1471,8 @@ object (6) indicated by the ModelAndView object. The View object is responsible 
     - 针对oracle数据库而言，Fetch Size 是设定JDBC的Statement读取数据的时候每次从数据库中取出的记录条数，一般设置为30、50、100。Oracle数据库的JDBC驱动默认的Fetch Size=15，设置Fetch Size设置为：30、50，性能会有明显提升，如果继续增大，超出100，性能提升不明显，反而会消耗内存。
     - 批量操作
     即使是使用JDBC，在进行大批数据更新时，BATCH与不使用BATCH有效率上也有很大的差别。我们可以通过设置batch_size来让其支持批量操作。
-    举个例子，要批量删除某表中的对象，如“delete Account”，打出来的语句，会发现HIBERNATE找出了所有ACCOUNT的ID，再进行删除，这主要是为了维护二级缓存，这样效率肯定高不了，在后续的版本中增加了bulk delete/update，但这也无法解决缓存的维护问题。也就是说，由于有了二级缓存的维护问题，HIBERNATE的批量操作效率并不尽如人意!
+    举个例子，要批量删除某表中的对象，如“delete Account”，打出来的语句，会发现HIBERNATE找出了所有ACCOUNT的ID，再进行删除，这主要是为了维护二级缓存，这样效率肯定高不了，在后续的版本中增加了bulk delete/update，但这也无法解决缓存的维护问题。也就是说，由于有了二级缓存的维护问题，HIBERNATE的批量操作效率并不尽如人意!  
+    Take advantage of `HQL Bulk Update and Delete statements`, as well as `Insert-By-Select` (supported by HQL as well)
 ```xml
 <prop key="hibernate.jdbc.batch_size">100</prop>
 <prop key="hibernate.order_inserts">true</prop>
@@ -1481,20 +1482,25 @@ object (6) indicated by the ModelAndView object. The View object is responsible 
 * 定期刷新和清理Hibernate Session Cache
 entityManager.flush();
 entityManager.clear();
-在处理大数据量时，会有大量的数据缓冲保存在Session的一级缓存中，这缓存大太时会严重显示性能，所以在使用Hibernate处理大数据量的，可以使用Session.clear()或者Session.evict(Object) 在处理过程中，清除全部的缓存或者清除某个对象。
+在处理大数据量时，会有大量的数据缓冲保存在Session的一级缓存中，这缓存大太时会严重显示性能，所以在使用Hibernate处理大数据量的，可以使用Session.clear()或者Session.evict(Object) 在处理过程中，清除全部的缓存或者清除某个对象。  
+Set FlushMode to "Never" on Queries and Criteria, when flushing is not necessary at this point.
 
 * 减少Hibernate过多的dirty-checking  
     如何避免dirty-checking？
     - @Transactional(readOnly=true)
     - Hibernate Stateless Session
+    - Set ReadOnly to "true" on Queries and Criteria, when objects returned will never be modified.
 
-* 事务控制
-    事务方面对性能有影响的主要包括:事务方式的选用，事务隔离级别以及锁的选用  
-    - 事务方式选用
+* `In case of read-only services with huge query resultsets`  
+use projections and fetch into flat DTOs (e.g. via **AliasToBeanResultTransformer**), instead of loading thousands of mapped objects into the Session.
+
+* 事务控制  
+    事务方面对性能有影响的主要包括:事务方式的选用，事务隔离级别以及锁的选用   
+    - 事务方式选用  
         如果不涉及多个事务管理器事务的话，不需要使用JTA，只有JDBC的事务控制就可以。
-　　- 事务隔离级别
+　　- 事务隔离级别  
         参见标准的SQL事务隔离级别
-　　- 锁的选用
+　　- 锁的选用  
         悲观锁(一般由具体的事务管理器实现)，对于长事务效率低，但安全。乐观锁(一般在应用级别实现)，如在HIBERNATE中可以定义VERSION字段，显然，如果有多个应用操作数据，且这些应用不是用同一种乐观锁机制，则乐观锁会失效。
 
 * 如果是超大的系统，建议生成htm文件。加快页面提升速度。
@@ -1906,7 +1912,7 @@ public class Stock implements Serializable{
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "stock")
     @Cascade(CascadeType.ALL)
     @Fetch(FetchMode.SELECT)
-        @BatchSize(size = 10)
+    @BatchSize(size = 10)
     public Set<StockDailyRecord> getStockDailyRecords() {
         return this.stockDailyRecords;
     }
@@ -2115,7 +2121,7 @@ __Certain operations do not require proxy initialization:__
 
 Sometimes a proxy or collection needs to be initialized before closing the Session. You can force initialization by calling cat.getSex() or cat.getKittens().size(), for example. However, this can be confusing to readers of the code and it is not convenient for generic code.
 
-The static methods **Hibernate.initialize()** and Hibernate.isInitialized(), provide the application with a convenient way of working with lazily initialized collections or proxies.
+The static methods **Hibernate.initialize()** and **Hibernate.isInitialized()**, provide the application with a convenient way of working with lazily initialized collections or proxies.
 
 Another option is to keep the Session open until all required collections and proxies have been loaded. **PS:** So called "open session in view", which is considered as anti-pattern.
 
