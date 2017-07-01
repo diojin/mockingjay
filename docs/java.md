@@ -507,8 +507,10 @@ The other option you have is to use a transacted session where acknowledge mode 
 最后，Java SE 6 里的 Instrumentation 也增加了动态添加 class path 的功能。
 
 有两种方式来获取Instrumentation接口实例：  
-* 命令行参数. 启动JVM时指定agent类。这种方式，Instrumentation的实例通过agent class的premain方法被传入。
-* 运行时. JVM提供一种当JVM启动完成后开启agent机制。这种情况下，Instrumention实例通过agent代码中的的agentmain传入。
+* 命令行参数   
+启动JVM时指定agent类。这种方式，Instrumentation的实例通过agent class的premain方法被传入。
+* 运行时  
+JVM提供一种当JVM启动完成后开启agent机制。这种情况下，Instrumention实例通过agent代码中的的agentmain传入。
 
 java agent 在JDK package specification中解释：一个agent 是被作为Jar 文件形式来部署的。在Jar文件中manifest中指定哪个类作为agent类。
 
@@ -650,15 +652,18 @@ PS: Memory address, will change. Need to go deeper.
 
 In the mark & sweep algorithm, the objects are moved of course. But the running program doesn't contain refrences to the objects directly. The variable in the thread of execution contains a reference to an object which in turn contains a reference to the actual object (that the thread actually created). So during GC when the object is moved, the indirect reference is updated. 
 
+![javase_misc_pointer_img_1]  
+
 ----------       -----------      ----------------      -----------  
 | Thread |------>|Reference|----->| Intermediate |----->|  Actual |    
 |        |       |   Var   |      |   Reference  |      |  Object |  
 ----------       -----------      ----------------      -----------  
 
 Object.hashcode() is a native method.  
+```java
 public native int hashCode();  
-That means it's implemented in platform specific code and is exposed as a native method. code for the same will be a compiled code and not available withing JDK
-
+```
+>>That means it's implemented in platform specific code and is exposed as a native method. code for the same will be a compiled code and not available withing JDK  
 The method in java.lang.Object is declared as native, which means the implementation is provided by the JVM and may vary depending on your runtime environment.
 
 ##### differences between logic operator and condition operator
@@ -1035,4 +1040,6 @@ Ctrl+Shift+Space
 [javase_io_hierarchy_3]:/resources/img/java/java_io_input_2.png "input hierarchy 2"
 [javase_io_hierarchy_4]:/resources/img/java/java_io_output_2.png "output hierarchy 2"
 [javase_exception_1]:/resources/img/java/java_misc_exception_1.png "Java Exception hierarchy"
+[javase_misc_pointer_img_1]:/resources/img/java/java_misc_pointer_1.png "Java Memory Pointer"
+
 
