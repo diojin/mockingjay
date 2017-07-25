@@ -11,31 +11,50 @@ ___
 ### DO-DO
 
 - [ ] :heart_eyes_cat: keep pratising, long run and belly practise, arm massage
+- [ ] :heart_eyes_cat: 面向解决问题的强者思维, 而非寻找失败借口失败平衡的弱者思维
+    - [ ] :arrow_right_hook: 同时关注面试和创业的信息
+    - [ ] :arrow_right_hook: 遇到问题找解决办法, 不是抱怨和默认, 比如失眠, 失败阴影
+    - [ ] :arrow_right_hook: 投资失败的原因 可能是没有活在趋势中
+- [ ] :heart_eyes_cat: 缩短思考和行动的距离, 不断改进, 不断尝试
+- [ ] :heart_eyes_cat: 与现实社会和他人连接
+- [ ] :heart_eyes_cat: 开始死磕, 工匠精神
+    - [ ] :arrow_right_hook: 少看电影和游戏, 改变放松方式, 上网, 找新鲜的东西, 玩有趣的应用,软件
+- [ ] :heart_eyes_cat: 
+
 - [ ] :kissing_cat: :one: bring darling to 野餐
-- [ ] :kissing_cat: :one: transfer and revise Interview.doc to md document
+
 - [ ] :kissing_cat: :two: review coupang projects and techniques
     - [ ] :arrow_right_hook: coupang development toolkits
     - [ ] :arrow_right_hook: coupang projects review
+    - [ ] :arrow_right_hook: update cv
+        - [ ] :arrow_right_hook: jprofile example, 并加入简历morgan & coupang 部分
 - [ ] :kissing_cat: :two: big data related books
+    - [ ] :arrow_right_hook: 
+
 - [ ] :kissing_cat: :two: go through other review preparation materials
     - [ ] :arrow_right_hook: algorithm
     - [ ] :arrow_right_hook: a few small pdfs
     - [ ] :arrow_right_hook: books, such as concurrent in practise, jvm
 - [ ] :kissing_cat: :two: changes in JDK 8 and previous versions
-- [ ] :kissing_cat: :two: update cv
+    - [ ] :arrow_right_hook: :two: lambda expression
+- [ ] :kissing_cat: :two: running github home page
+    - [ ] :arrow_right_hook: :one: with proper readme page and home page
+    - [ ] :arrow_right_hook: :two: review previous projects and codes, and upload reusable ones to github    
 
     - [ ] :smiley_cat: :one: annotation details + spring mvc annotations
-    
+    - [ ] :smiley_cat: :one: learn ecnomics
+
+        - [ ] :cat: :one: transfer and revise Interview.doc to md document, c, perl and misc left
         - [ ] :cat: :one: clean chrome bookmarks
         - [ ] :cat: :one: upload books for money
         - [ ] :cat: :one: __docker__  — an image file that has all big data stuffs
-        - [ ] :cat: :one: Virtual box set up
-
+        - [ ] :cat: :one: Virtual box set up        
             - [ ] :pouting_cat: :one: python
             - [ ] :pouting_cat: :one: goagent activation or other VPN solutions
             - [ ] :pouting_cat: :one: how restful api supports batch queries [Restful API in Batch](#restful-api-in-batch)            
             - [ ] :pouting_cat: :one: post man
             - [ ] :pouting_cat: :one: migrate data out of noteer.com 
+            - [ ] :pouting_cat: :one: review previous projects and codes, and upload reusable ones to github, with proper readme page and home page
 
 #### Mission 201701
 - [x] :hearts: :one: ~~Performance test, jmeter,  kibana~~
