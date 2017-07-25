@@ -21,6 +21,12 @@ ___
     - [ ] :arrow_right_hook: 少看电影和游戏, 改变放松方式, 上网, 找新鲜的东西, 玩有趣的应用,软件
 - [ ] :heart_eyes_cat: 开始死磕, 工匠精神
 
+- [ ] :heart_eyes_cat: Plan as of now
+    - [ ] :arrow_right_hook: :One: Algorithms
+    - [ ] :arrow_right_hook: :Two: Big Data related stuffs
+    - [ ] :arrow_right_hook: :Three: Go over what've been prepared
+    - [ ] :arrow_right_hook: :Four: Carry on with the rest
+
 - [ ] :kissing_cat: :one: bring darling to 野餐
 
 - [ ] :kissing_cat: :two: review coupang projects and techniques
@@ -31,11 +37,30 @@ ___
 - [ ] :kissing_cat: :two: big data related books
     - [ ] :arrow_right_hook: Hadoop, kafka, spark, hdfs, hbase
     - [ ] :arrow_right_hook: 有消息中间件开发经验，如activemq，rabbitmq或kafka等 
-- [ ] :kissing_cat: :two: go through other review preparation materials
-    - [ ] :arrow_right_hook: algorithm
+
+- [ ] :kissing_cat: :two: algorithms
+    - [ ] :arrow_right_hook: :one: web pages  
+        url:笔试面试必会代码 以及必看书籍  
+        url:程序员如何快速准备面试中的算法  
+        url:程序员面试、算法研究、编程艺术、红黑树、数据挖掘5大系列集锦  
+    - [ ] :arrow_right_hook: :two:  程序员面试笔试宝典  
+        算法, 网络及其他部分, 没有搜索的基础算法, 用编程珠玑补足  
+        编程珠玑  第2版   --  搜索算法部分以及无处不在的二分法
+    - [ ] :arrow_right_hook: :three:  [The-Art-Of-Programming-By-July] websites
+
+1, 
+2, 2篇文章引申的主题
+从B树、B+树、B*树谈到R 树                                            --   有关索引
+教你如何迅速秒杀掉：99%的海量数据处理面试题                 --   有关大数据
+3, 编程之美                                                         --   算法开阔思路
+4, 编程之法：面试和算法心得/剑指offer
+5, 过一遍微软面试100题系列
+
         - [ ] :arrow_right_hook: :two: a star 算法
         - [ ] :arrow_right_hook: :two: 字符串 "编辑距离"问题 搜索引擎的拼写错误提示
         - [ ] :arrow_right_hook: :two: 字符串KMP算法
+
+- [ ] :kissing_cat: :two: go through other review preparation materials
     - [ ] :arrow_right_hook: a few small pdfs
     - [ ] :arrow_right_hook: books, such as concurrent in practise, jvm
     - [ ] :arrow_right_hook: 有消息中间件开发经验，如activemq，rabbitmq或kafka等
@@ -151,27 +176,25 @@ DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  impleme
 
 #### Algorithm learning roadmap
 ##### suggestion from July
-1. 掌握一门编程语言                                                  --  DONE
-2. 过一遍微软面试100题系列
-3. 苦补数据结构基础                                                  -- 低优先级, 有需要看特定章节
-    如果学数据结构，可以看我们在大学里学的任一本数据结构教材都行，包括链表、数组、字符串、矩阵、树、图等等
+- [x] :cat: :one: 掌握一门编程语言
+- [ ] :cat: :two: 过一遍微软面试100题系列
+- [ ] :cat: :three: 苦补数据结构基础 -- 低优先级  
+    有需要看特定章节  
+    如果学数据结构，可以看我们在大学里学的任一本数据结构教材都行，包括链表、数组、字符串、矩阵、树、图等等   
+- [ ] :cat: :four:看算法导论  -- 低优先级   
+    有需要看特定章节  
+    如果你已经学完了一本数据结构教材，那么建议你着重看贪心、动态规划、图论等内容，这3个议题每一个议题都大有题目可出。同时，熟悉常用算法的时间复杂度。     
 
-4. 看算法导论                                                     -- 低优先级  
-有需要看特定章节
-如果你已经学完了一本数据结构教材，那么建议你着重看贪心、动态规划、图论等内容，这3个议题每一个议题都大有题目可出。同时，熟悉常用算法的时间复杂度。   
+- [ ] :cat: :five: 刷leetcode或cc150或编程艺术系列  -- 低优先级
 
-5. 刷leetcode或cc150或编程艺术系列                                -- 低优先级
-
-书籍:
-编程之法：面试和算法心得                ---     july的书, 貌似有一定难度, 有git版
-编程之美                                    ---     微软的面试题, 很新奇的面试题, 不系统, 开阔思路          
-剑指offer                                 ---         各种算法的面试书, 适用, 不够系统
-程序员面试笔试宝典                       ---     综合类基础书,偏向C++, 看其中的网络,算法等部分, 其中算法部分基础且全面
-
-编程珠玑                                    ---     更像是好的基础算法和数据结构的大学教程, 可以替代我已有的大学教程
-
-程序员面试宝典第四版                  ---     综合类基础书, 偏向C++, 看其中的网络及数据库部分等
-Java程序员面试宝典                     ---     太基础, 看看特定章节, 比如网络, EJB等
+##### references
+* 编程之法：面试和算法心得  --- july的书, 貌似有一定难度, 有git版
+* 编程之美  ---  微软的面试题, 很新奇的面试题, 不系统, 开阔思路          
+* 剑指offer   ---  各种算法的面试书, 适用, 不够系统
+* 程序员面试笔试宝典  --- 综合类基础书,偏向C++, 看其中的网络,算法等部分, 其中算法部分基础且全面
+* 编程珠玑      ---     更像是好的基础算法和数据结构的大学教程, 可以替代我已有的大学教程
+* 程序员面试宝典第四版    ---   综合类基础书, 偏向C++, 看其中的网络及数据库部分等
+* Java程序员面试宝典   ---  太基础, 看看特定章节, 比如网络, EJB等
 
 ### DONE
 ___
@@ -217,3 +240,6 @@ ___
 ##### 2016-12-14
 - [x] :hearts: :two: ~~lombok and get set annotation~~
 - [x] :diamonds: :two: ~~change screen saver~~
+
+---
+[The-Art-Of-Programming-By-July]:https://github.com/julycoding/The-Art-Of-Programming-By-July/blob/master/ebook/zh/Readme.md "The-Art-Of-Programming-By-July"
