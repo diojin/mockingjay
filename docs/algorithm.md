@@ -1,6 +1,11 @@
 ## Algorithm
 ---
 
+* [Basic](#basic)
+    - [Sorting](#sorting)
+        + [Insertion Sort](#insertion-sort)
+            * [Shell Sort](#shell-sort) 
+            * [Other Variants](#insertion-sort-variants)
 
 * [Distributed](#distributed)
     - [Consistent hash](#consistent-hash)
@@ -9,6 +14,41 @@
 * [Exercises & Snippets](exercises-and-snippets)
     - [Misc](exercises-and-snippets-misc)
 * [Miscellaneous](#miscellaneous)
+
+Basic
+---
+#### Sorting
+##### Insertion Sort
+
+```scala
+  def insertionSort[T](source: Array[T])(implicit ev: T <:< Ordered[T]) {
+    var i = 1
+    var j = 0
+    while ( i < source.length ){
+      j = i
+      var tmp = source(j)
+      while ( j > 0 && source(j-1) > tmp) {
+        source(j) = source(j - 1)
+        j -= 1
+      }
+      source(j) = tmp      
+      i += 1
+    }
+  } 
+```
+
+* Complex:  O(n*n)
+
+###### Shell Sort
+1. Define a interval sequence, such as (..., 8, 4, 2, 1), or 2^p * 3^q (2^p * 3^q < n) (the last element of the sequence is 1 so that at last, the entire input data is sorted)
+2. for each interval in the sequence, group input data by the interval
+    1. use insertion sort against each group 
+
+* Complex:  O(n * log2(n) * log2(n)) for interval sequence 2^p * 3^q (2^p * 3^q < n)
+* hard to find out an efficient interval sequence
+
+###### Insertion Sort Other Variants
+1. use binary search instead of sequencial search in each step to find out insert location
 
 ### Distributed
 
