@@ -18,6 +18,21 @@
 Basic
 ---
 #### Sorting
+
+Algorithm       |Time Complexity|...            |...            |Space Complexity
+...             |Best           |Average        |Worst          |Worst
+:---------------|---------------|---------------|---------------|--------------
+Quicksort       |O(n log(n))    |O(n log(n))    | O(n^2)        |O(log(n))
+Mergesort       |O(n log(n))    |O(n log(n))    |O(n log(n))    |O(n)
+Timsort         |O(n)           |O(n log(n))    |O(n log(n))    |O(n)
+Heapsort        |O(n log(n))    |O(n log(n))    |O(n log(n))    |O(1)
+Bubble Sort     |O(n)           |O(n^2)         |O(n^2)         |O(1)
+Insertion Sort  |O(n)           |O(n^2)         |O(n^2)         |O(1)
+Selection Sort  |O(n^2)         |O(n^2)         |O(n^2)         |O(1)
+Shell Sort      |O(n)           |O((nlog(n))^2) |O((nlog(n))^2) |O(1)
+Bucket Sort     |O(n+k)         |O(n+k)         |O(n^2)         |O(n)
+Radix Sort      |O(nk)          |O(nk)          |O(nk)          |O(n+k)
+
 ##### Insertion Sort
 
 ```scala
@@ -44,7 +59,10 @@ Basic
 2. for each interval in the sequence, group input data by the interval
     1. use insertion sort against each group 
 
-* Complex:  O(n * log2(n) * log2(n)) for interval sequence 2^p * 3^q (2^p * 3^q < n)
+* Complex:    
+    O(n * log2(n) * log2(n)) for interval sequence 2^p * 3^q (2^p * 3^q < n)  
+    O((nlog(n))^2)  
+
 * hard to find out an efficient interval sequence
 
 ###### Insertion Sort Other Variants
