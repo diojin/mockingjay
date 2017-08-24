@@ -21,6 +21,7 @@
             * [Balanced Merge Sort](#balanced-merge-sort)
             * [Multiple Channels Merge Sort](#multiple-channels-merge-sort)
             * [Fibonacci Merge Sort](#fibonacci-merge-sort)
+    - [Dynamic Planning](#dynamic-planning)
 * [Data Structure](#data-structure)
     - [Tree](#tree)
       + [Binary Tree](#binary-tree)
@@ -625,6 +626,10 @@ Rank P Fibonacci sequence are defined as:
 F(n) = F(n-1) + F(n-2) + ... + F(n-P)
 F(m) = 0 ( 0 <= m <= P-2)
 F(P-1) = 1 
+
+#### Dynamic Planning
+贪心和动态规划是有联系  
+贪心是“最优子结构+局部最优”，动态规划是“最优独立重叠子结构+全局最优”。一句话理解动态规划，则是枚举所有状态，然后剪枝，寻找最优状态，同时将每一次求解子问题的结果保存在一张“表格”中，以后再遇到重叠的子问题，从表格中保存的状态中查找（俗称记忆化搜索）。
 
 ### Data Structure
 #### Tree
