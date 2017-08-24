@@ -203,6 +203,7 @@ ___
     - [x]:arrow_right_hook: ~~database~~ 
     - [x]:arrow_right_hook: ~~java core~~
     - [x]:arrow_right_hook: ~~design pattern~~
+    - [x]:arrow_right_hook: ~~network~~
 - [ ] :kissing_cat: :two: big data related books
     - [x]:arrow_right_hook: ~~scala for the impatient~~
 

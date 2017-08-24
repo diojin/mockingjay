@@ -55,7 +55,65 @@ Content                                |Strategy                   | Pages
 2. 逆序前面n-m个数
 3. 逆序整体  
 
+Network
+---
+Content                                                            | Pages
+-------------------------------------------------------------------|-----------
+OSI 七层网络模型                                                    |254/269
+TCP/IP四层模型与七层模型映射及常见协议所处层                           |255/270
+路由器, 交换机, 集线器(Hub)的区别                                    |258
+TCP与UDP的区别                                                      |260
+三次握手和四次断开                                                   |260
+ARP与RARP工作原理                                                   |262
+Socket编程                                                          |264
+电路交换, 报文交换, 分组交换及ATM的区别                               |268
+IPv4与IPv6                                                          |269
+
+
+
+OSI     |TCP/IP 4层  |Application               |Comments
+--------|------------|--------------------------|------------------------------
+应用层   |应用层|HTTP,FTP,NFS|--
+表示层   |应用层|SNMP,Telnet|--
+会话层   |--|RPC,X Windows,DNS,SMTP|单工, 半/全双工
+传输层   |传输层|TCP,UDP,SPX|最重要的一层, 段(Segment)
+网络层   |网际层|路由器,IP,ARP,RIP,OSPF|网络地址->物理地址, 包(Package), 数据包和路由更新包
+数据链路层|网络接口层|交换机,MAC,PPP,SDLC,HDLC,帧中继,STP|帧(Frame)
+物理层   |网络接口层|集线器(Hub),IEEE 802.1A, IEEE802.2到IEEE802.11|--
+
+![network_tcp_ip_img_1]   
+
+交换机负责同一网段通讯, 路由器可负责不同网段的通讯.   
+传统交换机分割冲突域, 不分割广播域, 广播数据会在交换机连接的所有网段上传播  
+
+* TCP基于字节流, UDP基于数据报  
+* TCP不会乱序和丢包, UDP会
+
+由于TCP是全双工的, 要求连接两方都要单独关闭连接, 所以需要四次断开  
+
+![network_tcp_ip_img_2]  
+
+ping命令用的是TCP/IP协议簇中的ICMP(Internet Control and Message Protocal)  
+
+![network_tcp_ip_socket_img_1]  
+
+Socket Type     | Read                         | Write
+----------------|------------------------------|------------------------------
+TCP 阻塞        | 线程挂起                      | 线程挂起
+TCP 非阻塞      | 立即异常返回                  | 立即异常返回
+UDP             | 接收缓存区为空则挂起           | 无发送缓存区, 直接发送
+
+分组交换技术: 面向无连接和存储转发技术
+
+IPv4 VS IPv6  
+1. 寻址空间
+2. 路由效率
+3. 对组播和流及多媒体的支持
+4. 扩展的安全性 
 
 ---
 [algorithm_heap_data_structure_1]: https://en.wikipedia.org/wiki/Binary_heap#Heap_implementation "堆数据结构"
 [algorithm_complexity_complete_list_1]: http://bigocheatsheet.com/ "Big O List"
+[network_tcp_ip_img_1]:/resources/img/java/network_tcp_ip_1.png "TCP/IP VS OSI"
+[network_tcp_ip_img_2]:/resources/img/java/network_tcp_ip_2.png "三次握手和四次断开"
+[network_tcp_ip_socket_img_1]:/resources/img/java/network_tcp_ip_socket_1.png "socket flow"
