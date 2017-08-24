@@ -631,6 +631,146 @@ F(P-1) = 1
 贪心和动态规划是有联系  
 贪心是“最优子结构+局部最优”，动态规划是“最优独立重叠子结构+全局最优”。一句话理解动态规划，则是枚举所有状态，然后剪枝，寻找最优状态，同时将每一次求解子问题的结果保存在一张“表格”中，以后再遇到重叠的子问题，从表格中保存的状态中查找（俗称记忆化搜索）。
 
+* 字符串编辑距离  
+[algorithm_dynamic_planning_2]  
+
+>>给定一个源串和目标串，能够对源串进行如下操作：  
+在给定位置上插入一个字符  
+替换任意字符  
+删除任意字符  
+写一个程序，返回最小操作数，使得对源串进行这些操作后等于目标串，源串和目标串的长度都小于2000。  
+
+```scala
+//dp[i,j]表示表示源串S[0…i) 和目标串T[0…j) 的最短编辑距离
+dp[i, j] = min { dp[i - 1, j] + 1,  dp[i, j - 1] + 1,  dp[i - 1, j - 1] + (s[i] == t[j] ? 0 : 1) }
+//分别表示：删除1个，添加1个，替换1个（相同就不用替换）。
+
+initial state:
+dp[0][j] = j，dp[i][0] = i
+```
+
+1. dp[i-1][j] + 1, 即s[i]不在T[0…j]中,删除操作  
+s[i]没有落在T[0…j]中，即s[i]在中间的某一次编辑操作被删除了。因为删除操作没有前后相关性，不妨将其在第1次操作中删除。除首次操作时删除外，后续编辑操作是将长度为i-1的字符串，编辑成长度为j的字符串：即dp[i-1][j]。
+2. dp[i-1][j-1] + 0/1, 即s[i] 在T[0...j], 但不在T[0...j-1], 替换操作    
+说明s[i]经过编辑，最终落在T[j]的位置。  
+则要么s[i] == t[j]，s[i]直接落在T[j]  。这种情况，编辑操作实际上是将长度为i-1的S’串，编辑成长度为j-1的T’串：即dp[i-1][j-1]；  
+要么s[i] ≠ t[j]，s[i] 落在T[j]后，要将s[i]修改成T[j]，即在上一种情况的基础上，增加一次修改操作：即dp[i-1][j-1] + 1。  
+3. dp[i][j-1] + 1, 即s[i]在T[0…j-1]中, 插入操作  
+若s[i]落在了T[1…j-1]的某个位置，不妨认为是k，因为最小编辑步数的定义，那么，在k+1到j-1的字符，必然是通过插入新字符完成的(因为变化方式只有删除, 替换和插入, 没有同一个串的位置交换, 所以s[i]是变换的最末位字符)。因为共插入了(j-k)个字符，故编辑次数为(j-k)次。而字符串S[1…i]经过编辑，得到了T[1…k]，编辑次数为dp[i][k]。故： dp[i][j] = dp[i][k] + (j-k)。  
+由于最后的(j-k)次是插入操作，可以讲(j-k)逐次规约到dp[i][k]中。即：dp[i][k]+(j-k)=dp[i][k+1] + (j-k-1) 规约到插入操作为1次，得到 dp[i][k]+(j-k) =dp[i][k+1] + (j-k-1) =dp[i][k+2] + (j-k-2)=… =dp[i][k+(j-k-1)] + (j-k)-(j-k-1) =dp[i][j-1] + 1。  
+
+算法复杂度: O(N^2)  
+
+>>输入三个字符串s1、s2和s3，判断第三个字符串s3是否由前两个字符串s1和s2交错而成，即不改变s1和s2中各个字符原有的相对顺序，例如当s1 = “aabcc”，s2 = “dbbca”，s3 = “aadbbcbcac”时，则输出true，但如果s3=“accabdbbca”，则输出false。
+
+令dp[i][j]代表s3[0...i+j-1]是否由s1[0...i-1]和s2[0...j-1]的字符组成  
+
+如果s1当前字符（即s1[i-1]）等于s3当前字符（即s3[i+j-1]），而且dp[i-1][j]为真，那么可以取s1当前字符而忽略s2的情况，dp[i][j]返回真；  
+如果s2当前字符等于s3当前字符，并且dp[i][j-1]为真，那么可以取s2而忽略s1的情况，dp[i][j]返回真，其它情况，dp[i][j]返回假  
+初始状态: dp[0][0] = true, 空串可以由空串组成   
+
+* 最大连续乘积子串   
+[algorithm_dynamic_planning_1]  
+
+>>给一个浮点数序列，取最大乘积连续子串的值，例如 -2.5，4，0，3，0.5，8，-1，则取出的最大乘积连续子串为3，0.5，8。也就是说，上述数组中，3 0.5 8这3个数的乘积30.58=12是最大的，而且是连续的。
+
+```scala
+//那么状态转移方程为：
+  maxend = max(max(maxend * a[i], minend * a[i]), a[i]);
+  minend = min(min(maxend * a[i], minend * a[i]), a[i]);  
+//初始状态为:
+  maxend = minend = a[0]。
+//结果为:
+  max(maxend)
+```
+
+算法复杂度:  O(N)  
+
+* 格子取数问题  
+[algorithm_dynamic_planning_3]  
+
+>>有n*n个格子，每个格子里有正数或者0，从最左上角往最右下角走，只能向下和向右，一共走两次（即从左上角走到右下角走两趟），把所有经过的格子的数加起来，求最大值SUM，且两次如果经过同一个格子，则最后总和SUM中该格子的计数只加一次。  
+
+**矩阵的表示法**:  
+1. 步长图  
+
+M1  
+
+0 1 2 3 4  
+
+1 2 3 4 5  
+
+2 3 4 5 6  
+
+3 4 5 6 7  
+
+4 5 6 7 8  
+
+2. 层次图  
+M2  
+
+0 0 0 0 0  
+
+1 1 1 1 1  
+
+2 2 2 2 2  
+
+3 3 3 3 3  
+
+4 4 4 4 4  
+
+两图结合起来, 得到如下表达式:  
+
+DP[s,i,j]来记录2次所走的状态获得的最大值，其中s表示走s步(步长图)，i和j分别表示在s步里面第1趟走的位置和第2趟走的位置(在层次图的位置)  
+
+这种表示法有2个特性:  
+1. 容易知道DP[s, i, j] = DP[s, j, i]  
+  因为两次走法可以调换, 结果不变  
+2. 求出对应原矩阵中最后落点的坐标容易求得    
+  两次分别是a[i][s-i], a[j][s-j]  
+
+
+```scala
+if(i != j) {
+  DP[s, i ,j] = Max(
+    DP[s - 1, i - 1, j - 1], 
+    DP[s - 1, i - 1, j], 
+    DP[s - 1, i, j - 1], 
+    DP[s - 1, i, j]) 
+    + W[s,i] + W[s,j] 
+}else { 
+  DP[s, i ,j] = Max(
+    DP[s - 1, i - 1, j - 1], 
+    DP[s - 1, i - 1, j], 
+    DP[s - 1, i, j]) 
+    + W[s,i] 
+}
+// 其中W[s,i]表示经过s步后，处于i位置，位置i对应的方格中的数字
+// 初始状态:  
+DP[0,0,0] = a[0][0]
+DP[0,i,j] = Min
+```
+
+算法的时空复杂度都是O(N^3), 空间复杂度可以通过滚动数组来降一维, 因为每步的计算只与上一步有关, 所以空间上可以用2个2维数组表示就可以  
+
+>>给定m*n的矩阵，每个位置是一个整数，从左上角开始，每次只能朝右、上和下走，并且不允许两次进入同一个格子，走到右上角，最小和。
+
+由于可以上下走, 但不可以左走, 所以按列算  
+```scala
+// 初始状态
+dp[i][0] = a[0][0] + a[1][0] + ... + a[i][0]
+
+// 状态转移方程
+dp[i][j] = min {
+  dp[0][j-1] + a[0..i][j],     // a[0..i][j] 表示a[0][j]+a[1][j]+...a[i][j]
+  dp[1][j-1] + a[1..i][j],
+  ...
+  dp[n][j-1] + a[i..n][j]
+}
+```
+
+
+
 ### Data Structure
 #### Tree
 层数: 从根节点到某个结点的路径长度叫做结点的层数, 根节点的层数为0  
@@ -1923,5 +2063,8 @@ object BitmapAlgorithm extends App {
 [algorithm_bloom_filter_1]:/resources/img/java/algorithm_large_data_bloom_filter_1.png "bloom filter"
 [algorithm_trie_tree_1]:/resources/img/java/algorithm_large_data_trie_tree_1.png "Trie  tree"
 [algorithm_simhash_1]:/resources/img/java/algorithm_large_data_simhash_1.png "simhash"
+[algorithm_dynamic_planning_2]: https://github.com/julycoding/The-Art-Of-Programming-By-July/blob/master/ebook/zh/05.02.md "字符串最短编辑距离"
+[algorithm_dynamic_planning_1]: https://github.com/julycoding/The-Art-Of-Programming-By-July/blob/master/ebook/zh/05.01.md "最大连续乘积子串"
+[algorithm_dynamic_planning_3]: https://github.com/julycoding/The-Art-Of-Programming-By-July/blob/master/ebook/zh/05.03.md "格子取数问题"
 
 
