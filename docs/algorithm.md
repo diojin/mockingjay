@@ -42,7 +42,12 @@
     - [MapReduce](#mapreduce)
     - [Exercises & Snippets](distributed-exercises-and-snippets)
 * [Exercises & Snippets](exercises-and-snippets)
+    - [Big volumn of data processing](#big-volumn-of-data-processing)
     - [Misc](exercises-and-snippets-misc)
+      + [Large volumn data processing](#large-volumn-data-processing)
+        * [Large volumn data sorting](#large-volumn-data-sorting)
+        * [Top K problem](#top-k-problem)
+        * [Duplication problem](#duplication-problem)
 * [Miscellaneous](#miscellaneous)
 
 Basic
@@ -590,7 +595,13 @@ Channel 2: EMPTY
 Channel 3: EMPTY  
 Channel 4: R1 ~ R5000    
 
-Because the the copy step, it needs double times of scan, 2 * ceil(logP(S))
+Because the the copy step, it needs double times of scan, 2 * ceil(log(P)(S)) (Here S is the size of initial files)
+
+**Complexity**:  
+Here S is the size of initial files, P is the number of channels, n is the total size of data       
+Internal sorting: `O（S *(n/S)*log(n/S) ）`, assume that nlogn sorting algorithm is applied.  
+External sorting: `O((n/S) * 2 * ceil(log(P)(S))`, not accurate, assume that time for merging each pair of files is O(n/S)  
+
 
 ###### Fibonacci Merge Sort
 Multiple channels merge sort is not so efficent because they needs more scan times, Fibonacci merge sort can avoid copy step, reduce scan times
@@ -621,19 +632,22 @@ F(P-1) = 1
 树的高度: 树中的节点的最大层数
 
 ##### Binary Tree
+* 以下结论均假定根节点层次为0  
 * 二叉树中层数为n的结点至多有2^n个
-* 高度为k的二叉树中至多有2^(k+1)-1 个结点
+* 高度为k的二叉树中至多有2^(k+1)-1 个结点, 最少有k个结点  
 * 结点的子节点个数为该节点的次数
 * 结点的个数 = 边数 + 1
 * 对于n结点的二叉树,  叶子结点的个数为n(0),  次数为1, 2的结点个数分别为n(1), n(2)  
     n(0) = n(2) + 1
 * 满二叉树: 高度为k的满二叉树, 是有 2^(k+1) - 1 个结点的高度为k的二叉树
 * 完全二叉树(complete binary tree), 一颗具有n个结点, 高度为k的二叉树, 并且树中所有的结点连续对应于高度为k的满二叉树中编号为由0至n的那些结点(n <= 2^(k+1) - 1) 
-* n个结点的完全二叉树的高度是floor(log2(n))
+* n个结点的完全二叉树的高度是floor(log2(n))(根节点层次为0)
 * 线索二叉树: 比二叉树增加两个指针域, 分别指向当前节点的中根前驱结点和中根后继结点
 * 只知道二叉树的先根/中根/后根次序, 无法唯一确定一颗二叉树
 * 如果已知二叉树的先根次序和各结点的次数, 可以唯一确定一棵二叉树
 * 对于树和森林的顺序存储, 还可以采用后根次序和层次次序来进行存储
+* 同时知道先根顺序和中根顺序, 或者同时知道后根顺序和中根顺序, 都可以唯一确定树形
+* 同时知道先根顺序和厚根顺序, 无法确定唯一的树形
 
 **Binary Tree Definition**  
 ```scala
@@ -663,6 +677,23 @@ class BinaryTree {
   }
 ```
 
+stack implementation:  
+```scala
+  def preorderStack( begin: BinaryTreeNode ){
+    val stack = new Stack[BinaryTreeNode]
+    var cur = begin
+    stack.push(cur)
+    while (stack.nonEmpty) {
+      cur = stack.pop()
+      if ( null != cur ){
+        println(cur)
+        stack.push(cur.right)
+        stack.push(cur.left)
+      }
+    }
+  }
+```
+
 **Inorder traversal**  
 ```scala
   def inorder( begin: BinaryTreeNode ) {
@@ -674,6 +705,27 @@ class BinaryTree {
   }
 ```
 
+stack implementation:  
+```scala
+  def inorderStack (begin: BinaryTreeNode ){
+    val stack = new Stack[BinaryTreeNode]
+    var cur = begin
+    do {
+      while ( cur != null ){
+        stack.push(cur)
+        cur = cur.left
+      }
+      
+      cur = stack.pop()
+      if ( cur != null ){
+        println(cur)
+        cur = cur.right
+      }   
+      
+    }while (stack.nonEmpty || cur != null)
+  }
+```
+
 **Postorder traversal**  
 ```scala
   def postorder( begin: BinaryTreeNode ) {
@@ -682,6 +734,35 @@ class BinaryTree {
       postorder(begin.right)
       println(begin.data)
     }
+  }
+```
+
+stack implementation:  
+```scala
+  def postorderStack( begin: BinaryTreeNode ){
+    val visitedCount = new HashMap[BinaryTreeNode, Int]
+    var vCount = 0
+    val stack = new Stack[BinaryTreeNode]
+    visitedCount.put(begin, vCount)
+    stack.push(begin)
+    while ( stack.nonEmpty ){
+      var cur = stack.pop()
+      if ( visitedCount.getOrElse(cur, 0) == 0 ){
+        // non visited node, push back, actually can merely peek the top value
+        stack.push(cur)
+        if ( null != cur.right ) {
+          visitedCount.put(cur.right, 0)
+          stack.push(cur.right)
+        }
+        if ( null != cur.left ){
+          visitedCount.put(cur.left, 0)
+          stack.push(cur.left)
+        }
+        visitedCount(cur) = 2
+      }else{
+        println(cur)
+      }      
+    }    
   }
 ```
 
@@ -800,6 +881,11 @@ class Forest(myroot: TreeNode ) extends Tree(myroot) {}
   } 
 
 ```
+
+令一个简单的实现:  
+1. 根节点入栈   
+2. 弹出栈顶结点, 访问之, 并入栈右左结点, 注意顺序是先右后左, 如此直至栈空    
+
 
 **level order traversal**  
 
@@ -1366,10 +1452,7 @@ f(n)  = k, k为满足0<= k < n, 且S0S1...Sk = S(n-k)...Sn的最大整数
 
 Complexity: m为pattern string长度, n为目标串长度  
 1. 失败函数:  O(m)
-2. KMP Fast Find: O(m+n)  
-
-
-
+2. KMP Fast Find: O(m+n)   
 
 
 ### Distributed
@@ -1520,12 +1603,300 @@ Conclusion is the same as before, however, there are differences on version valu
 #### Distributed Exercises and Snippets
 
 ### Exercises and Snippets
+#### Big volumn of data processing
+1. Hash法  
+    是分而治之策略的一种方法, 可以实现快速存取O(1), 统计某些数据, 以及对大量的数据分类  
+    常见的Hash函数有:  
+    1. 直接寻址法(线性函数法)  
+        h(key) = a * key + b  
+        没有压缩空间, 空间复杂度O(n), 时间复杂度O(1), 无冲突  
+    2. 取余数法  
+        比较常用的方法  
+        h(key) = key mod p, 或者h(key) = key % p, p <= TableSize  
+    3. 平方取中法  
+        key做平方运算后取中间几位, 所取位数与地址位数相同   
+    4. 折叠法  
+        key按T位长度分成几份, 然后求和  
+        适于当关键字位数很多, 且在各个位上分布均匀  
+    5. 数位分析法  
+        key是以R为基(十进制以10为基)的n位数, 取R个数符(十进制为0, 1, ...,9)  分布比较均匀的几个位为代表位, 作为地址h(key)  
+        简单直观但是需要预知关键字的分布  
+    6. 随机数  
+        h(key) = Random(key)  
+    
+    常见的冲突解决办法:  
+    * 链地址法  
+        Hashtable用的算法
+    * 开放地址法  
+        发现冲突后, 按某个增量序列在之后的地址空间中找到一个空闲地址并存储在那里  
+        删除元素时只能标识为删除而不是直接删除, 否则会影响具有相同Hash地址的其他元素的查找  
+    * 再散列法  
+        发现冲突后, 再用第二个或第三个等等Hash函数计算地址, 代价较大  
+    * 建立公共溢出区  
+
+
+2. Bit-map法  
+    适于快速查找, 判断重复与存在, 删除等   
+    首先知道集合中元素最大值MAX, 然后建立长度为MAX+1的位数组N(有可以进一步减少存储空间的办法), 各个位初始化为0. 之后扫描原集合, 对于每个元素i, 查询相应索引的元素N[i], 如果为1, 则重复,否则置为1.   
+    时间复杂度为O(n)   
+    可以用于对没有重复元素的集合进行排序, 方法是扫描原集合并更新对应的位数组后, 直接按位数组输出即可. 时间复杂度为O(n)  
+3. Bloom Filter  
+    ![algorithm_bloom_filter_1]  
+    适合高效判断元素是否不存在的算法, 可以准确的判断是否不存在, 而不能准确地判断是否存在  
+    有很好是时间和空间效率, 适合做数据字典, 数据判重或集合求交集  
+    对于n个元素的集合, 需要一个长度为m的位数组(m的单位是bit), 以及k个Hash函数   
+    对于每个元素, 分别计算k个Hash函数, 并分别标记位数组的k个位  
+    所以, 如果对某个元素计算的k个位, 如果有至少一个位为0, 则元素一定不存在   
+    反之, 由于不同元素可能公用某一位, 所以即使k个位都为1, 也不能说明一定存在  
+    设E为错误率, 若E=0.01, 则m大概是n的13倍(m的单位是bit), k大约是8个  
+    bloom filter的几个数字特性  
+    当函数个数k=ln2 * (m/n)时, 错误率最小  
+    当错误率 <= E时, m > n * lg(1/E), (lg为2的对数); 合理的情况是保持位数组一半的位为0, 此时m > n * lg(1/E) * lg(e) ( lg(e) = 1.44 )  
+    元素不能删除, 因为位是共用的  
+    两个变体, CBF(counting bloom filter), 每一位增加counter以支持数据删除. SBF(spectral bloom filter)将counter的最小值近似表示集合中元素出现的频率  
+
+    但Bloom Filter的这种高效是有一定代价的：在判断一个元素是否属于某个集合时，有可能会把不属于这个集合的元素误认为属于这个集合（`false positive`）。因此，Bloom Filter不适合那些“零错误”的应用场合。而在能容忍低错误率的应用场合下，Bloom Filter通过极少的错误换取了存储空间的极大节省。  
+
+4. 倒排索引  
+    搜索引擎最常用的存储方式, 文档检索系统最常用的数据结构  
+    正向索引存储每个文档的单词列表, 倒排索引存储某个单词对应的文档或文档列表  
+    可以只存储单词对文档的映射, 也可以更高代价的存储单词对于文档及其在文档位置的映射  
+    示例, 对于如下文档D1, D2, D3,   
+    D1: The GDP increased.  
+    D2: The text is this.  
+    D3: My name is.  
+    倒排索引如下:  
+    The: {D1, D2}  
+    GDP: {D1}  
+    increased: {D1}  
+    text: {D2}  
+    is: {D2, D3}  
+    this: {D2}  
+    My: {D3}  
+    name: {D3}  
+5. 外排序  
+6. MapReduce法
+7. Trie树  
+    来自retrieve, 又叫字典树或键树, 是一种用于快速字符串检索的多叉树结构(26叉树)  
+    常用统计或排序字符串, 经常被搜索引擎用于文本词频统计  
+    优点是最大限度减少无谓的字符串比较, 查询效率高于Hash Table  
+    Trie的核心思想是空间换时间，利用字符串的公共前缀来降低查询时间的开销以达到提高效率的目的。    
+    ![algorithm_trie_tree_1]  
+    它有3个基本性质：  
+    1. 根节点不包含字符，除根节点外每一个节点都只包含一个字符。  
+    2. 从根节点到某一节点，路径上经过的字符连接起来，为该节点对应的字符串。  
+    3. 每个节点的所有子节点包含的字符都不相同。   
+    trie树第i层的节点数是26 ^ i 级别的  
+    而空间的花费，不会超过单词数×单词长度  
+    适应于数据量大, 重复多, 但是数据种类小而可以放入内存的情况   
+    我们做即时响应用户输入的AJAX搜索框时，就是Trie开始   
+    Time Complexity: `O(n*le)`（le表示单词的平均长度）   
+8. 堆  
+    求海量数据前N大(小顶堆)或前N小(大顶堆)  
+    Complexity: O（k*logk+（n-k）logk）=O（nlogk), n为数据总量, k为堆的数据量.  另外堆的查找等各项操作时间复杂度均为logk  
+9. 多层划分(双层桶法)  
+    即桶排序的思路, 是分而治之的思想    
+    划分方法:  h(key) = key/N, N 为桶的个数, 这样可以保持源数据(按数据特性)连续分布在同一个桶里面    
+    适于求巨量数据中第K大的数, 中位数, (不)重复的数等等  
+10. 数据库优化法  
+11. simhash 法   
+    比较两篇文章相似度的算法？几个比较传统点的思路：  
+    一种方案是先将两篇文章分别进行分词，得到一系列特征向量，然后计算特征向量之间的距离（可以计算它们之间的欧氏距离、海明距离或者夹角余弦等等），从而通过距离的大小来判断两篇文章的相似度。问题是对于巨量文章或高维特征向量无法有效计算.
+    另外一种方案是传统hash，我们考虑为每一个web文档通过hash的方式生成一个指纹（finger print）, 比较指纹的"距离". 传统的MD5,输入内容一旦出现哪怕轻微的变化，hash值就会发生很大的变化   
+
+    Hamming Distance，又称汉明距离，在信息论中，两个等长字符串之间的汉明距离是两个字符串对应位置的不同字符的个数。也就是说，它就是将一个字符串变换成另外一个字符串所需要替换的字符个数。例如：1011101 与 1001001 之间的汉明距离是 2。至于我们常说的字符串编辑距离则是一般形式的汉明距离。  求法：异或时，只有在两个比较的位不同时其结果是1 ，否则结果为0，两个二进制“异或”后得到1的个数即为海明距离的大小。  
+
+    ![algorithm_simhash_1]   
+    simhash算法:  
+    1. 分词赋权(featuring, weight)
+    2. hash
+    3. 加权
+    4. 合并
+    5. 降维
+    
+    根据经验值，对64位的 SimHash值，海明距离在3以内的可认为相似度比较高。  
+
+    如何在海量的样本库中查询与其海明距离在3以内的文章呢？  
+    一种方案是查找待查询文本的64位simhash code的所有3位以内变化的组合(四万多次,组合值C(64)(3) )  
+    另一种方案是预生成库中所有样本simhash code的3位变化以内的组合(大约需要占据4万多倍的原始空间)  
+
+    我们可以把 64 位的二进制simhash签名均分成4块，每块16位。如果两个签名的海明距离在 3 以内，它们至少有一块完全相同.   
+    然后对各个16位的签名建立倒排索引, 这样对于某一文章, 只需要通过倒排索引, 分别查询与该文章4个16位的签名完全匹配的那些文章  
+    如果样本库中存有2^34（差不多10亿）的simhash签名, 假设数据是均匀分布，16位的签名的所有可能值产生的像限为2^16个，则平均每个像限分布的文档数则为2^34/2^16 = 2^(34-16)) ，四个块返回的总结果数为 4* 262144 （大概 100 万）. 这样，原本需要比较10亿次，经过索引后，大概只需要处理100万次。  
+
 
 #### Exercises and Snippets Misc
 
+##### Large volumn data processing
+
+* n(很大)个有小写字母构成的平均长度为10的单词, 判断哪些字符串是其他字符串的前缀子串      
+1. 双重循环, O(n * n)  
+2. Hash法, 用hashtable 存下所有字符串的所有前缀子串, 复杂度为O(n*len), 然后对各个单词逐一查询一次, 复杂度是O(n) * O(1)  
+3. Trie树, 建树和查询同时进行  
+
+* 5亿个int找它们的中位数  
+分析：首先我们将int划分为2^16个区域，然后读取数据统计落到各个区域里的数的个数，之后我们根据统计结果就可以判断中位数落到那个区域，同时知道这个区域中的第几大数刚好是中位数。然后第二次扫描我们只统计落在这个区域中的那些数就可以了。  
+实际上，如果不是int是int64，我们可以经过3次这样的划分即可降低到可以接受的程度。即可以先将int64分成2^24个区域，然后确定是哪个区域的第几大数，在将该区域分成2^20个子区域，然后确定是哪个子区域的第几大数，然后子区域里的数的个数只有2^20，就可以直接利用direct addr table进行统计了。
+
+* 在2.5亿个整数中找出不重复的整数，注，内存不足以容纳这2.5亿个整数  
+  此题的重点是找出不重复的整数, 而非重复的整数, 所以是`2-Bitmap`  
+    方案1：采用2-Bitmap（每个数分配2bit，00表示不存在，01表示出现一次，10表示多次，11无意义）进行，共需内存2^32 * 2 bit=1 GB内存，还可以接受。然后扫描这2.5亿个整数，查看Bitmap中相对应位，如果是00变01，01变10，10保持不变。所描完事后，查看bitmap，把对应位是01的整数输出即可。  
+    方案2：我们可以将这2^32个数，划分为2^8个小文件。然后在小文件中找出不重复的整数, 然后再进行归并  
+
+* 一个文本文件，大约有一万行，每行一个词，要求统计出其中最频繁出现的前10个词，请给出思想，给出时间复杂度分析  
+  1. 用trie树或hash_map统计词频  
+    用trie树统计每个词出现的次数，时间复杂度是O(n*le)（le表示单词的平均长度），(也可以使用hash_map统计)  
+  2. 然后是找出出现最频繁的前10个词  
+    可以用堆来实现，时间复杂度是O(n*lg10)    
+  所以总的时间复杂度，是O(n*le)与O(n*lg10)中较大的那一个  
+
+
+
+###### Large volumn data sorting
+
+* 给定一个文件，里面最多含有n个不重复的正整数（也就是说可能含有少于n个不重复正整数），且其中每个数都小于等于n，n=10^7。输出：得到按从小到大升序排列的包含所有输入的整数的列表。条件：最多有大约1MB的内存空间可用，但磁盘空间足够。且要求运行时间在5分钟以下，10秒为最佳结果   
+  因为是有范围的不重复整数排序, 用位图法, 但是位图法需要空间是10 ^ 7 / 8 = 1.25 MB, 所以做如下改进, 2路归并    
+  比如可分为2块（k=2，1趟反正占用的内存只有1.25/2M），`1~4999999`，和`5000000~9999999`。先遍历一趟，首先排序处理`1~4999999`之间的整数（用5M/8=0.625M的存储空间来排序`0~4999999`之间的整数），然后再第二趟，对`5000001~1000000`之间的整数进行排序处理。  
+
+
+###### Top K problem
+海量数据中搜最大的前K个数, 出现频率最高的前K个数  
+通常是分治法+Trie树或者Hash法+堆  
+Hash法在这里用于统计频率或去重  
+
+* 1亿个浮点数, 取其中最大的10000个  
+    1. 直接内存排序(1亿浮点数大概400MB), 取前10000个  
+    2. 建立前10000个数的小顶堆, 然后扫描其他元素, 与堆顶比较, 大于堆顶则替换并重建堆  
+    3. 分治法. 分成100份, 分别求出前10000, 最后在求出100 * 10000 当中的前10000个数  
+    这里可以使用改进的快速排序, 因为只是求出前10000个数, 每轮迭代时, 如果大的堆里(快速排序会分为2堆)的元素个数N大于10000, 则只需递归排序大的堆, 小的堆不用再排; 否则, 排序大的堆, 同时排出小的堆中的前10000-N个元素, 以此递归下去.  
+
+* 海量数据分布在100台电脑中，想个办法高效统计出这批数据的TOP10  
+    先在各自的机器用hash法统计出现次数, 去除重复的词  
+    然后遍历一遍各个机器的数据，重新hash取模，如此使得同一个元素只出现在单独的一台电脑中，然后采用上面所说的方法，统计每台电脑中各个元素的出现次数找出TOP 10，继而组合100台电脑上的TOP 10，找出最终的TOP 10  
+
+* 有10个文件，每个文件1G，每个文件的每一行存放的都是用户的query，每个文件的query都可能重复。要求你按照query的频度排序  
+    1. hash映射分治  
+      顺序读取10个文件，按照hash(query)%10的结果将query写入到另外10个文件（记为a0,a1,..a9）中。这样新生成的文件每个的大小大约也1G（假设hash函数是随机的）  
+    2. hash_map统计  
+    找一台内存在2G左右的机器，依次对用hash_map(query, query_count)来统计每个query出现的次数。  
+    3. 外排序    
+    对于每个文件利用快速/堆/归并排序按照出现次数进行排序，将排序好的query和对应的query_cout输出到文件中，这样得到了10个排好序的文件。最后，对这10个文件进行归并排序  
+    这一步也可以由分布式框架MapReduce完成  
+
+* 给定a、b两个文件，各存放50亿个url，每个url各占64字节，内存限制是4G，让你找出a、b文件共同的url  
+    1. 分而治之/hash映射  
+    遍历文件a，对每个url求取，然后根据所取得的值将url分别存储到1000个小文件中。这样每个小文件的大约为300M。遍历文件b，采取和a相同的方式将url分别存储到1000小文件中。这样处理后，所有可能相同的url都分别在a,b下标对应的小文件中，不对应的小文件不可能有相同的url。然后我们只要求出1000对小文件中相同的url即可。
+    2. hash_set统计  
+    求每对小文件中相同的url时，可以把其中一个小文件的url存储到hash_set中。然后遍历另一个小文件的每个url，看其是否在刚才构建的hash_set中，如果是，那么就是共同的url，存到文件里面就可以了
+
+* 1000万字符串，其中有些是重复的，需要把重复的全部去掉，保留没有重复的字符串。请怎么设计和实现  
+提示：这题用trie树比较合适，hash_map也行。当然，也可以先hash成小文件分开处理再综合。
+
+
+###### Duplication problem
+考虑使用位图法, 时间复杂度是O(n)     
+
+```scala
+object BitmapAlgorithm extends App {
+
+  val MAX_VALUE = 99999999
+  
+  val BITS_PER_WORD = 32
+  
+  val bitmap = new Array[Int](MAX_VALUE/BITS_PER_WORD)
+ 
+  findDuplication(mockupData)
+  
+  def findDuplication( dataset : Array[Int] ) {
+    for ( i <- 0 to bitmap.length - 1 ){
+      bitmap(i) = 0
+    }
+    
+    for ( i <- 0 to dataset.length - 1 ){
+      if ( getBit(dataset(i)) == 0 ){
+        setBit(dataset(i))
+      }else{
+        println("find duplication: " + dataset(i))
+      }
+    }
+  }
+  
+  /**
+   * return the index of array for a word, 
+   * knows as its word offset
+   */
+  def wordOffset( number : Int): Int = {
+    number / BITS_PER_WORD
+  }
+  
+  /**
+   * return the bit offset of integer which represents the word
+   */
+  def bitOffsetOfWord( number : Int ) : Int = {
+    number % BITS_PER_WORD
+  }
+  
+  /**
+   * set to 1 the bit of integer, which represents the word
+   */
+  def setBit( number: Int ) {
+    bitmap(wordOffset(number)) |= ( 1 << bitOffsetOfWord(number))
+  }
+  
+  /**
+   * get the bit of integer, which represents the word
+   */
+  def getBit( number : Int ) = {
+    val bit = bitmap(wordOffset(number)) & ( 1 << bitOffsetOfWord(number) )
+    if ( bit != 0 ){
+      1
+    }else{
+      0
+    }
+  }
+  
+  /**
+   * set to 0 the bit of integer, which represents the word
+   */
+  def clearBit( number: Int) {
+    bitmap(wordOffset(number)) &= ~( 1 << bitOffsetOfWord(number) )
+  }
+  
+  def mockupData() = {
+    val res = new Array[Int](100)
+    for ( i <- 0 to res.length -1 ){
+      res(i) = (math.random * 50 ).toInt
+    }
+    res
+  }
+}
+```
+
+**Some more bit operation examples**:  
+```scala
+  /**
+   * return the kth bit of input, starting from rear 
+   * 6 is 0110
+   * getCertainBit(6, 2)        // 1
+   * 5 is 0101
+   * getCertainBit(5, 2)        // 0
+   */
+  def getCertainBit( input: Int,  k : Int ) = {
+    ( input >> k - 1  ) & 1
+  }
+```
+
 ### Miscellaneous
 
+**log不写底数默认是多少**    
+普通应用都是10，计算机学科是2，算法是2, 编程语言里面是e。  
+高中数学log不允许不写底数。但是有lg=log10和ln=lne。
 
+2^10 = 1,024                KB
+2^20 = 1,048,576            MB
+2^30 = 1,073,741,824        GB
+
+* 递归很适合各种逆序的操作, 比如逆序打印字符串, 链表等等    
 
 
 ---
@@ -1544,3 +1915,8 @@ Conclusion is the same as before, however, there are differences on version valu
 [algorithm_sorting_2]:/resources/img/java/algorithm_sorting_complexity_2.png "Array Sorting Algorithms Complexity & Stability Chart"
 [algorithm_graph_mst_prime_1]:/resources/img/java/algorithm_mst_prime_1.png "graph_mst_prime"
 [algorithm_graph_mst_kruskar_1]:/resources/img/java/algorithm_mst_kruskar_1.png "graph_mst_kruskar"
+[algorithm_bloom_filter_1]:/resources/img/java/algorithm_large_data_bloom_filter_1.png "bloom filter"
+[algorithm_trie_tree_1]:/resources/img/java/algorithm_large_data_trie_tree_1.png "Trie  tree"
+[algorithm_simhash_1]:/resources/img/java/algorithm_large_data_simhash_1.png "simhash"
+
+
