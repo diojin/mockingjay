@@ -43,20 +43,20 @@ ___
         url:笔试面试必会代码 以及必看书籍  
         url:程序员如何快速准备面试中的算法  
         url:程序员面试、算法研究、编程艺术、红黑树、数据挖掘5大系列集锦  
-    - [ ] :arrow_right_hook: :two:  程序员面试笔试宝典  
+    - [x] :arrow_right_hook: :two:  ~~程序员面试笔试宝典~~  
         算法, 网络及其他部分, 没有搜索的基础算法, 用编程珠玑补足  
         编程珠玑  第2版   --  搜索算法部分以及无处不在的二分法
-    - [ ] :arrow_right_hook: :three:  [The-Art-Of-Programming-By-July]      
+    - [] :arrow_right_hook: :three:  [The-Art-Of-Programming-By-July] 80%      
         2篇文章引申的主题:  
         从B树、B+树、B*树谈到R 树     --   有关索引  
-        教你如何迅速秒杀掉：99%的海量数据处理面试题  --   有关大数据  
+        ~~教你如何迅速秒杀掉：99%的海量数据处理面试题  --   有关大数据~~  
     - [ ] :arrow_right_hook: :four: 编程之美   --   算法开阔思路
     - [ ] :arrow_right_hook: :five: 编程之法：面试和算法心得/剑指offer
     - [ ] :arrow_right_hook: :six: 过一遍微软面试100题系列
     - [ ] :arrow_right_hook: others to do
         - [ ] :arrow_right_hook: :two: a star 算法
         - [ ] :arrow_right_hook: :two: 字符串 "编辑距离"问题 搜索引擎的拼写错误提示
-        - [ ] :arrow_right_hook: :two: 字符串KMP算法
+        - [x] :arrow_right_hook: :two: ~~字符串KMP算法~~
 - [ ] :kissing_cat: :two: go through other review preparation materials
     - [ ] :arrow_right_hook: a few small pdfs
     - [ ] :arrow_right_hook: books, such as concurrent in practise, jvm
