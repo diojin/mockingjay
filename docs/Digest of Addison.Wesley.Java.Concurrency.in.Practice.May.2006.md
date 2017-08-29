@@ -13,6 +13,28 @@
     - [Liveness and Performance](#liveness-and-performance)
 * [3. Sharing Objects](#3-sharing-objects)
     - [One code example -- Stale data & Reordering](#one-code-example----stale-data--reordering)
+    - [Nonatomic 64-bit Operations](#nonatomic-64-bit-operations)
+    - [Locking and Visibility](#locking-and-visibility)
+    - [Volatile Variables](#volatile-variables)
+        + [One example -- hoist loop expression when without volatile](#one-example----hoist-loop-expression-when-without-volatile)
+    - [3.2 Publication and Escape](#32-publication-and-escape)
+        + [Scenarios of publication](#scenarios-of-publication)
+        + [Alien methods](#alien-methods)
+        + [Publish an inner class instance](#publish-an-inner-class-instance)
+        + [Escape during construction](#escape-during-construction)
+            * [Scenarios of this reference escaping from constructor](#scenarios-of-this-reference-escaping-from-constructor)
+    - [3.3 Thread confinement](#33-thread-confinement)
+        + [Ad-hoc thread confinement](#ad-hoc-thread-confinement)
+        + [Stack confinement](#stack-confinement)
+        + [ThreadLocal](#threadlocal)
+    - [3.4 Immutability](34-immutability)
+        + [Immutable objects can sometimes provide a weak form of atomicity](#immutable-objects-can-sometimes-provide-a-weak-form-of-atomicity)
+    - [3.5 Safe Publication](#35-safe-publication)
+        + [Immutable objects and initialization safety](#immutable-objects-and-initialization-safety)  
+        + [Safe Publication Idioms](#safe-publication-idioms)
+            * [Ways of safely publication](#ways-of-safely-publication)
+* [4. Composing Objects](#4-composing-objects)
+    - [4.1 Designing a Thread-safe Class](#41-designing-a-thread-safe-class)
 * [Miscellaneous](#miscellaneous)
 
 ## 2. Thread Safety  
@@ -113,91 +135,95 @@ public class NoVisibility {
 }
 ```
 
-NoVisibility could loop forever because the value of ready might never become visible to the reader thread. Even more strangely, NoVisibility could print zero because the write to ready might be made visible to the reader thread before the write to number, a phenomenon known as **reordering**. There is no guarantee that operations in one thread will be performed in the order given by the program, as long as the reordering is not detectable from within that thread even if the reordering is apparent to other threads.[1] When the main thread writes first to number and then to done without synchronization, the reader thread could see those writes happen in the opposite order or not at all.
+NoVisibility could loop forever because the value of ready might never become visible to the reader thread. Even more strangely, NoVisibility could print zero because the write to ready might be made visible to the reader thread before the write to number, a phenomenon known as **reordering**. There is no guarantee that operations in one thread will be performed in the order given by the program, as long as the reordering is not detectable from within that thread even if the reordering is apparent to other threads.[1] When the main thread writes first to number and then to done without synchronization, the reader thread could see those writes happen in the opposite order or not at all.  
 
-[1] This may seem like a broken design, but it is meant to allow JVMs to take full advantage of the performance of modern multiprocessor hardware. For example, in the absence of synchronization, the Java Memory Model permits the compiler to reorder operations and cache values in registers, and permits CPUs to reorder operations and cache values in processor-specific caches. For more details, see Chapter 16.
+[1] This may seem like a broken design, but it is meant to allow JVMs to take full advantage of the performance of modern multiprocessor hardware. For example, in the absence of synchronization, the `Java Memory Model permits the compiler` to reorder operations and cache values in registers, and `permits CPUs` to reorder operations and cache values in processor-specific caches. For more details, see Chapter 16.  
 
-In the absence of synchronization, the compiler, processor, and runtime can do some downright weird things to
-the order in which operations appear to execute. Attempts to reason about the order in which memory actions "must"
+In the absence of synchronization, the `compiler, processor, and runtime` can do some downright weird things to the order in which operations appear to execute. Attempts to reason about the order in which memory actions "must"
 happen in insufflciently synchronized multithreaded programs will almost certainly be incorrect.
 
-12, Reasoning about insufficiently synchronized concurrent programs is prohibitively difficult. This may all sound a little scary, and it should. Fortunately, there's an easy way to avoid these complex issues: always use the proper synchronization whenever data is shared across threads.
+Reasoning about insufficiently synchronized concurrent programs is prohibitively difficult. This may all sound a little scary, and it should.   Fortunately, there's an easy way to avoid these complex issues: always use the proper synchronization whenever data is shared across threads.  
 
-13, NoVisibility demonstrated one of the ways that insufficiently synchronized programs can cause surprising results: stale data. Stale data can cause serious and confusing failures such as unexpected exceptions, corrupted data structures, inaccurate computations, and infinite loops.
+NoVisibility demonstrated one of the ways that insufficiently synchronized programs can cause surprising results: stale data. Stale data can cause serious and confusing failures such as unexpected exceptions, corrupted data structures, inaccurate computations, and infinite loops.  
 
-14, Code example -- Stale value
-MutableInteger in Listing 3.2 is not thread-safe because the value field is accessed from both get and set without synchronization. Among other hazards, it is susceptible to stale values: if one thread calls set, other threads calling get may or may not see that update. 
-We can make MutableInteger thread safe by synchronizing the getter and setter as shown in SynchronizedInteger in Listing 3.3. Synchronizing only the setter would not be sufficient: threads calling get would still be able to see stale values.
+### Nonatomic 64-bit Operations
+When a thread reads a variable without synchronization, it may see a stale value, but at least it sees a value that was actually placed there by some thread rather than some random value. This safety guarantee is called **out-of-thin-air safety**.  
+Out-of-thin-air safety applies to all variables, with one exception: 64-bit numeric variables (double and long) that are not declared volatile (see Section 3.1.4). The Java Memory Model requires fetch and store operations to be atomic, but for nonvolatile long and double variables, the JVM is permitted to treat a 64-bit read or write as two separate 32-bit operations. If the reads and writes occur in different threads, it is therefore possible to read a nonvolatile long and get back the high 32 bits of one value and the low 32 bits of another.[3]  
+Thus,even if you don't care about stale values, it is not safe to use shared mutable long and double variables in  multi threaded programs unless they are declared volatile or guarded by a lock.  
 
-Listing 3.2
-@NotThreadSafe
-public class MutableInteger {
-    private int value;
-    public int get() { return value; }
-    public void set(int value) { this.value = value; }
-}
-
-Listing 3.3
-@ThreadSafe
-public class SynchronizedInteger {
-    @GuardedBy("this") private int value;
-    public synchronized int get() { return value; }
-    public synchronized void set(int value) { this.value = value; }
-}
-
-15, Nonatomic 64-bit Operations
-When a thread reads a variable without synchronization, it may see a stale value, but at least it sees a value that was actually placed there by some thread rather than some random value. This safety guarantee is called out-of-thin-air safety.
-Out-of-thin-air safety applies to all variables, with one exception: 64-bit numeric variables (double and long) that are not declared volatile (see Section 3.1.4). The Java Memory Model requires fetch and store operations to be atomic, but for nonvolatile long and double variables, the JVM is permitted to treat a 64-bit read or write as two separate 32-bit operations. If the reads and writes occur in different threads, it is therefore possible to read a nonvolatile long and get back the high 32 bits of one value and the low 32 bits of another.[3]
-Thus,even if you don't care about stale values, it is not safe to use shared mutable long and double variables in  multi threaded programs unless they are declared volatile or guarded by a lock.
-[3] When the Java Virtual Machine Specification was written, many widely used processor architectures could not
-efficiently provide atomic 64-bit arithmetic operations.
-
-16, Locking and Visibility
-Intrinsic locking can be used to guarantee that one thread sees the effects of another in a predictable manner, as illustrated by Figure 3.1. When thread A executes a synchronized block, and subsequently thread B enters a synchronized block guarded by the same lock, the values of variables that were visible to A prior to releasing the lock are guaranteed to be visible to B upon acquiring the lock. In other words, everything A did in or prior to a synchronized block is visible to B when it executes a synchronized block guarded by the same lock. Without synchronization, there is no such guarantee.
+### Locking and Visibility
+Intrinsic locking can be used to guarantee that one thread sees the effects of another in a predictable manner, as illustrated by Figure 3.1. When thread A executes a synchronized block, and subsequently thread B enters a synchronized block guarded by the same lock, the values of variables that were visible to A prior to releasing the lock are guaranteed to be visible to B upon acquiring the lock. In other words, everything A did in or prior to a synchronized block is visible to B when it executes a synchronized block guarded by the same lock. Without synchronization, there is no such guarantee.  
 
 We can now give the other reason for the rule requiring all threads to synchronize on the same lock when accessing a shared mutable variable to guarantee that values written by one thread are made visible to other threads. Otherwise, if a thread reads a variable without holding the appropriate lock, it might see a stale value.
 
-Locking is not just about mutual exclusion; it is also about memory visibility. To ensure that all threads see the most up-to-date values of shared mutable variables, the reading and writing threads must synchronize on a common lock.
+### Volatile Variables
+The Java language also provides an alternative, weaker form of synchronization, volatile variables, to ensure that updates to a variable are propagated predictably to other threads.  
 
-17, volatile variables
-The Java language also provides an alternative, weaker form of synchronization, volatile variables, to ensure that updates to a variable are propagated predictably to other threads. When a field is declared volatile, the compiler and runtime are put on notice that this variable is shared and that operations on it should not be reordered with other memory operations. Volatile variables are not cached in registers or in caches where they are hidden from other processors, so a read of a volatile variable always returns the most recent write by any thread.
+1. Prevent reordering  
+When a field is declared volatile, the compiler and runtime are put on notice that this variable is shared and that operations on it should not be reordered with other memory operations. 
 
-A good way to think about volatile variables is to imagine that they behave roughly like the SynchronizedInteger class in Listing 3.3,replacing reads and writes of the volatile variable with calls to get and set.[4]
-Yet accessing a volatile variable performs no locking and so cannot cause the executing thread to block, making volatile variables a lighter-weight synchronization mechanism than synchronized.[5]
-[4] This analogy is not exact; the memory visibility effects of SynchronizedInteger are actually slightly stronger than those of volatile variables.
+2. Up to date    
+Volatile variables are not cached in registers or in caches where they are hidden from other processors, so a read of a volatile variable always returns the most recent write by any thread.  
+PS: Indeed it is implemented by memory barrier, which invalid caches in other threads or CPU  
+
+3. Lightweight
+Yet accessing a volatile variable performs no locking and so cannot cause the executing thread to block, making volatile variables a lighter-weight synchronization mechanism than synchronized.[5]  
 [5] Volatile reads are only slightly more expensive than nonvolatile reads on most current processor architectures.
 
-The visibility effects of volatile variables extend beyond the value of the volatile variable itself. When thread A writes to a volatile variable and subsequently thread B reads that same variable, the values of all variables that were visible to A prior to writing to the volatile variable become visible to B after reading the volatile variable. So from a memory visibility perspective, writing a volatile variable is like exiting a synchronized block and reading a volatile variable is like entering a synchronized block. However, we do not recommend relying too heavily on volatile variables for visibility; code that relies on volatile variables for visibility of arbitrary state is more fragile and harder to understand than code that uses locking
+4. Visibility effects(one of happen-before rules)  
+The visibility effects of volatile variables extend beyond the value of the volatile variable itself. When thread A writes to a volatile variable and subsequently thread B reads that same variable, the values of all variables that were visible to A prior to writing to the volatile variable become visible to B after reading the volatile variable. So from a memory visibility perspective, writing a volatile variable is like exiting a synchronized block and reading a volatile variable is like entering a synchronized block. `However, we do not recommend relying too heavily on volatile variables for visibility`; code that relies on volatile variables for visibility of arbitrary state is more `fragile` and `harder to understand` than code that uses locking  
 
-Use volatile variables only when they simplify implementing and verifying your synchronization policy; avoid using volatile variables when veryfing correctness would require subtle reasoning about visibility. Good uses of volatile variables include ensuring the visibility of their own state, that of the object they refer to, or indicating that an important lifecycle event (such as initialization or shutdown) has occurred.
+5. No Atomicity  
+Locking can guarantee both visibility and atomicity; volatile variables can only guarantee visibility.  
+For example, the semantics of volatile are not strong enough to make the increment operation (count++) atomic, unless you can guarantee that the variable is written only from a single thread. (`Atomic variables do provide atomic read-modify-write support and can often be used as "better volatile variables"`; see Chapter 15.)
 
-Listing 3.4 illustrates a typical use of volatile variables: checking a status flag to determine when to exit a loop. In this example, our anthropomorphized thread is trying to get to sleep by the time-honored method of counting sheep. For this example to work, the asleep flag must be volatile. Otherwise, the thread might not notice when asleep has been set by another thread.[6] We could instead have used locking to ensure visibility of changes to asleep, but that would have made the code more cumbersome.
+**Application Scenarios**:  
+**flag(or lifecycle event)**     
+Use volatile variables only when they simplify implementing and verifying your synchronization policy; `avoid using volatile variables when veryfing correctness would require subtle reasoning about visibility`. Good uses of volatile variables include ensuring the visibility of their own state, that of the object they refer to, or indicating that an important lifecycle event (such as initialization or shutdown) has occurred.  
 
-Listing 3.4. Counting Sheep.
+Volatile variables are convenient, but they have limitations. `The most common use for volatile variables is as a completion, interruption, or status flag`, such as the asleep flag in Listing 3.4. Volatile variables can be used for other kinds of state information, but more care is required when attempting this. For example, the semantics of volatile are not strong enough to make the increment operation (count++) atomic, unless you can guarantee that the variable is written only from a single thread. (Atomic variables do provide atomic read-modify-write support and can often be used as "better volatile variables"; see Chapter 15.)  
+
+**You can use volatile variables only when all the following criteria are met**:  
+1. `Writes to the variable do not depend on its current value`, or you can ensure that only a single thread ever updates the value;
+2. The variable does not participate in invariants with other state variables; 
+3. Locking is not required for any other reason while the variable is being accessed.  
+
+#### One example -- hoist loop expression when without volatile
+Listing 3.4 illustrates a typical use of volatile variables: checking a status flag to determine when to exit a loop. In this example, our anthropomorphized thread is trying to get to sleep by the time-honored method of counting sheep. For this example to work, the asleep flag must be volatile. Otherwise, the thread might not notice when asleep has been set by another thread.[6] We could instead have used locking to ensure visibility of changes to asleep, but that would have made the code more cumbersome.  
+
+Listing 3.4. Counting Sheep.  
+```java
 volatile boolean asleep;
 ...
     while (!asleep)
         countSomeSheep();
+```
+[6] Debugging tip: For server applications, be sure to always specify the -server JVM command line switch when invoking the JVM, even for development and testing. The server JVM performs more optimization than the client JVM, such as hoisting variables out of a loop that are not modified in the loop; code that might appear to work in the development environment (client JVM) can break in the deployment environment (server JVM). `For example, had we "forgotten" to declare the variable asleep as volatile in Listing 3.4, the server JVM could hoist the test out of the loop (turning it into an infinite loop)`, but the client JVM would not. An infinite loop that shows up in development is far less costly than one that only shows up in production.  
 
-[6] Debugging tip: For server applications, be sure to always specify the -server JVM command line switch when invoking the JVM, even for development and testing. The server JVM performs more optimization than the client JVM, such as hoisting variables out of a loop that are not modified in the loop; code that might appear to work in the development environment (client JVM) can break in the deployment environment (server JVM). For example, had we "forgotten" to declare the variable asleep as volatile in Listing 3.4, the server JVM could hoist the test out of the loop (turning it into an infinite loop), but the client JVM would not. An infinite loop that shows up in development is far less costly than one that only shows up in production.
+### 3.2 Publication and Escape
+**Publishing an object** means making it available to code outside of its current scope, such as by storing a reference to it where other code
+can find it, returning it from a nonprivate method, or passing it to a method in another class.
 
-Volatile variables are convenient, but they have limitations. The most common use for volatile variables is as a completion, interruption, or status flag, such as the asleep flag in Listing 3.4. Volatile variables can be used for other kinds of state information, but more care is required when attempting this. For example, the semantics of volatile are not strong enough to make the increment operation (count++) atomic, unless you can guarantee that the variable is written only from a single thread. (Atomic variables do provide atomic read-modify-write support and can often be used as "better volatile variables"; see Chapter 15.)
+An object that is published when it should not have been is said to have escaped.  
 
-Locking can guarantee both visibility and atomicity; volatile variables can only guarantee visibility.
+More generally, any object that is reachable from a
+published object by following some chain of nonprivate field references and method calls has also been published.  
 
-You can use volatile variables only when all the following criteria are met:
-    1, Writes to the variable do not depend on its current value, or you can ensure that only a single thread ever updates the value;
-    2, The variable does not participate in invariants with other state variables; and
-    3, Locking is not required for any other reason while the variable is being accessed.
+#### Scenarios of publication
+1. The most blatant form of publication is to store a reference in a public static field  
+2. returning it from a nonprivate method
+3. passing it to a method in another class
+4. alien methods(overridable methods or other class's methods)  
+5. publish an inner class instance  
 
+#### Alien methods
+From the perspective of a class C, an **alien method** is one whose behavior is not fully specified by C. This includes `methods in other classes` as well as `overrideable methods (neither private nor final) in C itself`. Passing an object to an alien method must also be considered publishing that object.  
+Since you can't know what code will actually be invoked, you don't know that the alien method won't publish the object or retain a reference to it that might later be used from another thread.  
 
-18, Publication and escape
-An object that is published when it should not have been is said to have escaped.
+#### Publish an inner class instance
+A final mechanism by which an object or its internal state can be published is to publish an inner class instance, as shown in ThisEscape in Listing 3.7.   When ThisEscape publishes the EventListener, it implicitly publishes the enclosing ThisEscape instance as well, because inner class instances contain a hidden reference to the enclosing instance.  
 
-From the perspective of a class C, an alien method is one whose behavior is not fully specified by C. This includes methods in other classes as well as overrideable methods (neither private nor final) in C itself. Passing an object to an alien method must also be considered publishing that object. Since you can't know what code will actually be invoked, you don't know that the alien method won't publish the object or retain a reference to it that might later be used from another thread.
-
-A final mechanism by which an object or its internal state can be published is to publish an inner class instance, as shown in ThisEscape in Listing 3.7. When ThisEscape publishes the EventListener, it implicitly publishes the enclosing ThisEscape instance as well, because inner class instances contain a hidden reference to the enclosing instance.
-
+```java
 public class ThisEscape {
     public ThisEscape(EventSource source) {
         source.registerListener(
@@ -208,23 +234,25 @@ public class ThisEscape {
             });
     }
 }
+```
 
-But an object is in a predictable, consistent state only after its constructor returns, so publishing an object from within its constructor can publish an incompletely constructed object. This is true even if the publication is the last statement in the constructor. If the this reference escapes during construction, the object is considered not properly constructed.[8]
+#### Escape during construction  
+But an object is in a predictable, consistent state only after its constructor returns, so publishing an object from within its constructor can publish an incompletely constructed object. This is true `even if the publication is the last statement in the constructor`. If the this reference escapes during construction, the object is considered not properly constructed.[8]  
 
-[8] More specifically, the this reference should not escape from the thread until after the constructor returns. The this reference can be stored somewhere by the constructor so long as it is not used by another thread until after construction. SafeListener in Listing 3.8 uses this technique.
+[8] More specifically, the this reference should not escape from the thread until after the constructor returns. The this reference can be stored somewhere by the constructor so long as it is not used by another thread until after construction. SafeListener in Listing 3.8 uses this technique.  
 
-Do not allow the this reference to escape during construction.
+Do not allow the this reference to escape during construction.  
 
-Addison.Wesley.Java.Concurrency.in.Practice.May.2006 Part II
+##### Scenarios of this reference escaping from constructor  
+1. A common mistake that can let the this reference escape during construction is to `start a thread from a constructor`. When an object creates a thread from its constructor, it almost always shares its this reference with the new thread, either explicitly (by passing it to the constructor) or implicitly (because the Thread or Runnable is an inner class of the owning object). The new thread might then be able to see the owning object before it is fully constructed. `There's nothing wrong with creating a thread in a constructor, but it is best not to start the thread immediately. Instead, expose a start or initialize method that starts the owned thread.` (See Chapter 7 for more on service lifecycle issues.) 
 
-1, A common mistake that can let the this reference escape during construction is to start a thread from a constructor. When an object creates a thread from its constructor, it almost always shares its this reference with the new thread, either explicitly (by passing it to the constructor) or implicitly (because the Thread or Runnable is an inner class of the owning object). The new thread might then be able to see the owning object before it is fully constructed. There's nothing wrong with creating a thread in a constructor, but it is best not to start the thread immediately. Instead, expose a start or initialize method that starts the owned thread. (See Chapter 7 for more on service lifecycle issues.) 
-
-Calling an overrideable instance method (one that is neither private nor final) from the constructor can also allow the this reference to escape.
+2. Calling an overrideable instance method (one that is neither private nor final) from the constructor can also allow the this reference to escape.  
 
 If you are tempted to register an event listener or start a thread from a constructor, you can avoid the improper construction by using a
-private constructor and a public factory method, as shown in SafeListener in Listing 3.8.
+private constructor and a public factory method, as shown in SafeListener in Listing 3.8.  
 
-Listing 3.8. Using a Factory Method to Prevent the this Reference from Escaping During Construction.
+**Listing 3.8. Using a Factory Method to Prevent the this Reference from Escaping During Construction.**  
+```java
 class SafeListener {
     private final EventListener listener;
 
@@ -242,44 +270,44 @@ class SafeListener {
         return safe;
     }
 }
+```
 
-2, Thread confinement
-one way to avoid this requirement is to not share. If data is only accessed from a single thread, no synchronization is needed. This technique, thread confinement, is one of the simplest ways to achieve
-thread safety. When an object is confined to a thread, such usage is automatically thread-safe even if the confined object itself is not
+### 3.3 Thread confinement
+one way to avoid this requirement is to not share. If data is only accessed from a single thread, no synchronization is needed. This technique, thread confinement, is one of the simplest ways to achieve thread safety. When an object is confined to a thread, such usage is automatically thread-safe even if the confined object itself is not 
 
-Swing uses thread confinement extensively. The Swing visual components and data model objects are not thread safe; instead, safety is achieved by confining them to the Swing event dispatch thread. To use Swing properly, code running in threads other than the event
-thread should not access these objects. (To make this easier, Swing provides the invokeLater mechanism to schedule a Runnable for execution in the event thread.) Many concurrency errors in Swing applications stem from improper use of these confined objects from another thread.
+`Swing uses thread confinement extensively`. The Swing visual components and data model objects are not thread safe; instead, `safety is achieved by confining them to the Swing event dispatch thread`. To use Swing properly, code running in threads other than the event thread should not access these objects. (To make this easier, Swing provides the `invokeLater mechanism` to schedule a Runnable for execution in the event thread.) Many concurrency errors in Swing applications stem from improper use of these confined objects from another thread.  
 
-Another common application of thread confinement is the use of pooled JDBC (Java Database Connectivity) Connection objects. The JDBC specification does not require that Connection objects be thread-safe.[9]
-In typical server applications, a thread acquires a connection from the pool, uses it for processing a single request, and returns it. Since most requests, such as servlet requests or EJB(Enterprise JavaBeans) calls, are processed synchronously by a single thread, and the pool will not dispense the same connection to another thread until it has been returned, this pattern of connection management implicitly confines the Connection to that thread for the duration of the request.
-[9] The connection pool implementations provided by application servers are thread-safe; connection pools are necessarily accessed from multiple threads, so a non-thread-safe implementation would not make sense.
+Another common application of thread confinement is the use of pooled JDBC (Java Database Connectivity) Connection objects. `The JDBC specification does not require that Connection objects be thread-safe`.[9]  
+In typical server applications, a thread acquires a connection from the pool, uses it for processing a single request, and returns it. Since most requests, such as servlet requests or EJB(Enterprise JavaBeans) calls, are processed synchronously by a single thread, and the pool will not dispense the same connection to another thread until it has been returned, this pattern of connection management implicitly confines the Connection to that thread for the duration of the request.  
+[9] The connection pool implementations provided by application servers are thread-safe; connection pools are necessarily accessed from multiple threads, so a non-thread-safe implementation would not make sense.  
 
-The language and core libraries provide mechanisms that can help in maintaining thread confinement local variables and the ThreadLocal class but even with these, it is still the programmer's responsibility to ensure that thread-confined objects do not escape from their intended thread.
+Just as the `language` has no mechanism for enforcing that a variable is guarded by a lock, `it has no means of confining an object to a thread`. Thread confinement is an element of your program's design that must be enforced by its implementation. The language and core libraries provide mechanisms that can help in maintaining thread confinement local variables and the ThreadLocal class but even with these, it is still `the programmer's responsibility to ensure that thread-confined objects do not escape from their intended thread`.  
 
-3, Ad-hoc thread confinement
-Ad-hoc thread confinement describes when the responsibility for maintaining thread confinement falls entirely on the implementation.
+**Techniques of thread confinement**:  
+1. Ad-hoc thread confinement  
+2. Stack confinement  
+3. ThreadLocal  
 
-The decision to use thread confinement is often a consequence of the decision to implement a particular subsystem, such as the GUI, as a single-threaded subsystem. Single-threaded subsystems can sometimes offer a simplicity benefit that outweighs the fragility of ad-hoc thread confinement.[10]
-[10] Another reason to make a subsystem single-threaded is deadlock avoidance; this is one of the primary
-reasons most GUI frameworks are single-threaded. Single-threaded subsystems are covered in Chapter 9.
+#### Ad-hoc thread confinement
+Ad-hoc thread confinement describes when the responsibility for maintaining thread confinement falls entirely on the implementation.  
+
+Ad-hoc thread confinement can be fragile because none of the language features, such as visibility modifiers or `local variables??`, helps confine the object to the target thread. (In fact, references to thread-confined objects such as visual components or data models in GUI
+applications are often held in public fields.)  
 
 Because of its fragility, ad-hoc thread confinement should be used sparingly; if possible, use one of the stronger forms of thread confinment (stack confinement or ThreadLocal) instead.
 
-4, Stack confinement
-Stack confinement is a special case of thread confinement in which an object can only be reached through local variables. Just as encapsulation can make it easier to preserve invariants, local variables can make it easier to confine objects to a thread.
+#### Stack confinement
+Stack confinement is a special case of thread confinement in which an object can only be reached through local variables. Just as encapsulation can make it easier to preserve invariants, local variables can make it easier to confine objects to a thread.  
 
-There is no way to obtain a reference to a primitive variable, so the language semantics ensure that primitive local variables are always stack confined.
+There is no way to obtain a reference to a primitive variable, so the language semantics ensure that primitive local variables are always stack confined.  
 
-Using a non-thread-safe object in a within-thread context is still thread-safe. However, be careful: the design requirement that the object be confined to the executing thread, or the awareness that the confined object is not thread-safe, often exists only in the head of the developer when the code is written. If the assumption of within-thread usage is not clearly documented, future maintainers might
-mistakenly allow the object to escape.
+`Using a non-thread-safe object in a within-thread context is still thread-safe`. However, be careful: the design requirement that the object be confined to the executing thread, or the awareness that the confined object is not thread-safe, often exists only in the head of the developer when the code is written. If the assumption of within-thread usage is not clearly documented, future maintainers might mistakenly allow the object to escape.  
 
-5, ThreadLocal Confinement
-A more formal means of maintaining thread confinement is ThreadLocal, which allows you to associate a per-thread value with a value-holding object. Thread-Local provides get and set accessor methods that maintain a separate copy of the value for each thread that uses it, so a get returns the most recent value passed to set from the currently executing thread.
+#### ThreadLocal
+A more formal means of maintaining thread confinement is ThreadLocal, which allows you to associate a per-thread value with a value-holding object.   Thread-Local provides get and set accessor methods that maintain a separate copy of the value for each thread that uses it, so a get returns the most recent value passed to set from the currently executing thread.  
 
-6, example of ThreadLocal
-
-Thread-local variables are often used to prevent sharing in designs based on mutable Singletons or global variables. For example, a single-threaded application might maintain a global database connection that is initialized at startup to avoid having to pass a Connection to every method. Since JDBC connections may not be thread-safe, a multithreaded application that uses a global connection without additional coordination is not thread-safe either. By using a ThreadLocal to store the JDBC connection, as in ConnectionHolder in Listing 3.10, each thread will have its own connection.
-
+Thread-local variables are often used to prevent sharing in designs based on mutable Singletons or global variables. For example, a single-threaded application might maintain a global database connection that is initialized at startup to avoid having to pass a Connection to every method. Since JDBC connections may not be thread-safe, a multithreaded application that uses a global connection without additional coordination is not thread-safe either. By using a ThreadLocal to store the JDBC connection, as in ConnectionHolder in Listing 3.10, each thread will have its own connection.  
+```java
     private static ThreadLocal<Connection> connectionHolder = new ThreadLocal<Connection>() {
         public Connection initialValue() {
             return DriverManager.getConnection(DB_URL);
@@ -289,39 +317,42 @@ Thread-local variables are often used to prevent sharing in designs based on mut
     public static Connection getConnection() {
         return connectionHolder.get();
     }
+```
 
-This technique can also be used when a frequently used operation requires a temporary object such as a buffer and wants to avoid reallocating the temporary object on each invocation. 
+This technique can also be used when a frequently used operation requires a temporary object such as a buffer and wants to avoid reallocating the temporary object on each invocation.  
 
-For example, before Java 5.0, Integer.toString used a ThreadLocal to store the 12-byte buffer used for formatting its result, rather than using a shared static buffer (which would require locking) or allocating a new buffer for each invocation.[11]
+For example, before Java 5.0, Integer.toString used a ThreadLocal to store the 12-byte buffer used for formatting its result, rather than using a shared static buffer (which would require locking) or allocating a new buffer for each invocation.[11]  
 
-[11] This technique is unlikely to be a performance win unless the operation is performed very frequently or the allocation is unusually expensive. In Java 5.0, it was replaced with the more straightforward approach of allocating a new buffer for every invocation, suggesting that for something as mundane as a temporary buffer, it is not a performance win.
+[11] This technique is unlikely to be a performance win unless the operation is performed very frequently or the allocation is unusually expensive. In Java 5.0, it was replaced with the more straightforward approach of allocating a new buffer for every invocation, suggesting that for something as mundane as a temporary buffer, it is not a performance win.  
 
-When a thread calls ThreadLocal.get for the first time, initialValue is consulted to provide the initial value for that thread(If set method were not called before the first get. Moreover, it would be called again if there were such invocation sequences like remove() and then get() ). Conceptually,you can think of a ThreadLocal<T> as holding a Map<Thread,T> that stores the thread-specific values, though this is not how it is actually implemented. The thread-specific values are stored in the Thread object itself; when the thread terminates, the thread-specific values can be garbage collected.
+When a thread calls ThreadLocal.get for the first time, **initialValue** is consulted to provide the initial value for that thread(If set method were not called before the first get. Moreover, it would be called again if there were such invocation sequences like remove() and then get() ). Conceptually,you can think of a ThreadLocal<T> as holding a Map<Thread,T> that stores the thread-specific values, though this is not how it is actually implemented. The thread-specific values are stored in the Thread object itself; when the thread terminates, the thread-specific values can be garbage collected.  
 
-If you are porting a single-threaded application to a multithreaded environment, you can preserve thread safety by converting shared global variables into ThreadLocals, if the semantics of the shared globals permits this; an applicationwide cache would not be as useful if it were turned into a number of thread-local caches.
+`If you are porting a single-threaded application to a multithreaded environment, you can preserve thread safety by converting shared global variables into ThreadLocals`, `if the semantics of the shared globals permits this; an applicationwide cache would not be as useful if it were turned into a number of thread-local caches.`
 
-ThreadLocal is widely used in implementing application frameworks. For example, J2EE containers associate a transaction context with an executing thread for the duration of an EJB call. This is easily implemented using a static THRead-Local holding the transaction context: when framework code needs to determine what transaction is currently running, it fetches the transaction context from this ThreadLocal. This is convenient in that it reduces the need to pass execution context information into every method, but couples any code that uses this mechanism to the framework.
+ThreadLocal is widely used in implementing application frameworks. For example, J2EE containers associate a transaction context with an executing thread for the duration of an EJB call. This is easily implemented using a static Thread-Local holding the transaction context: when framework code needs to determine what transaction is currently running, it fetches the transaction context from this ThreadLocal. This is convenient in that it reduces the need to pass execution context information into every method, but couples any code that uses this mechanism to the framework.  
 
-It is easy to abuse THReadLocal by treating its thread confinement property as a license to use global variables or as a means of creating "hidden" method arguments. Like global variables, thread-local variables can detract from reusability and introduce hidden couplings among classes, and should therefore be used with care.
+It is easy to abuse ThreadLocal by treating its thread confinement property as a license to use global variables or as a means of creating "hidden" method arguments. Like global variables, thread-local variables can detract from reusability and introduce hidden couplings among classes, and should therefore be used with care.  
 
-7, Immutability
-The other end-run around the need to synchronize is to use immutable objects [EJ Item 13].
+### 3.4 Immutability
+The other end-run around the need to synchronize is to use immutable objects [EJ Item 13].  
 
-An immutable object is one whose state cannot be changed after construction. Immutable objects are inherently thread-safe; their invariants are established by the constructor, and if their state cannot be changed, these invariants always hold.
+An immutable object is one whose state cannot be changed after construction.  Immutable objects are inherently thread-safe; their invariants are established by the constructor, and if their state cannot be changed, these invariants always hold.
 
-Immutable objects are always thread-safe.
+Immutable objects are always thread-safe.  
 
 Neither the Java Language Specification nor the Java Memory Model formally defines immutability, but immutability is not equivalent to simply declaring all fields of an object final. An object whose fields are all final may still be mutable, since final fields can hold references to mutable objects.
 
-An object is immutable if:
--- Its state cannot be modifled after construction;
--- All its flelds are final;[12]and
--- It is properly constructed (the this reference does not escape during construction).
+**An object is immutable if**:  
+1. Its state cannot be modifled after construction;
+2. All its flelds are final;[12]and
+3. It is properly constructed (the this reference does not escape during construction).
+4. The class is final, so that subclass can't change the status  
 
-[12] It is technically possible to have an immutable object without all fields being final. String is such a class but this relies on delicate reasoning about benign data races that requires a deep understanding of the Java Memory Model. (For the curious: String lazily computes the hash code the first time hashCode is called and caches it in a nonfinal field, but this works only because that field can take on only one non default value that is the same every time it is computed because it is derived deterministically from immutable state. Don't try this at home.)
+[12] It is technically possible to have an immutable object without all fields being final. String is such a class but this relies on delicate reasoning about benign data races that requires a deep understanding of the Java Memory Model. (For the curious: String lazily computes the hash code the first time hashCode is called and caches it in a nonfinal field, but this works only because that field can take on only one non default value that is the same every time it is computed because it is derived deterministically from immutable state. Don't try this at home.)  
 
-Immutable objects can still use mutable objects internally to manage their state, as illustrated by ThreeStooges in Listing 3.11. While the Set that stores the names is mutable, the design of ThreeStooges makes it impossible to modify that Set after construction. The stooges reference is final, so all object state is reached through a final field. The last requirement, proper construction, is easily met since the constructor does nothing that would cause the this reference to become accessible to code other than the constructor and its caller.
+Immutable objects can still use mutable objects internally to manage their state, as illustrated by ThreeStooges in Listing 3.11. While the Set that stores the names is mutable, the design of ThreeStooges makes it impossible to modify that Set after construction. The stooges reference is final, so all object state is reached through a final field. The last requirement, proper construction, is easily met since the constructor does nothing that would cause the this reference to become accessible to code other than the constructor and its caller.  
 
+```java
 @Immutable
 final class ThreeStooges {
     private final Set<String> stooges = new HashSet<String>();
@@ -336,24 +367,26 @@ final class ThreeStooges {
         return stooges.contains(name);
     }
 }
+```
 
-Because program state changes all the time, you might be tempted to think that immutable objects are of limited use, but this is not the case. There is a difference between an object being immutable and the reference to it being immutable. Program state stored in immutable objects can still be updated by "replacing" immutable objects with a new instance holding new state; the next section offers an example of this technique.[13]
-[13] Many developers fear that this approach will create performance problems, but these fears are usually unwarranted. Allocation is cheaper than you might think, and immutable objects offer additional performance advantages such as reduced need for locking or defensive copies and reduced impact on generational garbage collection.
+Because program state changes all the time, you might be tempted to think that immutable objects are of limited use, but this is not the case. There is a difference between an object being immutable and the reference to it being immutable. Program state stored in immutable objects can still be updated by "replacing" immutable objects with a new instance holding new state; the next section offers an example of this technique.[13]  
+[13] Many developers fear that this approach will create performance problems, but these fears are usually unwarranted. Allocation is cheaper than you might think, and immutable objects offer additional performance advantages such as reduced need for locking or defensive copies and reduced impact on generational garbage collection.  
 
-8 Immutable objects can sometimes provide a weak form of atomicity
+#### Immutable objects can sometimes provide a weak form of atomicity
 However, immutable objects can sometimes provide a weak form of atomicity.
-Example: Using Volatile to Publish Immutable Objects
+**Example: Using Volatile to Publish Immutable Objects**  
 
 The factoring servlet performs two operations that must be atomic: updating the cached result and conditionally fetching the cached factors if the cached number matches the requested number. Whenever a group of related data items must be acted on atomically,consider creating an immutable holder class for them, such as OneValueCache[14] in Listing 3.12.
-[14] OneValueCache wouldn't be immutable without the copyOf calls in the constructor and getter. Arrays.copyOf was added as a convenience in Java 6; clone would also work.
+[14] OneValueCache wouldn't be immutable without the copyOf calls in the constructor and getter. Arrays.copyOf was added as a convenience in Java 6; clone would also work.  
 
-Race conditions in accessing or updating multiple related variables can be eliminated by using an immutable object to hold all the variables.
+`Race conditions in accessing or updating multiple related variables can be eliminated by using an immutable object to hold all the variables.`  
 
 VolatileCachedFactorizer in Listing 3.13 uses a OneValueCache to store the cached number and factors. When a thread sets the volatile cache field to reference a new OneValueCache, the new cached data becomes immediately visible to other threads.
 
 The cache-related operations cannot interfere with each other because One-ValueCache is immutable and the cache field is accessed only once in each of the relevant code paths. This combination of an immutable holder object for multiple state variables related by an invariant, and a volatile reference used to ensure its timely visibility, allows VolatileCachedFactorizer to be thread-safe even though it does no explicit locking.
 
-Listing 3.12. Immutable Holder for Caching a Number and its Factors.
+**Listing 3.12. Immutable Holder for Caching a Number and its Factors.**  
+```java
 @Immutable
 class OneValueCache {
     private final BigInteger lastNumber;
@@ -371,8 +404,10 @@ class OneValueCache {
             return Arrays.copyOf(lastFactors, lastFactors.length);
     }
 }
+```
 
-Listing 3.13. Caching the Last Result Using a Volatile Reference to an Immutable Holder Object.
+**Listing 3.13. Caching the Last Result Using a Volatile Reference to an Immutable Holder Object.**     
+```java
 @ThreadSafe
 public class VolatileCachedFactorizer implements Servlet {
     private volatile OneValueCache cache = new OneValueCache(null, null);
@@ -387,21 +422,27 @@ public class VolatileCachedFactorizer implements Servlet {
         encodeIntoResponse(resp, factors);
     }
 }
+```
 
-9, Unsafe publication
-Listing 3.14
+### 3.5 Safe Publication
+**Unsafe publication**  
+**Listing 3.14**  
+```java
     // Unsafe publication
     public Holder holder;
 
     public void initialize() {
-        holder = new Holder(42);
+        holder = new Holder(7);
     }
+```
 
-You may be surprised at how badly this harmless-looking example could fail. Because of visibility problems, the Holder could appear to another thread to be in an inconsistent state, even though its invariants were properly established by its constructor! This improper publication could allow another thread to observe a partially constructed object.
+You may be surprised at how badly this harmless-looking example could fail.   Because of visibility problems, the Holder could appear to another thread to be in an inconsistent state, even though its invariants were properly established by its constructor! This improper publication could allow another thread to observe a partially constructed object.  
 
-You cannot rely on the integrity of partially constructed objects. An observing thread could see the object in an inconsistent state, and then later see its state suddenly change, even though it has not been modified since publication. In fact, if the Holder in Listing 3.15 is published using the unsafe publication idiom in Listing 3.14, and a thread other than the publishing thread were to call assertSanity, it could throw AssertionError![15]
-[15] The problem here is not the Holder class itself, but that the Holder is not properly published. However, Holder can be made immune to improper publication by declaring the n field to be final, which would make Holder immutable; see Section 3.5.2.
-Listing 3.15. Class at Risk of Failure if Not Properly Published.
+You cannot rely on the integrity of partially constructed objects. An observing thread could see the object in an inconsistent state, and then later see its state suddenly change, even though it has not been modified since publication. In fact, if the Holder in Listing 3.15 is published using the unsafe publication idiom in Listing 3.14, and a thread other than the publishing thread were to call assertSanity, it could throw AssertionError![15]  
+
+[15] The problem here is not the Holder class itself, but that the Holder is not properly published. However, Holder can be made immune to improper publication by declaring the n field to be final, which would make Holder immutable; see Section 3.5.2.  
+**Listing 3.15. Class at Risk of Failure if Not Properly Published.**  
+```java
 public class Holder {
     private int n;
 
@@ -414,51 +455,53 @@ public class Holder {
             throw new AssertionError("This statement is false.");
     }
 }
+```
 
-Because synchronization was not used to make the Holder visible to other threads, we say the Holder was not properly published.
+Because synchronization was not used to make the Holder visible to other threads, we say the Holder was not properly published.  
 
-Two things can go wrong with improperly published objects. Other threads could see a stale value for the holder field, and thus see a null reference or other older value even though a value has been placed in holder. But far worse, other threads could see an up-to-date value for the holder reference, but stale values for the state of the Holder.[16]
-To make things even less predictable, a thread may see a stale value the first time it reads a field and then a more up-to-date value the next time, which is why assertSanity can throw AssertionError.
-[16] While it may seem that field values set in a constructor are the first values written to those fields and therefore that there are no "older" values to see as stale values, the Object constructor first writes the default values to all fields before subclass constructors run. It is therefore possible to see the default value for a field as a stale value.
+Two things can go wrong with improperly published objects. Other threads could see a stale value for the holder field, and thus see a null reference or other older value even though a value has been placed in holder. But far worse, other threads could see an up-to-date value for the holder reference, but stale values for the state of the Holder.[16]  
+To make things even less predictable, a thread may see a stale value the first time it reads a field and then a more up-to-date value the next time, which is why assertSanity can throw AssertionError.  
+[16] While it may seem that field values set in a constructor are the first values written to those fields and therefore that there are no "older" values to see as stale values, the Object constructor first writes the default values to all fields before subclass constructors run. It is therefore possible to see the default value for a field as a stale value.  
 
-10, Immutable objects and initialization safety
-Because immutable objects are so important, the Java Memory Model offers a special guarantee of initialization safety for sharing immutable objects.
+#### Immutable objects and initialization safety  
+Because immutable objects are so important, the `Java Memory Model` offers a special guarantee of initialization safety for sharing immutable objects.  
 
-Immutable objects can be used safely by any thread without additional synchronization, even when synchronization is not used to publish them.
+`Immutable objects can be used safely by any thread without additional synchronization, even when synchronization is not used to publish them.`  
 
-This guarantee extends to the values of all final fields of properly constructed objects; final fields can be safely accessed without additional synchronization. However, if final fields refer to mutable objects, synchronization is still required to access the state of the objects they refer to.
+`This guarantee extends to the values of all final fields of properly constructed objects`; `final fields can be safely accessed without additional synchronization.` However, if final fields refer to mutable objects, synchronization is still required to access the state of the objects they refer to.
 
-11, Safe Publication Idioms
-Objects that are not immutable must be safely published, which usually entails synchronization by both the publishing and the consuming thread. 
+#### Safe Publication Idioms
+Objects that are not immutable must be safely published, which usually entails synchronization by both the publishing and the consuming thread.   
 
-For the moment, let's focus on ensuring that the consuming thread can see the object in its as published state; we'll deal with visibility of modifications made after publication soon.
+For the moment, let's focus on ensuring that the consuming thread can see the object in its as published state; we'll deal with visibility of modifications made after publication soon.  
 
-To publish an object safely, both the reference to the object and the object's state must be made visible to other threads at the same time. A properly constructed object can be safely published by:
-    Initializing an object reference from a static initializer;
-    Storing a reference to it into a volatile field or AtomicReference;
-    Storing a reference to it into a final field of a properly constructed object; or
-    Storing a reference to it into a field that is properly guarded by a lock.
+##### Ways of safely publication  
+To publish an object safely, both the reference to the object and the object's state must be made visible to other threads at the same time. `A properly constructed object can be safely published by`:  
+1. Initializing an object reference from a static initializer;
+2. Storing a reference to it into a volatile field or AtomicReference;
+3. Storing a reference to it into a final field of a properly constructed object  
+4. Storing a reference to it into a field that is properly guarded by a lock.
+5. The thread-safe library collections   
+    The thread-safe library collections offer the following safe publication guarantees, even if the Javadoc is less than clear on the subject:  
+    1. Placing a key or value in a Hashtable, synchronizedMap, or Concurrent-Map safely publishes it to any thread that retrieves it from the Map (whether directly or via an iterator);  
+    2. Placing an element in a Vector, CopyOnWriteArrayList, CopyOnWrite-ArraySet, synchronizedList, or synchronizedSet safely publishes it to any thread that retrieves it from the collection;  
+    3. Placing an element on a BlockingQueue or a ConcurrentLinkedQueue safely publishes it to any thread that retrieves it from the queue.  
+    4. Other handoff mechanisms in the class library (such as Future and Exchanger) also constitute safe publication; we will identify these as providing safe publication as they are introduced.  
+6. Immutable objects can be published through any mechanism  
 
 
-Addison.Wesley.Java.Concurrency.in.Practice.May.2006 Part III
+Using a static initializer is often the easiest and safest way to publish objects that can be statically constructed:  
+```java
+public static Holder holder = new Holder(7);
+```
+Static initializers are executed by the JVM at class initialization time; because of internal synchronization in the JVM, this mechanism is guaranteed to safely publish any objects initialized in this way [JLS 12.4.2].  
 
-1 Thread safe collections
+1. Immutable objects can be published through any mechanism
+2. Effectively immutable objects must be safely published
+3. Mutable objects must be safely published, and must be either threadsafe or guarded by a lock.
 
-The thread-safe library collections offer the following safe publication guarantees, even if the Javadoc is less than clear on the subject:
-    Placing a key or value in a Hashtable, synchronizedMap, or Concurrent-Map safely publishes it to any thread that retrieves it from the Map (whether directly or via an iterator);
-    Placing an element in a Vector, CopyOnWriteArrayList, CopyOnWrite-ArraySet, synchronizedList, or synchronizedSet safely publishes it to any thread that retrieves it from the collection;
-    Placing an element on a BlockingQueue or a ConcurrentLinkedQueue safely publishes it to any thread that retrieves it from the queue.
-    Other handoff mechanisms in the class library (such as Future and Exchanger) also constitute safe publication; we will identify these as providing safe publication as they are introduced.
-
-2 , Using a static initializer is often the easiest and safest way to publish objects that can be statically constructed:
-public static Holder holder = new Holder(42);
-Static initializers are executed by the JVM at class initialization time; because of internal synchronization in the JVM, this mechanism is guaranteed to safely publish any objects initialized in this way [JLS 12.4.2].
-
-3,  -- Immutable objects can be published through any mechanism;
-    -- Effectively immutable objects must be safely published;
-    -- Mutable objects must be safely published, and must be either threadsafe or guarded by a lock.
-
-4, Designing a Thread-safe Class
+## 4. Composing Objects
+### 4.1 Designing a Thread-safe Class
 Encapsulation makes it possible to determine that a class is thread-safe without having to examine the entire program.
 
 The design process for a thread-safe class should include these three basic elements:
