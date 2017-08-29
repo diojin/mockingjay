@@ -5,53 +5,59 @@
 ---
 
 * [2. Thread Safety](#2-thread-safety)
+    - [Racing condition VS Data Race](#racing-condition-vs-data-race)
+    - [Typical scenarios of racing condition](#typical-scenarios-of-racing-condition)
+    - [Reentrancy](#reentrancy)
+    - [Java Monitor Pattern](#java-monitor-pattern)
 * [Miscellaneous](#miscellaneous)
 
-## 2. Thread Safety
- 1, Racing condition VS Data Race
-A race condition occurs when the correctness of a computation depends on the relative timing or interleaving of multiple threads by the runtime; in other words, when getting the right answer relies on lucky timing.
+## 2. Thread Safety  
+### Racing condition VS Data Race  
+A race condition occurs when the correctness of a computation depends on the relative timing or interleaving of multiple threads by the runtime; in other words, when getting the right answer relies on lucky timing.  
 
-The term race condition is often confused with the related term data race, which arises when synchronization is
-not used to coordinate all access to a shared nonfinal field.
+The term race condition is often confused with the related term data race, which arises when synchronization is not used to coordinate all access to a shared nonfinal field.  
 
-The most common type of race condition is check-then-act, where a potentially stale observation is used to make a decision on what to do next.
+The most common type of race condition is check-then-act, where a potentially stale observation is used to make a decision on what to do next.  
 
-Not all race conditions are data races, and not all data races are race conditions.
+Not all race conditions are data races, and not all data races are race conditions.  
 
-2,Types of racing condition
-A common idiom that uses check-then-act is lazy initialization. The goal of lazy initialization is to defer initializing an object until it is
-actually needed while at the same time ensuring that it is initialized only once.
-
-read-modify-write
+### Typical scenarios of racing condition  
+1. check-then-act  
+A common idiom that uses `check-then-act` is lazy initialization. The goal of lazy initialization is to defer initializing an object until it is actually needed while at the same time ensuring that it is initialized only once.  
+2. read-modify-write  
 
 To ensure thread safety, check-then-act operations (like lazy initialization) and read-modify-write operations (like increment) must always be atomic. We
-refer collectively to check-then-act and read-modify-write sequences as compound actions: sequences of operations that must be executed atomically 
+refer collectively to check-then-act and read-modify-write sequences as **compound actions**: sequences of operations that must be executed atomically 
 in order to remain thread-safe. In the next section, we'll consider locking, Java's builtin mechanism for ensuring atomicity.
 
-When a single element of state is added to a stateless class, the resulting class will be thread-safe if the state is entirely managed by a thread-safe object. 
-But, as we'll see in the next section, going from one state variable to more than one is not necessarily as simple as going from zero to one.
+When a single element of state is added to a stateless class, the resulting class will be thread-safe if the state is entirely managed by a thread-safe object. But, as we'll see in the next section, going from one state variable to more than one is not necessarily as simple as going from zero to one.  
 
-3, synchronized block
-Java provides a built-in locking mechanism for enforcing atomicity: the synchronized block. 
-A synchronized block has two parts: a reference to an object that will serve as the lock, and a block of code to be guarded by that lock. 
-A synchronized method is a shorthand for a synchronized block that spans an entire method body, and whose lock is the object on which the method is being invoked. 
-(Static synchronized methods use the Class object for the lock.)
 
-4, Reentrancy
-When a thread requests a lock that is already held by another thread, the requesting thread blocks. 
-But because intrinsic locks are reentrant, if a thread tries to acquire a lock that it already holds, the request succeeds. 
-Reentrancy means that locks are acquired on a per-thread rather than per-invocation basis.
+### Reentrancy
+When a thread requests a lock that is already held by another thread, the requesting thread blocks.   
+But because intrinsic locks are reentrant, if a thread tries to acquire a lock that it already holds, the request succeeds.   
+Reentrancy means that locks are acquired on a per-thread rather than per-invocation basis.  
 Reentrancy is implemented by associating with each lock an acquisition count and an owning thread. When the count is zero, the lock is considered unheld. 
-When a thread acquires a previously unheld lock, the JVM records the owner and sets the acquisition count to one. If that same thread acquires the lock again, 
-the count is incremented, and when the owning thread exits the synchronized block, the count is decremented. When the count reaches zero, the lock is released.
+When a thread acquires a previously unheld lock, the JVM records the owner and sets the acquisition count to one. If that same thread acquires the lock again, the count is incremented, and when the owning thread exits the synchronized block, the count is decremented. When the count reaches zero, the lock is released.  
 
-Reentrancy facilitates encapsulation of locking behavior, and thus simplifies the development of object-oriented concurrent code. Without
-reentrant locks, the very natural-looking code in Listing 2.7, in which a subclass overrides a synchronized method and then calls the
-superclass method, would deadlock.
+Reentrancy facilitates encapsulation of locking behavior, and thus simplifies the development of object-oriented concurrent code. Without reentrant locks, the very natural-looking code in Listing 2.7, in which a subclass overrides a synchronized method and then calls the superclass method, would deadlock.  
+```scala
+public class Widget {
+    public synchronized void doSomething() {
+        ...
+    }
+}
+public class LoggingWidget extends Widget {
+    public synchronized void doSomething() {
+        System.out.println(toString() + ": calling doSomething");
+        super.doSomething();
+    }
+}
+```
 
-5, One convention
-A common locking convention is to encapsulate all mutable state within an object and to protect it from concurrent access by synchronizing any code path that 
-accesses mutable state using the object's intrinsic lock. This pattern is used by many thread-safe classes, such as Vector and other synchronized collection classes. 
+
+### Java Monitor Pattern
+A common locking convention is to encapsulate all mutable state within an object and to protect it from concurrent access by synchronizing any code path that accesses mutable state using the object's intrinsic lock. This pattern is used by many thread-safe classes, such as Vector and other synchronized collection classes. 
 In such cases, all the variables in an object's state are guarded by the object's intrinsic lock. However, there is nothing special about this pattern, 
 and neither the compiler nor the runtime enforces this (or any other) pattern of locking.
 It is also easy to subvert this locking protocol accidentally by adding a new method or code path and forgetting to use synchronization.    

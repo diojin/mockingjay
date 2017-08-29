@@ -1,0 +1,5 @@
+#! /bin/bash
+
+result=`echo $@ | tr 'A-Z' 'a-z' | tr -d '.' | sed 's/ /-/g'`
+
+echo "#$result"
