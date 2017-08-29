@@ -9,6 +9,10 @@
     - [Typical scenarios of racing condition](#typical-scenarios-of-racing-condition)
     - [Reentrancy](#reentrancy)
     - [Java Monitor Pattern](#java-monitor-pattern)
+        + [Invariant](#invariant)
+    - [Liveness and Performance](#liveness-and-performance)
+* [3. Sharing Objects](#3-sharing-objects)
+    - [One code example -- Stale data](#one-code-example----stale-data)
 * [Miscellaneous](#miscellaneous)
 
 ## 2. Thread Safety  
@@ -25,7 +29,12 @@ Not all race conditions are data races, and not all data races are race conditio
 1. check-then-act  
 A common idiom that uses `check-then-act` is lazy initialization. The goal of lazy initialization is to defer initializing an object until it is actually needed while at the same time ensuring that it is initialized only once.  
 2. read-modify-write  
-
+3. put-if-absent   
+```java
+if (!vector.contains(element))
+    vector.add(element);  
+```
+    
 To ensure thread safety, check-then-act operations (like lazy initialization) and read-modify-write operations (like increment) must always be atomic. We
 refer collectively to check-then-act and read-modify-write sequences as **compound actions**: sequences of operations that must be executed atomically 
 in order to remain thread-safe. In the next section, we'll consider locking, Java's builtin mechanism for ensuring atomicity.
@@ -41,7 +50,7 @@ Reentrancy is implemented by associating with each lock an acquisition count and
 When a thread acquires a previously unheld lock, the JVM records the owner and sets the acquisition count to one. If that same thread acquires the lock again, the count is incremented, and when the owning thread exits the synchronized block, the count is decremented. When the count reaches zero, the lock is released.  
 
 Reentrancy facilitates encapsulation of locking behavior, and thus simplifies the development of object-oriented concurrent code. Without reentrant locks, the very natural-looking code in Listing 2.7, in which a subclass overrides a synchronized method and then calls the superclass method, would deadlock.  
-```scala
+```java
 public class Widget {
     public synchronized void doSomething() {
         ...
@@ -57,38 +66,34 @@ public class LoggingWidget extends Widget {
 
 
 ### Java Monitor Pattern
-A common locking convention is to encapsulate all mutable state within an object and to protect it from concurrent access by synchronizing any code path that accesses mutable state using the object's intrinsic lock. This pattern is used by many thread-safe classes, such as Vector and other synchronized collection classes. 
+A common locking convention is to encapsulate all mutable state within an object and to protect it from concurrent access by synchronizing any code path that accesses mutable state using the object's intrinsic lock. This pattern is used by many thread-safe classes, such as `Vector` and `other synchronized collection classes.`   
 In such cases, all the variables in an object's state are guarded by the object's intrinsic lock. However, there is nothing special about this pattern, 
-and neither the compiler nor the runtime enforces this (or any other) pattern of locking.
-It is also easy to subvert this locking protocol accidentally by adding a new method or code path and forgetting to use synchronization.    
+and neither the compiler nor the runtime enforces this (or any other) pattern of locking. It is also easy to subvert this locking protocol accidentally by adding a new method or code path and forgetting to use synchronization.    
 
-6, Invariant
-When a variable is guarded by a lock meaning that every access to that variable is performed with that lock held you've ensured that only
-one thread at a time can access that variable. When a class has invariants that involve more than one state variable, there is an
-additional requirement: each variable participating in the invariant must be guarded by the same lock. This allows you to access or
-update them in a single atomic operation, preserving the invariant.
+#### Invariant
+When a variable is guarded by a lock meaning that every access to that variable is performed with that lock held you've ensured that only one thread at a time can access that variable. When a class has invariants that involve more than one state variable, there is an additional requirement: each variable participating in the invariant must be guarded by the same lock. This allows you to access or update them in a single atomic operation, preserving the invariant.  
 
-7, Making every method synchronized doesn't guarantee thread safe
-Merely synchronizing every method, as Vector does, is not enough to render compound actions on a Vector atomic:
+`Making every method synchronized doesn't guarantee thread safe`  
+Merely synchronizing every method, as Vector does, is not enough to render compound actions on a Vector atomic:  
+```java
 if (!vector.contains(element))
-    vector.add(element);
-This attempt at a put-if-absent operation has a race condition, even though both contains and add are atomic. While synchronized
-methods can make individual operations atomic, additional locking is required when multiple operations are combined into a compound
-action.(See Section 4.4 for some techniques for safely adding additional atomic operations to thread-safe objects.) At the same time,
-synchronizing every method can lead to liveness or performance problems
+    vector.add(element);  
+```
+This attempt at a `put-if-absent` operation has a race condition, even though both contains and add are atomic. While synchronized methods can make individual operations atomic, additional locking is required when multiple operations are combined into a compound action.(See Section 4.4 for some techniques for safely adding additional atomic operations to thread-safe objects.) At the same time, synchronizing every method can lead to liveness or performance problems  
 
-8, There is frequently a tension between simplicity and performance. When implementing a synchronization policy, resist
-the temptation to prematurely sacriflce simplicity (potentially compromising safety) for the sake of performance.
+### Liveness and Performance
+There is frequently a tension between simplicity and performance. `When implementing a synchronization policy, resist the temptation to prematurely sacrifice simplicity (potentially compromising safety) for the sake of performance.`  
 
-9, Avoid holding locks during lengthy computations or operations at risk of not completing quickly such as network or
-console I/O.
+`Avoid holding locks during lengthy computations or operations at risk of not completing quickly such as network or console I/O.`  
 
-10, but it is a common misconception that synchronized is only about atomicity or demarcating "critical sections". Synchronization also has another significant, and subtle, aspect: memory visibility. We want not only to prevent one thread from modifying the state of an object when another is using it, but also to ensure that when a thread modifies the state of an object, other threads can actually see the changes that were made. But without synchronization, this may not happen. You can ensure that objects are published safely either by using explicit synchronization or by taking advantage of the synchronization built into library classes.
+## 3. Sharing Objects
+but it is a common misconception that synchronized is only about atomicity or demarcating "critical sections". `Synchronization also has another significant, and subtle, aspect: memory visibility`. We want not only to prevent one thread from modifying the state of an object when another is using it, but also to ensure that when a thread modifies the state of an object, other threads can actually see the changes that were made. But without synchronization, this may not happen. You can ensure that objects are published safely either by using explicit synchronization or by taking advantage of the synchronization built into library classes.  
 
-11, One code example -- Stale data
+### One code example -- Stale data
 
 NoVisibility in Listing 3.1 illustrates what can go wrong when threads share data without synchronization. Two threads, the main thread and the reader thread, access the shared variables ready and number. The main thread starts the reader thread and then sets number to 42 and ready to true. The reader thread spins until it sees ready is true, and then prints out number. While it may seem obvious that NoVisibility will print 42, it is in fact possible that it will print zero, or never terminate at all! Because it does not use adequate synchronization, there is no guarantee that the values of ready and number written by the main thread will be visible to the reader thread
 
+```java
 public class NoVisibility {
     private static boolean ready;
     private static int number;
@@ -105,6 +110,7 @@ public class NoVisibility {
         ready = true;
     }
 }
+```
 
 NoVisibility could loop forever because the value of ready might never become visible to the reader thread. Even more strangely, NoVisibility could print zero because the write to ready might be made visible to the reader thread before the write to number, a phenomenon known as reordering. There is no guarantee that operations in one thread will be performed in the order given by the program, as long as the reordering is not detectable from within that thread even if the reordering is apparent to other threads.[1] When the main thread writes first to number and then to done without synchronization, the reader thread could see those writes happen in the opposite order or not at all.
 
