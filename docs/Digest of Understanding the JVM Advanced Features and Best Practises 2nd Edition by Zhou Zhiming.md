@@ -1,9 +1,15 @@
 #               深入理解Java虚拟机--JVM高级特性与最佳实践 第二版
-#                Understanding the JVM Advanced Features and Best Practises  
+#       Understanding the JVM Advanced Features and Best Practises 2nd Edition 
 ##                                      周志明
 ---
 
 ## Indexes
+
+* [Contents](#contents)
+* [Miscellaneous](#miscellaneous)
+
+Contents
+---
 
 1. 走进Java                                                            --  5/26
 
@@ -675,6 +681,54 @@ VirtualVM           |--
                 2) 同一个线程再次到来, 检查标记位并直接使用  
                 3) 其他线程竞争, 撤销偏向为普通锁(不再锁定但标记为偏向)或轻量级锁(已锁定)  
             再次加了一层的redirection, 跟轻量级锁一样的优点和问题  
+
+Miscellaneous
+---
+```shell
+main batch
+jdk6.0
+command="java -verbosegc -Xloggc:/var/tmp/gmarrslive_gc_${regionID_tmp}.log -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+UseParallelOldGC -Xms120G -Xmx120G -XX:MaxPermSize=256m -DSYS_LOC=${SYS_LOC_tmp} -Dbu=${bu_tmp} -Dregion=${regionID_tmp}  -DsegmentId=${segmentName_tmp} -Djava.security.auth.login.config=${propsDir_tmp}/krbLogin.conf -DtradeDate=${runDate_tmp} -cp ${CLASSPATH_tmp} com/ms/aml/application/batchfw/Application environment-${environment_tmp}.properties ${runDate_tmp}"
+jdk7.0
+command="java -verbosegc -Xloggc:/var/tmp/gmarrslive_gc_${regionID}.log -XX:+UseG1GC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps  -Xms120G -Xmx120G -XX:MaxPermSize=256m -DSYS_LOC=${SYS_LOC} -Dbu=${bu} -Dregion=${regionID}  -DsegmentId=${segmentName}  -DtradeDate=${runDate} -cp $CLASSPATH com/ms/aml/application/batchfw/Application environment-$environment.properties ${runDate}"
+ 
+security batch
+jdk6
+command="java -Xms40G -Xmx40G -Xmn4G -verbose:gc -XX:+DisableExplicitGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -DSYS_LOC=${SYS_LOC_tmp} -Dbu=${bu_tmp}  -DsegmentId=${segmentName_tmp} -DtradeDate=${runDate_tmp} -cp ${CLASSPATH_tmp} com/ms/aml/application/batchfw/Application environment-${environment_tmp}.security.properties ${runDate_tmp}"
+jdk7
+command="java -verbosegc -Xms100G -Xmx100G -Xmn4G -XX:+UseParallelOldGC -DSYS_LOC=$SYS_LOC -Dbu=${bu}  -DsegmentId=${segmentName} -DtradeDate=${runDate} -cp $CLASSPATH com/ms/aml/application/batchfw/Application environment-$environment.security.properties ${runDate}"
+ 
+FeedCache
+jdk6
+x86_64
+command="java -Xms60G -Xmx60G -Xmn5G -verbose:gc -XX:+DisableExplicitGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -Dbu=$1 -DloadingFeedIds=$4 -DloadingFeedTypes=$5 -Dcom.sun.management.jmxremote -DsegmentId=$2 -DloadingAppName=GMARRSLoadHistFeedData -cp $CLASSPATH com/ms/aml/application/batchfw/Application environment-$3-loading-historical-data.properties"
+else
+command="java -Xms3G -Xmx3G -Xmn1G -verbose:gc -XX:+DisableExplicitGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -Dbu=$1 -DloadingFeedIds=$4 -DloadingFeedTypes=$5 -Dcom.sun.management.jmxremote -DsegmentId=$2 -DloadingAppName=GMARRSLoadHistFeedData -cp $CLASSPATH com/ms/aml/application/batchfw/Application environment-$3-loading-historical-data.properties"
+ 
+jdk7
+x86_64
+command="java -Xms10G -Xmx90G -Xmn5G -verbose:gc -XX:+UseG1GC -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -Dbu=$1 -DloadingFeedIds=$4 -DloadingFeedTypes=$5 -Dcom.sun.management.jmxremote -DsegmentId=$2 -DloadingAppName=GMARRSLoadHistFeedData -cp $CLASSPATH com/ms/aml/application/batchfw/Application environment-$3-loading-historical-data.properties"
+else
+command="java -Xms3G -Xmx90G -Xmn1G -verbose:gc -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -Dbu=$1 -DloadingFeedIds=$4 -DloadingFeedTypes=$5 -Dcom.sun.management.jmxremote -DsegmentId=$2 -DloadingAppName=GMARRSLoadHistFeedData -cp $CLASSPATH com/ms/aml/application/batchfw/Application environment-$3-loading-historical-data.properties"
+ 
+JurCache
+jdk6
+x86_64
+command="java -Xms60G -Xmx60G -Xmn5G -verbose:gc -XX:+DisableExplicitGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -Dbu=$1 -DloadingJurIds=$4 -DloadingJurTypes=$5 -DloadingAppName=GMARRSLoadHistJurData -Dcom.sun.management.jmxremote -DsegmentId=$2 -cp $CLASSPATH com/ms/aml/application/batchfw/Application environment-$3-loading-historical-data.properties"
+else
+command="java -Xms3G -Xmx3G -Xmn1G -verbose:gc -XX:+DisableExplicitGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -Dbu=$1 -DloadingJurIds=$4 -DloadingJurTypes=$5 -DloadingAppName=GMARRSLoadHistJurData -Dcom.sun.management.jmxremote -DsegmentId=$2 -cp $CLASSPATH com/ms/aml/application/batchfw/Application environment-$3-loading-historical-data.properties"
+ 
+jdk7
+x86_64
+command="java -Xms10G -Xmx90G -verbose:gc -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -Dbu=$1 -DloadingJurIds=$4 -DloadingJurTypes=$5 -DloadingAppName=GMARRSLoadHistJurData -Dcom.sun.management.jmxremote -DsegmentId=$2 -cp $CLASSPATH com/ms/aml/application/batchfw/Application environment-$3-loading-historical-data.properties"
+else
+command="java -Xms3G -Xmx90G -Xmn1G -verbose:gc -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -Dbu=$1 -DloadingJurIds=$4 -DloadingJurTypes=$5 -DloadingAppName=GMARRSLoadHistJurData -Dcom.sun.management.jmxremote -DsegmentId=$2 -cp $CLASSPATH com/ms/aml/application/batchfw/Application environment-$3-loading-historical-data.properties"
+ 
+tkdoi
+main
+command="java -verbosegc -Xloggc:/var/tmp/gmarrslive_gc_${regionID}.log -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -Xms12G -Xmx40G -Xmn4G -DSYS_LOC=${SYS_LOC} -Dbu=${bu} -Dregion=${regionID}  -DsegmentId=${segmentName}  -DtradeDate=${runDate} -cp $CLASSPATH com/ms/aml/application/batchfw/Application environment-$environment.properties ${runDate}"
+sec
+command="java -verbosegc -Xms12G -Xmx40G -Xmn4G -DSYS_LOC=$SYS_LOC -Dbu=${bu}  -DsegmentId=${segmentName} -DtradeDate=${runDate} -cp $CLASSPATH com/ms/aml/application/batchfw/Application environment-$environment.security.properties ${runDate}"
+```
 
 ---
 [jvm_java_timeline_img_1]:/resources/img/java/jvm_java_version_timeline_1.png "java version timeline"
