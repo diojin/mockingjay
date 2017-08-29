@@ -35,6 +35,21 @@
             * [Ways of safely publication](#ways-of-safely-publication)
 * [4. Composing Objects](#4-composing-objects)
     - [4.1 Designing a Thread-safe Class](#41-designing-a-thread-safe-class)
+        + [Simple Thread-safe Counter Using the Java Monitor Pattern](#simple-thread-safe-counter-using-the-java-monitor-patterne)
+    - [4.2 Instance confinement](#42-instance-confinement)
+        + [The Java Monitor Pattern](#the-java-monitor-pattern)
+    - [4.3 Delegating Thread Safety](#43-delegating-thread-safety)
+        + [Private constructor capture idiom](#private-constructor-capture-idiom)
+    - [4.4 Adding Functionality to Existing Thread-safe Classes](#44-adding-functionality-to-existing-thread-safe-classes)
+    - [4.5 Documenting Synchronization Policies](#45-documenting-synchronization-policies)
+        + [SimpleDateFormat isn't thread-safe](#simpledateformat-isnt-thread-safe)
+        + [ServletContext/HttpSession concurrent concerns](#servletcontexthttpsession-concurrent-concerns)
+        + [JDBC connection concerns](#jdbc-connection-concerns)
+* [5. Building Blocks](#5-building-blocks)
+    - [5.1 Synchronized Collections](#51-synchronized-collections)
+        + [Iterators and Concurrentmodificationexception](#iterators-and-concurrentmodificationexception)
+    - [5.2 Concurrent collection](#52-concurrent-collection)
+        + [ConcurrentHashMap](#concurrenthashmap)
 * [Miscellaneous](#miscellaneous)
 
 ## 2. Thread Safety  
@@ -502,14 +517,16 @@ Static initializers are executed by the JVM at class initialization time; becaus
 
 ## 4. Composing Objects
 ### 4.1 Designing a Thread-safe Class
-Encapsulation makes it possible to determine that a class is thread-safe without having to examine the entire program.
+Encapsulation makes it possible to determine that a class is thread-safe without having to examine the entire program.  
 
-The design process for a thread-safe class should include these three basic elements:
-    Identify the variables that form the object's state;
-    Identify the invariants that constrain the state variables;
-    Establish a policy for managing concurrent access to the object's state.
+`The design process for a thread-safe class should include these three basic elements`:  
+1. Identify the variables that form the object's state;
+2. Identify the invariants that constrain the state variables;
+3. Establish a policy for managing concurrent access to the object's state.
 
-5, Simple Thread-safe Counter Using the Java Monitor Pattern
+#### Simple Thread-safe Counter Using the Java Monitor Pattern
+**List 4.1 Simple Thread-safe Counter Using the Java Monitor Pattern**  
+```java
 @ThreadSafe
 public final class Counter {
     @GuardedBy("this")
@@ -525,26 +542,32 @@ public final class Counter {
         return ++value;
     }
 }
+```
 
-6, When defining which variables form an object's state, we want to consider only the data that object owns.
+When defining which variables form an object's state, we want to consider only the data that object owns.  
 
-7, Instance confinement
-Encapsulation simplifies making classes thread-safe by promoting instance confinement, often just called confinement [CPJ 2.3.3]
+**How to build thread-safe classes**:  
+1. Instance confinement  
+    1. The Java monitor pattern  
+2. Delegating Thread Safety
 
-Encapsulating data within an object confines access to the data to the object's methods, making it easier to ensure that the data is always accessed with the appropriate lock held.
+### 4.2 Instance confinement
+Encapsulation simplifies making classes thread-safe by promoting instance confinement, often just called confinement [CPJ 2.3.3]  
 
-Instance confinement is one of the easiest ways to build thread-safe classes. It also allows flexibility in the choice of locking strategy. 
+Encapsulating data within an object confines access to the data to the object's methods, making it easier to ensure that the data is always accessed with the appropriate lock held.  
 
-Instance confinement also allows different state variables to be guarded by different locks. (For an example of a class that uses multiple lock objects to guard its state, see ServerStatus on 236.)
+Instance confinement is one of the easiest ways to build thread-safe classes. It also allows flexibility in the choice of locking strategy.  
 
-8, The Java Monitor Pattern
-An object following the Java monitor pattern encapsulates all its mutable state and guards it with the object's own intrinsic lock.
-Following the principle of instance confinement to its logical conclusion leads you to the Java monitor pattern.[2]
+Instance confinement also allows different state variables to be guarded by different locks. (For an example of a class that uses `multiple lock objects` to guard its state, see ServerStatus on 236.)
 
-The Java monitor pattern is used by many library classes, such as Vector and Hashtable. Sometimes a more sophisticated
-synchronization policy is needed; Chapter 11 shows how to improve scalability through finer-grained locking strategies. The primary advantage of the Java monitor pattern is its simplicity.
-The Java monitor pattern is merely a convention; any lock object could be used to guard an object's state so long as it is used consistently. Listing 4.3 illustrates a class that uses a private lock to guard its state.
+#### The Java Monitor Pattern
+An object following the Java monitor pattern encapsulates all its mutable state and guards it with the object's own intrinsic lock.  
+Following the principle of instance confinement to its logical conclusion leads you to the Java monitor pattern.[2]  
 
+The Java monitor pattern is used by many library classes, such as Vector and Hashtable. Sometimes a more sophisticated synchronization policy is needed; Chapter 11 shows how to improve scalability through finer-grained locking strategies. The primary advantage of the Java monitor pattern is its simplicity.  
+The Java monitor pattern is merely a convention; any lock object could be used to guard an object's state so long as it is used consistently. Listing 4.3 illustrates a class that uses a private lock to guard its state.  
+
+```java
 Guarding State with a Private Lock.
 public class PrivateLock {
     private final Object myLock = new Object();
@@ -557,22 +580,25 @@ public class PrivateLock {
         }
     }
 }
+```
 
-There are advantages to using a private lock object instead of an object's intrinsic lock (or any other publicly accessible lock). Making the lock object private encapsulates the lock so that client code cannot acquire it, whereas a publicly accessible lock allows client code to participate in its synchronization policy correctly or incorrectly. Clients that improperly acquire another object's lock could cause liveness problems, and verifying that a publicly accessible lock is properly used requires examining the entire program rather than a single class.
+There are advantages to using a private lock object instead of an object's intrinsic lock (or any other publicly accessible lock). Making the lock object private encapsulates the lock so that client code cannot acquire it, whereas a publicly accessible lock allows client code to participate in its synchronization policy correctly or incorrectly. Clients that improperly acquire another object's lock could cause liveness problems, and verifying that a publicly accessible lock is properly used requires examining the entire program rather than a single class.  
 
-9, The Java monitor pattern is useful when building classes from scratch or composing classes out of objects that are not thread-safe.
+`The Java monitor pattern is useful when building classes from scratch or composing classes out of objects that are not thread-safe`.  
 
-10, Delegating Thread Safety
+### 4.3 Delegating Thread Safety
+All but the most trivial objects are composite objects. The Java monitor pattern is useful when building classes from scratch or composing classes out of objects that are not thread-safe. But what if the components of our class are already thread-safe? Do we need to add an additional layer of thread safety? The answer is . . . "it depends". `In some cases a composite made of thread-safe components is thread-safe`.   
 
-All but the most trivial objects are composite objects. The Java monitor pattern is useful when building classes from scratch or composing classes out of objects that are not thread-safe. But what if the components of our class are already thread-safe? Do we need to add an additional layer of thread safety? The answer is . . . "it depends". In some cases a composite made of thread-safe components is thread-safe. 
+We can also delegate thread safety to more than one underlying state variable as long as those underlying state variables are independent, meaning that the composite class does not impose any invariants involving the multiple state variables.  
 
-We can also delegate thread safety to more than one underlying state variable as long as those underlying state variables are independent, meaning that the composite class does not impose any invariants involving the multiple state variables.
+If a class is composed of multiple independent thread-safe state variables and has no operations that have any invalid state transitions, then it can delegate thread safety to the underlying state variables.  
 
-11, If a state variable is thread-safe, does not participate in any invariants that constrain its value, and has no prohibited state transitions for any of its operations, then it can safely be published.
+When you delegate thread safety to an object's underlying state variables, under what conditions can you publish those variables so that other classes can modify them as well? Again, the answer depends on what invariants your class imposes on those variables.   
+If a state variable is thread-safe, does not participate in any invariants that constrain its value, and has no prohibited state transitions for any of its operations, then it can safely be published. 
 
-12, private constructor capture idiom
-[6] The private constructor exists to avoid the race condition that would occur if the copy constructor were implemented as this(p.x, p.y); this is an example of the private constructor capture idiom (Bloch and Gafter, 2005).
-
+#### Private constructor capture idiom
+**Listing 4.11. Thread-safe Mutable Point Class**  
+```java
 @ThreadSafe
 public class SafePoint {
     @GuardedBy("this")
@@ -600,24 +626,26 @@ public class SafePoint {
         this.y = y;
     }
 }
+```
+SafePoint in Listing 4.11 provides a getter that retrieves both the x and y values at once by returning a two-element array.[6] If we provided separate getters for x and y, then the values could change between the time one coordinate is retrieved and the other, resulting in a caller seeing an inconsistent value: an (x, y) location where the vehicle never was.  
+[6] The private constructor exists to avoid the race condition that would occur if the copy constructor were implemented as this(p.x, p.y); this is an example of the private constructor capture idiom (Bloch and Gafter, 2005).
 
-13, Adding Functionality to Existing Thread-safe Classes
-a, The safest way to add a new atomic operation is to modify the original class to support the desired operation, but this is not always possible because you may not have access to the source code or may not be free to modify it.
+PS: Indeed it can't guarantee the caller to constructor SafePoint(int x, int y) and set(int x, int y) would make x and y a consistent pair, anyway, it is the duty of caller to guarantee this.  
 
-If you can modify the original class, you need to understand the implementation's synchronization policy so that you can enhance it in a manner consistent with its original design.
 
-b, Another approach is to extend the class, assuming it was designed for extension.
 
-Extension is more fragile than adding code directly to a class, because the implementation of the synchronization policy is now distributed over multiple, separately maintained source files. If the underlying class were to change its synchronization policy by choosing a different lock to guard its state variables, the subclass would subtly and silently break, because it no longer used the right lock to control concurrent access to the base class's state.
+### 4.4 Adding Functionality to Existing Thread-safe Classes
+1. The safest way to add a new atomic operation is to modify the original class to support the desired operation  
+    but this is not always possible because you may not have access to the source code or may not be free to modify it.  
+    If you can modify the original class, you need to understand the implementation's synchronization policy so that you can enhance it in a manner consistent with its original design.
 
-c,A third strategy is to extend the functionality of the class without extending the class itself by placing extension code in a "helper" class.
-For an ArrayList wrapped with a Collections.synchronizedList wrapper, neither of these approaches adding a method to the original class or extending the class works because the client code does not even know the class of the List object returned from the synchronized wrapper factories. 
+2. Another approach is to extend the class, assuming it was designed for extension.  
+    Extension is more fragile than adding code directly to a class, because the implementation of the synchronization policy is now distributed over multiple, separately maintained source files. If the underlying class were to change its synchronization policy by choosing a different lock to guard its state variables, the subclass would subtly and silently break, because it no longer used the right lock to control concurrent access to the base class's state.
+3. Client-side locking(or external locking)  
+    A third strategy is to extend the functionality of the class without extending the class itself by placing extension code in a "helper" class.  
 
-d, There is a less fragile alternative for adding an atomic operation to an existing class: composition. 
-
-13.1 example of failure use of 13.c principle and fix --- Client-side locking or external locking
-
-Listing 4.14. Non-thread-safe Attempt to Implement Put-if-absent. Don't Do this
+**Listing 4.14. Non-thread-safe Attempt to Implement Put-if-absent. Don't Do this**  
+```java
 @NotThreadSafe
 public class ListHelper<E> {
     public List<E> list = Collections.synchronizedList(new ArrayList<E>());
@@ -629,17 +657,17 @@ public class ListHelper<E> {
         return absent;
     }
 }
+```
+Why wouldn't this work? After all, putIfAbsent is synchronized, right? The problem is that it synchronizes on the wrong lock. Whatever lock the List uses to guard its state, it sure isn't the lock on the ListHelper. ListHelper provides only the illusion of synchronization; the various list operations, while all synchronized, use different locks, which means that putIfAbsent is not atomic relative to other operations on the List. So there is no guarantee that another thread won't modify the list while putIfAbsent is executing.  
 
-Why wouldn't this work? After all, putIfAbsent is synchronized, right? The problem is that it synchronizes on the wrong lock. Whatever lock the List uses to guard its state, it sure isn't the lock on the ListHelper. ListHelper provides only the illusion of synchronization; the various list operations, while all synchronized, use different locks, which means that putIfAbsent is not atomic relative to other operations on the List. So there is no guarantee that another thread won't modify the list while putIfAbsent is executing.
+`To make this approach work, we have to use the same lock that the List uses by using client-side locking or external locking`.  
 
-To make this approach work, we have to use the same lock that the List uses by using client-side locking or external locking. 
+Client-side locking entails guarding client code that uses some object X with _the lock X uses_ to guard its own state. In order to use client-side locking, you must know what lock X uses.  
 
-Client-side locking entails guarding client code that uses some object X with _the lock X uses_ to guard its own state. In order to use client-side locking, you must know what lock X uses.
-The documentation for Vector and the synchronized wrapper classes states, albeit obliquely, that they support client-side locking, by using the intrinsic lock for the Vector or the wrapper collection (not the wrapped collection). Listing 4.15 shows a putIfAbsent operation on
-a thread-safe List that correctly uses client-side locking.
+The documentation for Vector and the synchronized wrapper classes states, albeit obliquely, that they support client-side locking, by using the intrinsic lock for the Vector or the wrapper collection (not the wrapped collection). Listing 4.15 shows a putIfAbsent operation on a thread-safe List that correctly uses client-side locking.
 
-Listing 4.15. Implementing Put-if-absent with Client-side Locking.
-
+**Listing 4.15. Implementing Put-if-absent with Client-side Locking.**  
+```java
 @ThreadSafe
 public class ListHelper<E> {
     public List<E> list = Collections.synchronizedList(new ArrayList<E>());
@@ -653,17 +681,17 @@ public class ListHelper<E> {
         }
     }
 }
-
+```
 If extending a class to add another atomic operation is fragile because it distributes the locking code for a class over multiple classes in an object hierarchy, client-side locking is even more fragile because it entails putting locking code for class C into classes that are totally unrelated to C. Exercise care when using client-side locking on classes that do not commit to their locking strategy.
 
 Client-side locking has a lot in common with class extension they both couple the behavior of the derived class to the implementation of the base class. Just as extension violates encapsulation of implementation [EJ Item 14], client-side locking violates encapsulation of synchronization policy.
 
-14, Composition
-
+4. Composition  
 There is a less fragile alternative for adding an atomic operation to an existing class: composition. 
 
-ImprovedList in Listing 4.16 implements the List operations by delegating them to an underlying List instance, and adds an atomic putIfAbsent method. (Like Collections.synchronizedList and other collections wrappers, ImprovedList assumes that once a list is passed to its constructor, the client will not use the underlying list directly again,!!! accessing it only through the ImprovedList.)
+ImprovedList in Listing 4.16 implements the List operations by delegating them to an underlying List instance, and adds an atomic putIfAbsent method. (`Like Collections.synchronizedList and other collections wrappers, ImprovedList assumes that once a list is passed to its constructor, the client will not use the underlying list directly again,!!! accessing it only through the ImprovedList.`)
 
+```java
 @ThreadSafe
 public class ImprovedList<T> implements List<T> {
     private final List<T> list;
@@ -682,57 +710,63 @@ public class ImprovedList<T> implements List<T> {
     }
     // ... similarly delegate other List methods
 }
+```
 
-ImprovedList adds an additional level of locking using its own intrinsic lock. It does not care whether the underlying List is thread-safe,because it provides its own consistent locking that provides thread safety even if the List is not thread-safe or changes its locking implementation. While the extra layer of synchronization may add some small performance penalty,[7] the implementation in ImprovedList is less fragile than attempting to mimic the locking strategy of another object. In effect, we've used the Java monitor pattern to encapsulate an existing List, and this is guaranteed to provide thread safety so long as our class holds the only outstanding reference to the underlying List.
+ImprovedList adds `an additional level of locking using its own intrinsic lock`. It does not care whether the underlying List is thread-safe,because it provides its own consistent locking that provides thread safety even if the List is not thread-safe or changes its locking implementation. While the extra layer of synchronization may add `some small performance penalty`,[7] the implementation in ImprovedList is less fragile than attempting to mimic the locking strategy of another object. In effect, we've used the Java monitor pattern to encapsulate an existing List, and this is guaranteed to provide thread safety so long as our class holds the only outstanding reference to the underlying List.  
+[7] `The penalty will be small` because the synchronization on the underlying List is guaranteed to be uncontended and therefore fast; see Chapter 11.  
 
-15, Should we assume that access to an object can be made thread-safe by acquiring its lock first? (This risky technique works only if we control all the code that accesses that object; otherwise, it provides only the illusion of thread safety.)
+### 4.5 Documenting Synchronization Policies
+Document a class's thread safety guarantees for its clients; document its synchonization policy for its maintainers.  
 
-16, SimpleDateFormat isn't thread-safe
-To make matters worse, our intuition may often be wrong on which classes are "probably thread-safe" and which are not. As an example, java.text.SimpleDateFormat isn't thread-safe, but the Javadoc neglected to mention this until JDK 1.4.
+Should we assume that access to an object can be made thread-safe by acquiring its lock first? (This risky technique works only if we control all the code that accesses that object; otherwise, it provides only the illusion of thread safety.)  
 
-17, HttpSession concurrent concerns
-On the other hand, the objects placed in the ServletContext or HttpSession with setAttribute are owned by the web application, not the servlet container. The servlet specification does not suggest any mechanism for coordinating concurrent access to shared attributes. So attributes stored by the container on behalf of the web application should be thread-safe or effectively immutable. If all the container did was store these attributes on behalf of the web application, another option would be to ensure that they are  consistently guarded by a lock when accessed from servlet application code. But because the container may want to serialize objects in the HttpSession for replication or passivation purposes, and the servlet container can't possibly know your locking protocol, you should make them thread-safe.
 
-HttpSession Passivation and Activation (https://access.redhat.com/documentation/en-US/JBoss_Enterprise_Web_Platform/5/html/Administration_And_Configuration_Guide/clustering-http-passivation.html)
---When the container requests the creation of a new session. If the number of currently active sessions exceeds a configurable limit, an attempt is made to passivate sessions to make room in memory.
---Periodically (by default every ten seconds) as the JBoss Web background task thread runs.
---When the web application is deployed and a backup copy of sessions active on other servers is acquired by the newly deploying web application's session manager.
+#### SimpleDateFormat isn't thread-safe
+To make matters worse, our intuition may often be wrong on which classes are "probably thread-safe" and which are not. As an example, java.text.SimpleDateFormat isn't thread-safe, but the Javadoc neglected to mention this until JDK 1.4.  
 
-18, JDBC connection concerns
-On the other hand, we would not make the same argument about the JDBC Connection objects dispensed by the DataSource, since these are not necessarily intended to be shared by other activities until they are returned to the pool. So if an activity that obtains a JDBC Connection spans multiple threads, it must take responsibility for ensuring that access to the Connection is properly guarded by synchronization. (In most applications, activities that use a JDBC Connection are implemented so as to confine the Connection to a specific thread anyway.)
+#### ServletContext/HttpSession concurrent concerns
+On the other hand, the objects placed in the ServletContext or HttpSession with setAttribute are owned by the web application, not the servlet container. The servlet specification does not suggest any mechanism for coordinating concurrent access to shared attributes.`So attributes stored by the container on behalf of the web application should be thread-safe or effectively immutable`. If all the container did was store these attributes on behalf of the web application, another option would be to ensure that they are consistently guarded by a lock when accessed from servlet application code. But because the container may want to serialize objects in the HttpSession for replication or passivation purposes, and the servlet container can't possibly know your locking protocol, you should make them thread-safe.  
 
-19,Where practical, delegation is one of the most effective strategies for creating thread-safe classes: just let existing thread-safe classes manage all the state.
+[httpsession_passivation_and_activation_1]  
+* When the container requests the creation of a new session. If the number of currently active sessions exceeds a configurable limit, an attempt is made to passivate sessions to make room in memory.  
+* Periodically (by default every ten seconds) as the JBoss Web background task thread runs. 
+* When the web application is deployed and a backup copy of sessions active on other servers is acquired by the newly deploying web application's session manager.  
 
-20, Problems with Synchronized Collections
-The synchronized collection classes include Vector and Hashtable, part of the original JDK, as well as their cousins added in JDK 1.2, the synchronized wrapper classes created by the Collections.synchronizedXxx factory methods. These classes achieve thread safety by encapsulating their state and synchronizing every public method so that only one thread at a time can access the collection state.
+#### JDBC connection concerns
+On the other hand, we would not make the same argument about the JDBC Connection objects dispensed by the DataSource, since these are not necessarily intended to be shared by other activities until they are returned to the pool. So if an activity that obtains a JDBC Connection spans multiple threads, it must take responsibility for ensuring that access to the Connection is properly guarded by synchronization. (In most applications, activities that use a JDBC Connection are implemented so as to confine the Connection to a specific thread anyway.)  
 
-The synchronized collections are thread-safe, but you may sometimes need to use additional client-side locking to guard compound actions. Common compound actions on collections include iteration (repeatedly fetch elements until the collection is exhausted),navigation (find the next element after this one according to some order), and conditional operations such as put-if-absent (check if a Map
-has a mapping for key K, and if not, add the mapping (K,V)). With a synchronized collection, these compound actions are still technically thread-safe even without client-side locking, but they may not behave as you might expect when other threads can concurrently modify the collection.
+### 5. Building Blocks
+Where practical, delegation is one of the most effective strategies for creating thread-safe classes: just let existing thread-safe classes manage all the state.  
 
-Listing 5.3. Iteration that may Throw ArrayIndexOutOfBoundsException.
+#### 5.1 Synchronized Collections
+The synchronized collection classes include Vector and Hashtable, part of the original JDK, as well as their cousins added in JDK 1.2, the synchronized wrapper classes created by the Collections.synchronizedXxx factory methods. These classes achieve thread safety by encapsulating their state and synchronizing every public method so that only one thread at a time can access the collection state.   
+
+The synchronized collections are thread-safe, but you may sometimes need to use additional client-side locking to guard compound actions. `Common compound actions on collections` include iteration (repeatedly fetch elements until the collection is exhausted),navigation (find the next element after this one according to some order), and conditional operations such as put-if-absent (check if a Map has a mapping for key K, and if not, add the mapping (K,V)). With a synchronized collection, these compound actions are still technically thread-safe even without client-side locking, but they may not behave as you might expect when other threads can concurrently modify the collection.  
+
+```java
+// Listing 5.3. Iteration that may Throw ArrayIndexOutOfBoundsException.
 for (int i = 0; i < vector.size(); i++)
     doSomething(vector.get(i));
 
-Listing 5.4. Iteration with Client-side Locking.
+// Listing 5.4. Iteration with Client-side Locking.
 synchronized (vector) {
     for (int i = 0; i < vector.size(); i++)
         doSomething(vector.get(i));
 }
+```
 
-19, Iterators and Concurrentmodificationexception
+#### Iterators and Concurrentmodificationexception
+The standard way to iterate a Collection is with an Iterator, either explicitly or through the for-each loop syntax introduced in Java 5.0, but using iterators does not obviate the need to lock the collection during iteration if other threads can concurrently modify it. The iterators returned by the synchronized collections are not designed to deal with concurrent modification, and they are **fail-fast** meaning that if they detect that the collection has changed since iteration began, they throw the unchecked ConcurrentModificationException.  
+These fail-fast iterators are not designed to be foolproof they are designed to catch concurrency errors on a "good-faith-effort" basis and thus act only as early-warning indicators for concurrency problems. `They are implemented by associating a modification count with the collection: if the modification count changes during iteration, hasNext or next throws ConcurrentModificationException`. `However, this check is done without synchronization`, so there is a risk of seeing a stale value of the modification count and therefore that the iterator does not realize a modification has been made. This was a deliberate design tradeoff to reduce the performance impact of the concurrent modification detection code.[2]
 
-We use Vector for the sake of clarity in many of our examples, even though it is considered a "legacy" collection class. But the more "modern" collection classes do not eliminate the problem of compound actions. The standard way to iterate a Collection is with an Iterator, either explicitly or through the for-each loop syntax introduced in Java 5.0, but using iterators does not obviate the need to lock the
-collection during iteration if other threads can concurrently modify it. The iterators returned by the synchronized collections are not designed to deal with concurrent modification, and they are fail-fast meaning that if they detect that the collection has changed since iteration began, they throw the unchecked ConcurrentModificationException.
-These fail-fast iterators are not designed to be foolproof they are designed to catch concurrency errors on a "good-faith-effort" basis and thus act only as early-warning indicators for concurrency problems. They are implemented by associating a modification count with the collection: if the modification count changes during iteration, hasNext or next throws ConcurrentModificationException. However, this check
-is done without synchronization, so there is a risk of seeing a stale value of the modification count and therefore that the iterator does not realize a modification has been made. This was a deliberate design tradeoff to reduce the performance impact of the concurrent modification detection code.[2]
+[2] ConcurrentModificationException can arise in single-threaded code as well; this happens when objects are removed from the collection directly rather than through Iterator.remove  
 
-[2] ConcurrentModificationException can arise in single-threaded code as well; this happens when objects are removed from the collection directly rather than through Iterator.remove
+There are several reasons, however, why locking a collection during iteration may be undesirable. Other threads that need to access the collection will block until the iteration is complete; if the collection is large or the task performed for each element is lengthy, they could wait a long time. Also, if the collection is locked as in Listing 5.4, doSomething is being called with a lock held, which is a risk factor for deadlock (see Chapter 10). Even in the absence of starvation or deadlock risk, locking collections for significant periods of time hurts application scalability. The longer a lock is held, the more likely it is to be contended, and if many threads are blocked waiting for a lock throughput and CPU utilization can suffer (see Chapter 11).  
 
-There are several reasons, however, why locking a collection during iteration may be undesirable. Other threads that need to access the collection will block until the iteration is complete; if the collection is large or the task performed for each element is lengthy, they could wait a long time. Also, if the collection is locked as in Listing 5.4, doSomething is being called with a lock held, which is a risk
-factor for deadlock (see Chapter 10). Even in the absence of starvation or deadlock risk, locking collections for significant periods of time hurts application scalability. The longer a lock is held, the more likely it is to be contended, and if many threads are blocked waiting for a lock throughput and CPU utilization can suffer (see Chapter 11).
-An alternative to locking the collection during iteration is to clone the collection and iterate the copy instead. Since the clone is thread-confined, no other thread can modify it during iteration, eliminating the possibility of ConcurrentModificationException. (The collection still must be locked during the clone operation itself.) Cloning the collection has an obvious performance cost; whether this is a favorable tradeoff depends on many factors including the size of the collection, how much work is done for each element, the relative frequency of iteration compared to other collection operations, and responsiveness and throughput requirements.
+An alternative to locking the collection during iteration is to clone the collection and iterate the copy instead. Since the clone is thread-confined, no other thread can modify it during iteration, eliminating the possibility of ConcurrentModificationException. (The collection still must be locked during the clone operation itself.) Cloning the collection has an obvious performance cost; whether this is a favorable tradeoff depends on many factors including the size of the collection, how much work is done for each element, the relative frequency of iteration compared to other collection operations, and responsiveness and throughput requirements.  
 
-1, Listing 5.6. Iteration Hidden within String Concatenation. Don't Do this.
+**Listing 5.6. Iteration Hidden within String Concatenation. Don't Do this**.  
+```java
 public class HiddenIterator {
     @GuardedBy("this")
     private final Set<Integer> set = new HashSet<Integer>();
@@ -749,47 +783,53 @@ public class HiddenIterator {
         System.out.println("DEBUG: added ten elements to " + set);  // this line, synchronization error
     }
 }
-While locking can prevent iterators from throwing ConcurrentModificationException, you have to remember to use locking everywhere a shared collection might be iterated. This is trickier than it sounds, as iterators are sometimes hidden, as in HiddenIterator in Listing 5.6
+```
+While locking can prevent iterators from throwing ConcurrentModificationException, you have to remember to use locking everywhere a shared collection might be iterated. This is trickier than it sounds, as iterators are sometimes hidden, as in HiddenIterator in Listing 5.6  
+The addTenThings method could throw ConcurrentModificationException, because the collection is being iterated by toString in the process of preparing the debugging message. Of course, the real problem is that HiddenIterator is not thread-safe; the HiddenIterator lock should be acquired before using set in the println call, but debugging and logging code commonly neglect to do this.  
 
-The addTenThings method could throw ConcurrentModificationException, because the collection is being iterated by toString in the process of preparing the debugging message. Of course, the real problem is that HiddenIterator is not thread-safe; the HiddenIterator lock should be acquired before using set in the println call, but debugging and logging code commonly neglect to do this.
+The real lesson here is that the greater the distance between the state and the synchronization that guards it, the more likely that someone will forget to use proper synchronization when accessing that state. If HiddenIterator wrapped the HashSet with a synchronizedSet, encapsulating the synchronization, this sort of error would not occur.  
 
-The real lesson here is that the greater the distance between the state and the synchronization that guards it, the more likely that someone will forget to use proper synchronization when accessing that state. If HiddenIterator wrapped the HashSet with a synchronizedSet, encapsulating the synchronization, this sort of error would not occur.
+Just as encapsulating an object's state makes it easier to preserve its invariants, encapsulating its synchronization makes it easier to enforce its synchronization policy.  
 
-Just as encapsulating an object's state makes it easier to preserve its invariants, encapsulating its synchronization makes it easier to enforce its synchronization policy.
+`Iteration is also indirectly invoked by the collection's hashCode and equals methods`, which may be called if the collection is used as an element or key of another collection. Similarly, the `containsAll, removeAll, and retainAll` methods, as well as the constructors that take collections are arguments, also iterate the collection. All of these indirect uses of iteration can cause ConcurrentModificationException.
 
-Iteration is also indirectly invoked by the collection's hashCode and equals methods, which may be called if the collection is used as an element or key of another collection. Similarly, the containsAll, removeAll, and retainAll methods, as well as the constructors that take collections are arguments, also iterate the collection. All of these indirect uses of iteration can cause ConcurrentModificationException.
+### 5.2 Concurrent collection
+Java 5.0 adds **ConcurrentHashMap**, a replacement for synchronized hash-based Map implementations, and **CopyOnWriteArrayList**, a replacement for synchronized List implementations for cases where traversal is the dominant operation. The new **ConcurrentMap** interface adds support for common compound actions such as put-if-absent, replace, and conditional remove.  
 
-2, Concurrent collection
-Java 5.0 adds ConcurrentHashMap, a replacement for synchronized hash-based Map implementations, and CopyOnWriteArrayList, a replacement for synchronized List implementations for cases where traversal is the dominant operation. The new ConcurrentMap interface adds support for common compound actions such as put-if-absent, replace, and conditional remove.
+Java 5.0 also adds two new collection types, **Queue** and **BlockingQueue**. A Queue is intended to hold a set of elements temporarily while they await processing. Several implementations are provided, including **ConcurrentLinkedQueue**, a traditional FIFO queue, and **PriorityQueue**, a (non concurrent) priority ordered queue.  
 
-Java 5.0 also adds two new collection types, Queue and BlockingQueue. A Queue is intended to hold a set of elements temporarily while they await processing. Several implementations are provided, including ConcurrentLinkedQueue, a traditional FIFO queue, and PriorityQueue, a (non concurrent) priority ordered queue. Queue operations do not block; if the queue is empty, the retrieval operation returns null. While you can simulate the behavior of a Queue with a List in fact, LinkedList also implements Queue 
-the Queue classes were added because eliminating the random-access requirements of List admits more efficient concurrent implementations.
-BlockingQueue extends Queue to add blocking insertion and retrieval operations. If the queue is empty, a retrieval blocks until an element is available, and if the queue is full (for bounded queues) an insertion blocks until there is space available. Blocking queues are extremely useful in producer-consumer designs, and are covered in greater detail in Section 5.3.
-Just as ConcurrentHashMap is a concurrent replacement for a synchronized hash-based Map, Java 6 adds ConcurrentSkipListMap and ConcurrentSkipListSet, which are concurrent replacements for a synchronized SortedMap or SortedSet (such as TreeMap or TreeSet wrapped with synchronizedMap).
+`Queue operations do not block`; if the queue is empty, the retrieval operation returns null. While you can simulate the behavior of a Queue with a List in fact, LinkedList also implements Queue 
 
-3, Replacing synchronized collections with concurrent collections can offer dramatic scalability improvements with little risk.
+the Queue classes were added because eliminating the random-access requirements of List admits more efficient concurrent implementations.  
 
-4, ConcurrentHashMap
+**BlockingQueue** extends Queue to add blocking insertion and retrieval operations. If the queue is empty, a retrieval blocks until an element is available, and if the queue is full (for bounded queues) an insertion blocks until there is space available. `Blocking queues are extremely useful in producer-consumer designs`, and are covered in greater detail in Section 5.3.  
+Just as ConcurrentHashMap is a concurrent replacement for a synchronized hash-based Map, Java 6 adds **ConcurrentSkipListMap** and **ConcurrentSkipListSet**, which are concurrent replacements for a `synchronized SortedMap or SortedSet` (such as TreeMap or TreeSet wrapped with synchronizedMap).
 
-The synchronized collections classes hold a lock for the duration of each operation. Some operations, such as HashMap.get or List.contains, may involve more work than is initially obvious: traversing a hash bucket or list to find a specific object entails calling equals (which itself may involve a fair amount of computation) on a number of candidate objects. In a hash-based collection, if hashCode does
-not spread out hash values well, elements may be unevenly distributed among buckets; in the degenerate case, a poor hash function will turn a hash table into a linked list. Traversing a long list and calling equals on some or all of the elements can take a long time, and during that time no other thread can access the collection.
+Replacing synchronized collections with concurrent collections can offer dramatic scalability improvements with little risk.  
 
-lock striping
+#### ConcurrentHashMap
+The synchronized collections classes hold a lock for the duration of each operation. Some operations, such as HashMap.get or List.contains, may involve more work than is initially obvious: traversing a hash bucket or list to find a specific object entails calling equals (which itself may involve a fair amount of computation) on a number of candidate objects. In a hash-based collection, if hashCode does not spread out hash values well, elements may be unevenly distributed among buckets; in the degenerate case, a poor hash function will turn a hash table into a linked list. Traversing a long list and calling equals on some or all of the elements can take a long time, and during that time no other thread can access the collection.  
+
+1. lock striping  
 ConcurrentHashMap is a hash-based Map like HashMap, but it uses an entirely different locking strategy that offers better concurrency and scalability. Instead of synchronizing every method on a common lock, restricting access to a single thread at a time, it uses a finer-grained locking mechanism called lock striping (see Section 11.4.3) to allow a greater degree of shared access. Arbitrarily many reading threads can access the map concurrently, readers can access the map concurrently with writers, and a limited number of writers can modify the map concurrently. The result is far higher throughput under concurrent access, with little performance penalty for single-threaded access.
 
-ConcurrentHashMap, along with the other concurrent collections, further improve on the synchronized collection classes by providing iterators that do not throw ConcurrentModificationException, thus eliminating the need to lock the collection during iteration. The iterators returned by ConcurrentHashMap are weakly consistent instead of fail-fast. A weakly consistent iterator can tolerate concurrent
-modification, traverses elements as they existed when the iterator was constructed, and may (but is not guaranteed to) reflect modifications to the collection after the construction of the iterator.
+2. weakly consistent iterator  
+ConcurrentHashMap, along with the other concurrent collections, further improve on the synchronized collection classes by providing iterators that do not throw ConcurrentModificationException, thus eliminating the need to lock the collection during iteration. The iterators returned by ConcurrentHashMap are weakly consistent instead of fail-fast. A weakly consistent iterator can tolerate concurrent modification, traverses elements as they existed when the iterator was constructed, and may (but is not guaranteed to) reflect modifications to the collection after the construction of the iterator.
 
-As with all improvements, there are still a few tradeoffs. The semantics of methods that operate on the entire Map, such as size and isEmpty, have been slightly weakened to reflect the concurrent nature of the collection. Since the result of size could be out of date by the time it is computed, it is really only an estimate, so size is allowed to return an approximation instead of an exact count.
-While at first this may seem disturbing, in reality methods like size and isEmpty are far less useful in concurrent environments because these quantities are moving targets. So the requirements for these operations were weakened to enable performance optimizations for the most important operations, primarily get, put, containsKey, and remove.
+3. The semantics of methods that operate on the entire Map is weakened  
+As with all improvements, there are still a few tradeoffs. The semantics of methods that operate on the entire Map, such as size and isEmpty, have been slightly weakened to reflect the concurrent nature of the collection. Since the result of size could be out of date by the time it is computed, it is really only an estimate, so size is allowed to return an approximation instead of an exact count.  
 
-The one feature offered by the synchronized Map implementations but not by ConcurrentHashMap is the ability to lock the map for exclusive access. With Hashtable and synchronizedMap, acquiring the Map lock prevents any other thread from accessing it. This might be necessary in unusual cases such as adding several mappings atomically, or iterating the Map several times and needing to see the same elements in the same order. On the whole, though, this is a reasonable tradeoff: concurrent collections should be expected to change their contents continuously.
-Because it has so many advantages and so few disadvantages compared to Hashtable or synchronizedMap, replacing synchronized Map implementations with ConcurrentHashMap in most cases results only in better scalability. Only if your application needs to lock the map for exclusive access[3]
-is ConcurrentHashMap not an appropriate drop-in replacement.
-[3] Or if you are relying on the synchronization side effects of the synchronizedMap implementations.
+While at first this may seem disturbing, in reality methods like size and isEmpty are far less useful in concurrent environments because these quantities are moving targets. So the requirements for these operations were weakened to enable performance optimizations for the most important operations, primarily get, put, containsKey, and remove.  
 
-5, Additional Atomic Map Operations
+4. no support for client side locking  
+The one feature offered by the synchronized Map implementations but not by ConcurrentHashMap is the ability to lock the map for exclusive access. With Hashtable and synchronizedMap, acquiring the Map lock prevents any other thread from accessing it. `This might be necessary in unusual cases such as adding several mappings atomically, or iterating the Map several times and needing to see the same elements in the same order.`   
+
+5. Additional Atomic Map Operations  
 Since a ConcurrentHashMap cannot be locked for exclusive access, we cannot use client-side locking to create new atomic operations such as put-if-absent, as we did for Vector in Section 4.4.1. Instead, a number of common compound operations such as put-if-absent,remove-if-equal, and replace-if-equal are implemented as atomic operations and specified by the ConcurrentMap interface, shown in Listing 5.7. If you find yourself adding such functionality to an existing synchronized Map implementation, it is probably a sign that you should consider using a ConcurrentMap instead.
+
+On the whole, though, this is a reasonable tradeoff: concurrent collections should be expected to change their contents continuously.  
+Because it has so many advantages and so few disadvantages compared to Hashtable or synchronizedMap, replacing synchronized Map implementations with ConcurrentHashMap in most cases results only in better scalability. Only if your application needs to lock the map for exclusive access[3] is ConcurrentHashMap not an appropriate drop-in replacement.  
+[3] Or if you are relying on the synchronization side effects of the synchronizedMap implementations.
 
 6, CopyOnWriteArrayList
 CopyOnWriteArrayList is a concurrent replacement for a synchronized List that offers better concurrency in some common situations and eliminates the need to lock or copy the collection during iteration. (Similarly, CopyOnWriteArraySet is a concurrent replacement for a synchronized Set.)
@@ -4543,6 +4583,6 @@ must use synchronization to ensure visibility.
 ## Miscellaneous
 
 ---
-[]:  ""
+[httpsession_passivation_and_activation_1]:https://access.redhat.com/documentation/en-US/JBoss_Enterprise_Web_Platform/5/html/Administration_And_Configuration_Guide/clustering-http-passivation.html  "HttpSession Passivation and Activation"
 
 

@@ -305,6 +305,8 @@ HashMap允许将null作为一个entry的key或者value，而Hashtable不允许
     The one feature offered by the synchronized Map implementations but not by ConcurrentHashMap is the ability to lock the map for exclusive access. With Hashtable and synchronizedMap, acquiring the Map lock prevents any other thread from accessing it. This might be necessary in unusual cases such as adding several mappings atomically, or iterating the Map several times and needing to see the same elements in the same order. On the whole, though, this is a reasonable tradeoff: concurrent collections should be expected to change their contents continuously.  
     Because it has so many advantages and so few disadvantages compared to Hashtable or synchronizedMap, replacing synchronized Map implementations with ConcurrentHashMap in most cases results only in better scalability. Only if your application needs to lock the map for exclusive access[3] is ConcurrentHashMap not an appropriate drop-in replacement.  
     [3] Or if you are relying on the synchronization side effects of the synchronizedMap implementations.  
+    5. Additional Atomic Map Operations  
+    Since a ConcurrentHashMap cannot be locked for exclusive access, we cannot use client-side locking to create new atomic operations such as put-if-absent, as we did for Vector in Section 4.4.1. Instead, a number of common compound operations such as put-if-absent,remove-if-equal, and replace-if-equal are implemented as atomic operations and specified by the ConcurrentMap interface, shown in Listing 5.7. If you find yourself adding such functionality to an existing synchronized Map implementation, it is probably a sign that you should consider using a ConcurrentMap instead.
 
 ### Gabage Collector
 
