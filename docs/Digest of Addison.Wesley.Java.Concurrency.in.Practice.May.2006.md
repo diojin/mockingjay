@@ -4,9 +4,10 @@
 
 ---
 
-* [2.Thread Safety](#2_thread_safety)
+* [2. Thread Safety](#2-thread-safety)
 * [Miscellaneous](#miscellaneous)
 
+## 2. Thread Safety
  1, Racing condition VS Data Race
 A race condition occurs when the correctness of a computation depends on the relative timing or interleaving of multiple threads by the runtime; in other words, when getting the right answer relies on lucky timing.
 
