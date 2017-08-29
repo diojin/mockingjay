@@ -12,7 +12,7 @@
         + [Invariant](#invariant)
     - [Liveness and Performance](#liveness-and-performance)
 * [3. Sharing Objects](#3-sharing-objects)
-    - [One code example -- Stale data](#one-code-example----stale-data)
+    - [One code example -- Stale data & Reordering](#one-code-example----stale-data--reordering)
 * [Miscellaneous](#miscellaneous)
 
 ## 2. Thread Safety  
@@ -89,9 +89,10 @@ There is frequently a tension between simplicity and performance. `When implemen
 ## 3. Sharing Objects
 but it is a common misconception that synchronized is only about atomicity or demarcating "critical sections". `Synchronization also has another significant, and subtle, aspect: memory visibility`. We want not only to prevent one thread from modifying the state of an object when another is using it, but also to ensure that when a thread modifies the state of an object, other threads can actually see the changes that were made. But without synchronization, this may not happen. You can ensure that objects are published safely either by using explicit synchronization or by taking advantage of the synchronization built into library classes.  
 
-### One code example -- Stale data
+### One code example -- Stale data & Reordering
+NoVisibility in Listing 3.1 illustrates what can go wrong when threads share data without synchronization. 
 
-NoVisibility in Listing 3.1 illustrates what can go wrong when threads share data without synchronization. Two threads, the main thread and the reader thread, access the shared variables ready and number. The main thread starts the reader thread and then sets number to 42 and ready to true. The reader thread spins until it sees ready is true, and then prints out number. While it may seem obvious that NoVisibility will print 42, it is in fact possible that it will print zero, or never terminate at all! Because it does not use adequate synchronization, there is no guarantee that the values of ready and number written by the main thread will be visible to the reader thread
+While it may seem obvious that NoVisibility will print 42, `it is in fact possible that it will print zero, or never terminate at all!` Because it does not use adequate synchronization, there is no guarantee that the values of ready and number written by the main thread will be visible to the reader thread  
 
 ```java
 public class NoVisibility {
@@ -112,7 +113,7 @@ public class NoVisibility {
 }
 ```
 
-NoVisibility could loop forever because the value of ready might never become visible to the reader thread. Even more strangely, NoVisibility could print zero because the write to ready might be made visible to the reader thread before the write to number, a phenomenon known as reordering. There is no guarantee that operations in one thread will be performed in the order given by the program, as long as the reordering is not detectable from within that thread even if the reordering is apparent to other threads.[1] When the main thread writes first to number and then to done without synchronization, the reader thread could see those writes happen in the opposite order or not at all.
+NoVisibility could loop forever because the value of ready might never become visible to the reader thread. Even more strangely, NoVisibility could print zero because the write to ready might be made visible to the reader thread before the write to number, a phenomenon known as **reordering**. There is no guarantee that operations in one thread will be performed in the order given by the program, as long as the reordering is not detectable from within that thread even if the reordering is apparent to other threads.[1] When the main thread writes first to number and then to done without synchronization, the reader thread could see those writes happen in the opposite order or not at all.
 
 [1] This may seem like a broken design, but it is meant to allow JVMs to take full advantage of the performance of modern multiprocessor hardware. For example, in the absence of synchronization, the Java Memory Model permits the compiler to reorder operations and cache values in registers, and permits CPUs to reorder operations and cache values in processor-specific caches. For more details, see Chapter 16.
 
