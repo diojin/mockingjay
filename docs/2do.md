@@ -37,6 +37,7 @@ ___
 - [ ] :kissing_cat: :two: big data related books
     - [ ] :arrow_right_hook: Hadoop, kafka, spark, hdfs, hbase
     - [ ] :arrow_right_hook: 有消息中间件开发经验，如activemq，rabbitmq或kafka等 
+    - [ ] :arrow_right_hook: Lambda   
 
 - [ ] :kissing_cat: :two: algorithms
     - [ ] :arrow_right_hook: :one: web pages  
@@ -44,8 +45,8 @@ ___
         url:程序员如何快速准备面试中的算法  
         url:程序员面试、算法研究、编程艺术、红黑树、数据挖掘5大系列集锦  
     - [x] :arrow_right_hook: :two:  ~~程序员面试笔试宝典~~  
-        算法, 网络及其他部分, 没有搜索的基础算法, 用编程珠玑补足  
-        编程珠玑  第2版   --  搜索算法部分以及无处不在的二分法
+        ~~算法, 网络及其他部分, 没有搜索的基础算法, 用编程珠玑补足  
+                编程珠玑  第2版   --  搜索算法部分以及无处不在的二分法~~
     - [] :arrow_right_hook: :three:  [The-Art-Of-Programming-By-July] 80%      
         2篇文章引申的主题:  
         从B树、B+树、B*树谈到R 树     --   有关索引  
@@ -55,7 +56,7 @@ ___
     - [ ] :arrow_right_hook: :six: 过一遍微软面试100题系列
     - [ ] :arrow_right_hook: others to do
         - [ ] :arrow_right_hook: :two: a star 算法
-        - [ ] :arrow_right_hook: :two: 字符串 "编辑距离"问题 搜索引擎的拼写错误提示
+        - [x] :arrow_right_hook: :two: ~~字符串 "编辑距离"问题 搜索引擎的拼写错误提示~~
         - [x] :arrow_right_hook: :two: ~~字符串KMP算法~~
 - [ ] :kissing_cat: :two: go through other review preparation materials
     - [ ] :arrow_right_hook: a few small pdfs
