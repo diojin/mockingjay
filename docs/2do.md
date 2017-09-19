@@ -135,7 +135,7 @@ ___
 :rabbit:
 :tiger:
 :bear:
-:pig:
+P:pig:
 :cow:
 :monkey:
 :horse:

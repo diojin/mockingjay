@@ -218,7 +218,7 @@ CARP准确的说不是一个算法，而是一个协议，Cache Array Routing Pr
 * 最快算法：最快算法基于所有服务器中的最快响应时间分配连接。`该算法在服务器跨不同网络的环境中特别有用`。
 Fastest: The Fastest method passes a new connection based on the fastest response time of all servers. This method may be particularly useful in environments where servers are distributed across different logical networks. On the BIG-IP, only servers that are active will be selected.
 
-**The Long Term Resource Monitoring algorithms** are the best choice if you have a significant number of persistent connections. **Fastest** works okay in this scenario also if you don’t have access to any of the dynamic solutions.
+**The Long Term Resource Monitoring algorithms** are the best choice if you have a significant number of persistent connections. **Fastest** `works okay in this scenario also if you don’t have access to any of the dynamic solutions`.
 
 * 最少连接：系统把新连接分配给当前连接数目最少的服务器。`该算法在各个服务器运算能力基本相似的环境中非常有效。`
 Least Connections: With this method, the system passes a new connection to the server that has the least number of current connections. Least Connections methods work best in environments where the servers or other equipment you are load balancing have similar capabilities. This is a dynamic load balancing method, distributing connections based on various aspects of real-time server performance analysis, such as the current number of connections per node or the fastest node response time. This Application Delivery Controller method is rarely available in a simple load balancer.
@@ -418,7 +418,7 @@ Storm and Kafka are the two technologies on the list that we’re most committed
 * Drill and Dremel  
 Drill and Dremel make `large-scale, ad-hoc querying of data` possible, with radically lower latencies that are especially apt for `data exploration`. `They make it possible to scan over petabytes of data in seconds`, to answer ad hoc queries and presumably, power compelling visualizations.  
 Drill and Dremel `put power in the hands of business analysts, and not just data engineers`. The business side of the house will love Drill and Dremel.
-Drill is the open source version of what Google is doing with Dremel (Google also offers Dremel-as-a-Service with its BigQuery offering). Companies are going to want to make the tool their own, which why Drill is the thing to watch mostly closely. Although it’s not quite there yet, strong interest by the development community is helping the tool mature rapidly.  
+`Drill is the open source version of what Google is doing with Dremel` (Google also offers Dremel-as-a-Service with its BigQuery offering). Companies are going to want to make the tool their own, which why Drill is the thing to watch mostly closely. Although it’s not quite there yet, strong interest by the development community is helping the tool mature rapidly.  
 Why should you care?  
 Drill and Dremel compare favorably to Hadoop for `anything ad-hoc`. Hadoop is all about batch processing workflows, which creates certain disadvantages.
 The Hadoop ecosystem worked very hard to make MapReduce an approachable tool for ad hoc analyses. `From Sawzall to Pig and Hive, many interface layers have been built on top of Hadoop to make it more friendly, and business-accessible.`  
@@ -431,7 +431,7 @@ At Infochimps we like the **Elasticsearch full-text search engine** and database
 
 * R  
 R is an `open source statistical programming language`. It is incredibly powerful. `Over two million (and counting) analysts` use R. It’s been around `since 1997` if you can believe it. It is a modern version of the S language for statistical computing that originally came out of the Bell Labs. Today, R is quickly becoming the new standard for statistics.  
-R performs complex data science at a much smaller price (both literally and figuratively). R is making serious headway in ousting SAS and SPSS from their thrones, and has become the tool of choice for the world’s best statisticians (and data scientists, and analysts too).  
+R performs complex data science at a much smaller price (both literally and figuratively). `R is making serious headway in ousting SAS and SPSS from their thrones`, and has become the tool of choice for the world’s best statisticians (and data scientists, and analysts too).  
 Why should you care?  
 Because it has `an unusually strong community around it`, you can find R libraries for almost anything under the sun — making virtually any kind of data science capability accessible without new code. R is exciting because of who is working on it, and how much net-new innovation is happening on a daily basis. the R community is one of the most thrilling places to be in Big Data right now.  
 R is a also wonderful way to future-proof your Big Data program. In the last few months, literally thousands of new features have been introduced, replete with publicly available knowledge bases for every analysis type you’d want to do as an organization.  
@@ -1001,7 +1001,7 @@ Servers can temporarily extend or customize the functionality of a client by the
 * Uniform interface  
 `The uniform interface constraint is fundamental to the design of any REST service.` The uniform interface simplifies and decouples the architecture, which enables each part to evolve independently. The 4 constraints for this uniform interface are:  
     1. Identification of resources  
-    Individual resources are identified in requests, for example using URIs in web-based REST systems. The resources themselves are conceptually separate from the representations that are returned to the client. For example, the server may send data from its database as HTML, XML or JSON, none of which are the server's internal representation.
+    Individual resources are identified in requests, for example using `URI`s in web-based REST systems. The resources themselves are conceptually separate from the representations that are returned to the client. For example, the server may send data from its database as HTML, XML or JSON, none of which are the server's internal representation.
     2. Manipulation of resources through these representations  
     When a client holds a representation of a resource, including any metadata attached, it has enough information to modify or delete the resource.
     3. Self-descriptive messages  
@@ -1027,9 +1027,9 @@ Uniform Resource Identifier (URI)   |GET |PUT |POST    |DELETE
 Collection(such as http://api.example.com/resources/)|List the URIs and perhaps other details of the collection's members.  |Replace the entire collection with another collection.  |Create a new entry in the collection. The new entry's URI is assigned automatically and is usually returned by the operation.|Delete the entire collection.
 Element(such as http://api.example.com/resources/item17) |Retrieve a representation of the addressed member of the collection, expressed in an appropriate Internet media type.   |Replace the addressed member of the collection, or if it does not exist,create it.  |Not generally used. Treat the addressed member as a collection in its own right and create a new entry in it.|Delete the addressed member of the collection.
 
-The PUT and DELETE methods are referred to as __idempotent__, meaning that the operation will produce the same result no matter how many times it is repeated. The `GET method` is a safe method (or nullipotent), meaning that calling it produces `no side-effects`. In other words, retrieving or accessing a record does not change it. The distinction between PUT/DELETE and GET are roughly analogous to the notion of Command-Query Separation (CQS). For example: A query operation (like GET) promises no side-effects (e.g. changes) in data being queried. Commands (like PUT/DELETE) answer no questions about the data, but compute changes applied to the data (e.g. UPDATE or INSERT to use database terms).  
+`The PUT and DELETE methods are referred to as` __idempotent__, meaning that the operation will produce the same result no matter how many times it is repeated. The `GET method` is a safe method (or nullipotent), meaning that calling it produces `no side-effects`. In other words, retrieving or accessing a record does not change it. The distinction between PUT/DELETE and GET are roughly analogous to the notion of Command-Query Separation (CQS). For example: A query operation (like GET) promises no side-effects (e.g. changes) in data being queried. Commands (like PUT/DELETE) answer no questions about the data, but compute changes applied to the data (e.g. UPDATE or INSERT to use database terms).  
 
-Unlike SOAP-based web services, there is no "official" standard for RESTful web APIs. This is because REST is an architectural style, while SOAP is a protocol. Even though REST is not a standard per se, most RESTful implementations make use of standards such as HTTP, URI, JSON, and XML.
+`Unlike SOAP-based web services, there is no "official" standard for RESTful web APIs`. This is because REST is an architectural style, while SOAP is a protocol. Even though REST is not a standard per se, most RESTful implementations make use of standards such as HTTP, URI, JSON, and XML.
 
 ##### Some common mistakes about RESTful
 1. 最常见的一种设计错误，就是URI包含动词  
@@ -1137,7 +1137,7 @@ Hadoop不能进行实时计算咋办？作者又构建了一套基于Cassandra�
 * W — 更新数据是需要保证写完成的节点数
 * R — 读取数据的时候需要读取的节点数
 
-如果W+R>N，写的节点和读的节点重叠，则是强一致性。例如对于典型的一主一备同步复制的关系型数据库，N=2,W=2,R=1，则不管读的是主库还是备库的数据，都是一致的。
+如果W+R>N，写的节点和读的节点重叠，则是强一致性(PS: 最终一致性)。例如对于典型的一主一备同步复制的关系型数据库，N=2,W=2,R=1，则不管读的是主库还是备库的数据，都是一致的。
 
 如果W+R<=N，则是弱一致性。例如对于一主一备异步复制的关系型数据库，N=2,W=1,R=1，则如果读的是备库，就可能无法读取主库已经更新过的数据，所以是弱一致性。
 

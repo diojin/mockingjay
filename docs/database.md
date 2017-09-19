@@ -98,6 +98,7 @@ There are several aspects to optimize,
     4. `在新建临时表时，如果一次性插入数据量很大，那么可以使用 select into 代替 create table，避免造成大量 log ，以提高速度；如果数据量不大，为了缓和系统表的资源，应先create table，然后insert。`
     5. 如果使用到了临时表，在存储过程的最后务必将所有的临时表显式删除，先 truncate table ，然后 drop table ，这样可以避免系统表的较长时间锁定。
     6. 使用基于游标的方法或临时表方法之前，应先寻找基于集的解决方案来解决问题，基于集的方法通常更有效
+    7. 临时表，最主要的好处是，`操作不留任何痕迹、不产生日志，所以速度快`
 
 4. SQL optimization
     1. 解析过程优化  

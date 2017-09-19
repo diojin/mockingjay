@@ -197,7 +197,7 @@ JSP共有以下9种基本内置组件（可与ASP的6种内部组件相对应）
 * 动态INCLUDE  
 用jsp:include动作实现 <jsp:include page="included.jsp" flush="true" />它总是会检查所含文件中的变化，适合用于包含动态页面，并且可以带参数。
 * 静态INCLUDE  
-用include伪码实现,定不会检查所含文件的变化，适用于包含静态页面<%@ include file="included.htm" %>
+用include伪码实现,不会检查所含文件的变化，适用于包含静态页面<%@ include file="included.htm" %>
 
 #### JSP common directives
 ```html
@@ -279,9 +279,9 @@ LinkedList提供额外的get，remove，insert方法在LinkedList的首部或尾
 
 
 1. HashMap  
-Hash table based implementation of the Map interface. This implementation provides all of the optional map operations, and permits null values and the null key. (The HashMap class is roughly equivalent to Hashtable, except that it is unsynchronized and permits nulls.)  
+Hash table based implementation of the Map interface. This implementation provides all of the optional map operations, and `permits null values and the null key. (The HashMap class is roughly equivalent to Hashtable, except that it is unsynchronized and permits nulls.)`  
 An instance of HashMap has two parameters that affect its performance: `initial capacity` and `load factor`. The capacity is the number of buckets in the hash table, and the initial capacity is simply the capacity at the time the hash table is created. The load factor is a measure of how full the hash table is allowed to get before its capacity is automatically increased. When the number of entries in the hash table exceeds the product of the load factor and the current capacity, the hash table is rehashed (that is, internal data structures are rebuilt) so that the hash table has approximately `twice the number of buckets`.  
-HashMap允许将null作为一个entry的key或者value，而Hashtable不允许
+`HashMap允许将null作为一个entry的key或者value，而Hashtable不允许`  
 2. HashTable  
     1. thread safe  
     2. load factor  
@@ -703,10 +703,15 @@ String s2=”kv” + “ill”;
 System.out.println( s0==s1 );   // true 
 System.out.println( s0==s2 );   // true
 
-// 因为例子中的s0和s1中的”kvill”都是字符串常量，它们在编译期就被确定了，所以s0==s1为true；而”kv”和”ill”也都是字符串常量，当一个字符串由多个字符串常量连接而成时，它自己肯定也是字符串常量，所以s2也同样在编译期就被解析为一个字符串常量，所以s2也是常量池中”kvill”的一个引用。
+/* 因为例子中的s0和s1中的”kvill”都是字符串常量，它们在编译期就被确定了，
+所以s0==s1为true；而”kv”和”ill”也都是字符串常量，当一个字符串由多个字符串常量
+连接而成时，它自己肯定也是字符串常量，所以s2也同样在编译期就被解析为一个字符串常量，
+所以s2也是常量池中”kvill”的一个引用。
+*/
 
-// 用new String() 创建的字符串不是常量，不能在编译期就确定，所以new String() 创建的字符串不放入常量池中，它们有自己的地址空间。   
-
+/* 用new String() 创建的字符串不是常量，不能在编译期就确定，
+所以new String() 创建的字符串不放入常量池中，它们有自己的地址空间。   
+*/
 String s0=”kvill”;   
 String s1=new String(”kvill”);   
 String s2=”kv” + new String(“ill”);   
@@ -715,13 +720,13 @@ System.out.println( s0==s2 );   // false
 System.out.println( s1==s2 );   // false   
 
 
-String s0= “kvill”;   
+String s0= “kvill”;             // 编译期常量池 
 String s1=new String(”kvill”);   
 String s2=new String(“kvill”);   
 s1.intern();   
 s2=s2.intern(); //把常量池中“kvill”的引用赋给s2   
 System.out.println( s0==s1);                    // false
-System.out.println( s0==s1.intern() );          // true  
+System.out.println( s0==s1.intern() );          // true, 编译期常量池和运行时常量池是同一个  
 System.out.println( s0==s2 );                   // true
 ```
 

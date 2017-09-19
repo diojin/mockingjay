@@ -241,10 +241,9 @@ Other class-level annotations may be considered as identifying a component as we
 
 Other annotations marked as @Component includes @Configuration, @Controller, @Service, @Repository, and etc.
 
->org.springframework.context.annotation.ClassPathBeanDefinitionScanner
->>A bean definition scanner that detects bean candidates on the classpath, registering corresponding bean definitions with a given registry (BeanFactory or ApplicationContext). 
-Candidate classes are detected through configurable type filters. The default filters include classes that are annotated with Spring's @Component, @Repository, @Service, or @Controller stereotype. 
-Also supports Java EE 6's javax.annotation.ManagedBean and JSR-330's javax.inject.Named annotations, if available
+**org.springframework.context.annotation.ClassPathBeanDefinitionScanner**  
+A bean definition scanner that detects bean candidates on the classpath, registering corresponding bean definitions with a given registry (BeanFactory or ApplicationContext). 
+Candidate classes are detected through configurable type filters. `The default filters include classes that are annotated with Spring's @Component, @Repository, @Service, or @Controller stereotype. Also supports Java EE 6's javax.annotation.ManagedBean and JSR-330's javax.inject.Named annotations, if available`
 
 ##### @Configuration
 org.springframework.context.annotation.Configuration
@@ -299,7 +298,7 @@ As an alternative to registering @Configuration classes directly against an Anno
 In the example above, <context:annotation-config/> is required in order to enable ConfigurationClassPostProcessor and other annotation-related post processors that facilitate handling @Configuration classes. 
 
 3. Via component scanning  
-@Configuration is meta-annotated with @Component, therefore @Configuration classes are candidates for component scanning (typically using Spring XML's <context:component-scan/> element) and therefore may also take advantage of @Autowired/@Inject at the field and method level (but not at the constructor level). 
+@Configuration is meta-annotated with @Component, therefore @Configuration classes are candidates for component scanning (typically using Spring XML's `<context:component-scan/>` element) and therefore may also take advantage of @Autowired/@Inject at the field and method level (but not at the constructor level). 
 
 @Configuration classes may not only be bootstrapped using component scanning, but may also themselves configure component scanning using the @ComponentScan annotation: 
 ```java
@@ -593,9 +592,6 @@ public static PropertyPlaceholderConfigurer ppc() {
 }
 ```
 
-##### @Primary
-自动装配时当出现多个Bean候选者时，被注解为@Primary的Bean将作为首选者，否则将抛出异常
-
 ##### @PostConstruct
 用于指定初始化方法（用在方法上）
 
@@ -742,6 +738,9 @@ public String showPriceHistory(@RequestParam Long subscriptionId, @RequestParam 
 
 ```
 
+##### @Primary
+自动装配时当出现多个Bean候选者时，被注解为@Primary的Bean将作为首选者，否则将抛出异常
+
 ##### @Autowired @Inject @Resource
 
 [SPRING INJECTION WITH @RESOURCE, @AUTOWIRED AND @INJECT][spring_annotation_1]
@@ -783,7 +782,7 @@ Spring Annotation Style Best Practices
 1. Explicitly name your component [@Component(“beanName”)]
 2. Use ‘@Resource’ with the ‘name’ attribute [@Resource(name=”beanName”)]
 3. Avoid ‘@Qualifier’ annotations unless you want to create a list of similar beans. For example you may want to mark a set of rules with a specific ‘@Qualifier’ annotation. This approach makes it simple to inject a group of rule classes into a list that can be used for processing data.
-4. Scan specific packages for components <context:component-scan base-package=”com.sourceallies.person” />.   
+4. Scan specific packages for components `<context:component-scan base-package=”com.sourceallies.person” />`.   
 While this will result in more component-scan configurations, it reduces the chance that you’ll add unnecessary components to your Spring context.
 
 Following these guidelines will increase the readability and stability of your Spring annotation configurations.
@@ -824,7 +823,15 @@ To support @Required 接着我们需要在 配置文件中加上这样一句话
 
 ##### context:annotation-config
 
-<context:annotation-config /> 将隐式地向spring 容器注册AutowiredAnnotationBeanPostProcessor 、CommonAnnotationBeanPostProcessor 、 PersistenceAnnotationBeanPostProcessor 以及RequiredAnnotationBeanPostProcessor 这4个BeanPostProcessor, so that @Autowired and @Required are supported.
+`<context:annotation-config />` 将隐式地向spring 容器注册AutowiredAnnotationBeanPostProcessor 、CommonAnnotationBeanPostProcessor 、 PersistenceAnnotationBeanPostProcessor 以及RequiredAnnotationBeanPostProcessor 这4个BeanPostProcessor, so that @Autowired and @Required are supported.
+
+```xml
+<beans>
+   <context:annotation-config/>
+   <bean class="com.acme.AppConfig"/>
+</beans>
+```
+In the example above, <context:annotation-config /> is required in order to enable ConfigurationClassPostProcessor and other annotation-related post processors that facilitate handling @Configuration classes. 
 
 To do it separatedly, 
 * Config AutowiredAnnotationBeanPostProcessor to support @Autowired
@@ -955,7 +962,7 @@ transactionTemplate.execute(new TransactionCallback(){
    <bean class="com.acme.AppConfig"/>
 </beans>
 ```
-In the example above, <context:annotation-config/> is required in order to enable ConfigurationClassPostProcessor and other annotation-related post processors that facilitate handling @Configuration classes. 
+In the example above, <context:annotation-config /> is required in order to enable ConfigurationClassPostProcessor and other annotation-related post processors that facilitate handling @Configuration classes. 
 
 <context:annotation-config /> 将隐式地向spring 容器注册AutowiredAnnotationBeanPostProcessor 、CommonAnnotationBeanPostProcessor 、 PersistenceAnnotationBeanPostProcessor 以及RequiredAnnotationBeanPostProcessor 这4 个BeanPostProcessor 
 
@@ -1050,7 +1057,7 @@ public interface Scope {
 ##### Differences between singleton and Spring's singleton
 
 * Spring标记Singleton的bean代表这种类型的bean在容器中只存在一个共享实例
-* Singleton模式则是保证在同一个classloader中只存在一个这种类型的实例
+* Singleton模式则是保证在同一个`classloader`中只存在一个这种类型的实例
 
 ##### Bean automatic assembling process
 我们对XML配置文件装配Bean的方式都很熟悉了，但是随着业务的复杂性，我们可能编写越来越复杂的XML配置。
@@ -1451,6 +1458,7 @@ object (6) indicated by the ModelAndView object. The View object is responsible 
     - 对大数据量查询时，慎用list()(HibernateTemplate.find)或者iterator()(HibernateTemplate.iterate)返回查询结果. 对于大数据量，使用Query.scroll()(ScrollableResults)可以得到较好的处理速度以及性能。而且直接对结果集向前向后滚动??
     - Dynamic Update/Insert 如果选定，则生成Update/Insert SQL 时不包含未发生变动的字段属性，这样可以在一定程度上提升SQL执行效能.
     - 在编写代码的时候请，对将POJO的getter/setter方法设定为public，如果设定为private，Hibernate将无法对属性的存取进行优化，只能转而采用传统的反射机制进行操作，这将导致大量的性能开销（特别是在1.4之前的Sun JDK版本以及IBM JDK中，反射所带来的系统开销相当可观） 
+    - Avoid join duplicates (AKA cartesian products) due to `joins along two or more parallel to-many associations`; `use Exists-subqueries, multiple queries or fetch="subselect"` (see (2)) instead - whatever is most appropriate in the specific situation. Join duplicates are already pretty bad in plain SQL, but things get even worse when they occur within Hibernate, because of unnecessary mapping workload and child collections containing duplicates.
 * Collection 及 mapping的正确使用
     - In well-designed Hibernate domain models, most collections are in fact one-to-many associations with inverse="true".
     - For inverse collections 
@@ -1459,7 +1467,7 @@ object (6) indicated by the ModelAndView object. The View object is responsible 
         After observing that arrays cannot be lazy, you can conclude that lists, maps and idbags are the most performant (non-inverse) collection types, with sets not far behind. You can expect sets to be the most common kind of collection in Hibernate applications. This is because the "set" semantics are most natural in the relational model.
     - 由于多对多关联的性能不佳（由于引入了中间表，一次读取操作需要反复数次查询），因此在设计中应该避免大量使用
 
-* Cascade 的设定. 对含有关联的PO（持久化对象）时，若default-cascade="all"或者 “save-update”，新增PO时，请注意对PO中的集合的赋值操作，因为有可能使得多执行一次update操作。
+* Cascade 的设定. 对含有关联的PO（持久化对象）时，若default-cascade="all"或者 “save-update”，新增PO时，请注意对PO中的集合的赋值操作，因为有可能使得多执行一次update操作??
 
 * Second level cache & Query Cache
     [For more information][hibernate-caching-2]
@@ -1472,16 +1480,16 @@ object (6) indicated by the ModelAndView object. The View object is responsible 
     - 批量操作
     即使是使用JDBC，在进行大批数据更新时，BATCH与不使用BATCH有效率上也有很大的差别。我们可以通过设置batch_size来让其支持批量操作。
     举个例子，要批量删除某表中的对象，如“delete Account”，打出来的语句，会发现HIBERNATE找出了所有ACCOUNT的ID，再进行删除，这主要是为了维护二级缓存，这样效率肯定高不了，在后续的版本中增加了bulk delete/update，但这也无法解决缓存的维护问题。也就是说，由于有了二级缓存的维护问题，HIBERNATE的批量操作效率并不尽如人意!  
-    Take advantage of `HQL Bulk Update and Delete statements`, as well as `Insert-By-Select` (supported by HQL as well)
+    - Take advantage of `HQL Bulk Update and Delete statements`, as well as `Insert-By-Select` (supported by HQL as well)
 ```xml
 <prop key="hibernate.jdbc.batch_size">100</prop>
 <prop key="hibernate.order_inserts">true</prop>
 <prop key="hibernate.order_updates">true</prop>
 ```
 
-* 定期刷新和清理Hibernate Session Cache
-entityManager.flush();
-entityManager.clear();
+* 定期刷新和清理Hibernate Session Cache  
+entityManager.flush();  
+entityManager.clear();  
 在处理大数据量时，会有大量的数据缓冲保存在Session的一级缓存中，这缓存大太时会严重显示性能，所以在使用Hibernate处理大数据量的，可以使用Session.clear()或者Session.evict(Object) 在处理过程中，清除全部的缓存或者清除某个对象。  
 Set FlushMode to "Never" on Queries and Criteria, when flushing is not necessary at this point.
 
@@ -1635,7 +1643,7 @@ and merge() is very different:
 merge()方法处理流程:
 1. 根据游离对象的OID到session缓存中查找匹配的持久化对象.
 2. 如果在缓存中没有找到与游离对象的OID一致的持久化对象,就根据这个OID从数据库中加载持久化对象.如果在数据库中存在这样的持久化对象,就把游离对象的属性复制到这个刚加载的持久化对象中,计划执行一条update语句,再返回这个持久化对象的引用.
-3. 如果merge()方法的参数是一个临时对象,那么也会创建一个新的对象,把临时对象的属性复制到这个新建的对象中,再调用save()方法持久化这个独享,最后返回这个持久化对象的引用.
+3. 如果merge()方法的参数是一个临时对象,那么也会创建一个新的对象,把临时对象的属性复制到这个新建的对象中,再调用save()方法持久化这个对象,最后返回这个持久化对象的引用.
 
 This operation cascades to associated instances if the association is mapped with cascade="merge"
 
@@ -2188,7 +2196,7 @@ Again use this strategy for read-mostly data where it is critical to prevent sta
 Use this strategy for read-mostly data where it is critical to prevent stale data in concurrent transactions,in the rare case of an update.
 JTA中，且支持的缓存产品较少
 
-* Query Cache: Hibernate can also cache result set of a query. Hibernate Query Cache doesn’t cache the state of the actual entities in the cache; `it caches only identifier values and results of value type`. So it should always be used in conjunction with the second-level cache.  
+* Query Cache: Hibernate can also cache result set of a query. Hibernate Query Cache doesn’t cache the state of the actual entities in the cache; `it caches only identifier values and results of value type`. `So it should always be used in conjunction with the second-level cache.`  
 Hibernate also implements a cache for query resultsets that integrates closely with the second-level cache.  
 This is an optional feature and requires two additional physical cache regions that hold the cached query results and the timestamps when a table was last updated. This is only useful for queries that are run frequently with the same parameters.
 
@@ -2214,7 +2222,7 @@ The Session caches every object that is in persistent state (watched and checked
 
 From P121/129 Hibernate Reference Documentation Version: 3.1 rc3
 
-A Session is not thread-safe. Things which are supposed to work concurrently, like HTTP requests, session beans, or Swing workers, will cause race conditions if a Session instance would be shared. If you keep your Hibernate Session in your HttpSession (discussed later), you should consider synchronizing access to your Http session. Otherwise, a user that clicks reload fast enough may use the same Session in two concurrently running threads.
+`A Session is not thread-safe`. Things which are supposed to work concurrently, like HTTP requests, session beans, or Swing workers, will cause race conditions if a Session instance would be shared. If you keep your Hibernate Session in your HttpSession (discussed later), you should consider synchronizing access to your Http session. Otherwise, a user that clicks reload fast enough may use the same Session in two concurrently running threads.
 
 ##### Hibernate isolation level
 Hibernate directly uses JDBC connections and JTA resources without adding any additional locking behavior. We highly recommend you spend some time with the JDBC, ANSI, and transaction isolation specification of your database management system.
