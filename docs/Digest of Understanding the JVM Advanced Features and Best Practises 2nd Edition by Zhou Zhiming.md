@@ -71,7 +71,7 @@ JAVA 8       | --               |2013   | Lambda, Coin(语言细节进化)??, Ji
         * -XX:MaxDirectMemorySize, 指定Direct Memory大小, 没设置时其值与-Xmx一样  
         
     9. 除了堆外其他需要注意OOM的内存区域列表                         -- 137/158  
-        * 线程栈  
+        * 线程栈: -Xss    
         * Direct Memory  
         * JNI代码  
             如果用JNI调用本地库代码, 本地库使用的内存不再堆中          
@@ -98,7 +98,7 @@ JAVA 8       | --               |2013   | Lambda, Coin(语言细节进化)??, Ji
         * 静态变量(方法区中类的静态属性)引用的对象  
     2. 引用类型                                                      -- 65/86   
         * Strong Reference  
-        * Soft Reference, 无论是否引用, 发生内存溢出前直接回收, 回收导致内存够用则不产生内存溢出  
+        * Soft Reference, 无论是否引用, 发生内存溢出前直接回收. 若回收后导致内存够用则不产生内存溢出错误  
         * Weak Reference, 无论是否引用, 下一次垃圾收集时回收  
         * Phantom Reference, 无法通过该引用获得对象, 也不影响被引用对象的生存时间, 为某对象设置该引用是为了在被引用对象被回收时, 收到一个系统通知  
 
@@ -198,6 +198,7 @@ JAVA 8       | --               |2013   | Lambda, Coin(语言细节进化)??, Ji
             2. 响应时间: CMS更好一点, G1与CMS相当, 可以选择  
 
     6. 垃圾收集器参数总结                                           --  90/111  
+
 Parameters              |Scope      |Usage
 ------------------------|-----------|------------------------------------------
 -XX:+UseConcMarSweepGC  |--         |CMS + ParNew + Serial Old  
@@ -219,7 +220,7 @@ Parameters              |Scope      |Usage
 -XX:+AlwaysTenure       |--         |去掉Survivor, 直接进入年老代. 等效于 -XX:MaxTenuringThreadhold = 0 && -XX:SurvivorRatio = 65536  
 -XX:ParallelGCThreads   |--         |并发内存回收的线程数  
 -XX:HandlePromotionFailure|Young    |--
--XX:CMSInitiatingOccupancyFraction|CMS | memory percentage before CMS starts
+-XX:CMSInitiatingOccupancyFraction|CMS | memory percentage before CMS starts SerialOld GC  
 -XX:CMSFullGCsBeforeCompaction|CMS  |a compaction start after how many Full GCs, deafult is enabled
 -XX:+UseCMSCompactAtFullCollection|CMS |a compaction start after any Full GC, default is 0, means compaction every time  
 -XX:+DisableExplicitGC  |--         |GC doesn't response to System.gc() call
@@ -251,16 +252,15 @@ Parameters              |Scope      |Usage
         * `[Full GC (System)`:  GC triggered by System.gc()  
         * `[DefNew`: Default new generation, Serial收集器  
         * `[PSYoungGen`: Parallel Scanvenge收集器  
-        * `[XXX: 11756344K->5242875K(36700160K)]`: 方括号里的数字, 表示区域XXX回收前已使用了11756344K, 回收后已使用5242875K, 该区域总容量36700160K  
-        * `8388334K->6652526K(120586240K)`: 括号外的数字表示GC或Full GC前已使用的总容量8388334K, GC后已使用的总容量6652526K, 以及内存总容量120586240K  
+        * `[XXX: 11756344K->5242875K(36700160K)]`: 方括号里的数字, 表示区域XXX回收前已使用了11756344K, 回收后已使用5242875K, 圆括号内为该区域总容量36700160K  
+        * `8388334K->6652526K(120586240K)`: 括号外的数字表示GC或Full GC前已使用的总容量8388334K, GC后已使用的总容量6652526K, 圆括号内为内存总容量120586240K  
         * `134.353`: 行首数字代表虚拟机已运行的时间(秒)  
         * `Times: user=127.21 sys=5.89, real=13.77 secs`:  
             含义同Linux的time命令  
             user: 用户态消耗的CPU时间  
             sys: 系统态消耗的CPU时间  
             real: Wall Clock Time, 墙钟时间, 包括CPU时间+等待时间  
-            多线程的CPU时间会叠加, real 时间不会, 所以可以看到user + sys > real  
-
+            多线程的CPU时间(user+sys)会叠加, real 时间不会, 所以可以看到user + sys > real   
     8. GC log的一些示例以及对分配内存空间规则               -- 92/113  
         * 对象优先在Eden区分配  
         * 大对象直接分配在年老代(PretenureSizeThreadhold)      
@@ -315,13 +315,17 @@ VirtualVM           |--
         -Dsun.awt.keepWorkingSetOnMinimize=true    
     7. 实战案例: Eclipse调优                                          -- 142  
         GC调优的思路:  
-        * 选择合适的GC算法(及JAVA版本), 并调整参数       
+        * 选择合适的GC算法(及JAVA版本), 并调整参数    
+            MaxTenuringThreadhold  
+            PretenureSizeThreadhold  
+            AlwaysTenure (或者 -XX:MaxTenuringThreadhold = 0 加上 -XX:SurvivorRatio = 65536)  
+            Monitoring Tools: PrintGCApplicationStoppedTime, PrintReferenceGC  
         * 调整各个内存区域的大小, 比如足够大的新生代大小以减少Minor GC         
         * 直接令-Xms = -Xmx,  -XX:PermSize = -XX:MaxPermSize, 以减少单纯扩容带来的无用GC              
         * -XX:+DisableExplicitGC    
     
         每次发生GC前, 所有线程都要跑到一个Safepoint挂起, 等待GC, 并在GC结束后恢复, 这是额外的代价, 但执行native code的线程不会被GC挂起          --  154/175  
-        -XX
+
 
 6. 类文件结构                                                      -- 162/183  
 7. 虚拟机的类加载机制                                               -- 209/230  
