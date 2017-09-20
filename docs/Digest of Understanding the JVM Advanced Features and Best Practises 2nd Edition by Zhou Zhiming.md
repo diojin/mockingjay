@@ -593,8 +593,8 @@ VirtualVM           |--
         ![jvm_java_memory_model_img_1]  
         [线程, 工作内存] <-> [Store,Load等原子操作] <-> 主内存  
         8个原子操作(已过时):                                          -- 364  
-        * lock
-        * unlock
+        * lock  
+        * unlock   
         * read  
             主内存 -> 工作内存, to load    
         * load  

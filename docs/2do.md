@@ -28,7 +28,7 @@ ___
         - [x] :arrow_right_hook: :two: ~~Distributed~~
         - [x] :arrow_right_hook: :three: ~~Database~~
         - [x] :arrow_right_hook: :four: ~~Framework~~
-        - [ ] :arrow_right_hook: :five: Understanding the JVM 
+        - [x] :arrow_right_hook: :five: ~~Understanding the JVM~~ 
     - [ ] :arrow_right_hook: :two: Scala for the impatients  
     - [ ] :arrow_right_hook: :three: 程序员宝典  
     - [ ] :arrow_right_hook: :four: Algorithms
