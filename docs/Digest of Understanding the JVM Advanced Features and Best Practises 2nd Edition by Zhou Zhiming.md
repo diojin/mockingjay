@@ -22,9 +22,9 @@ JDK 1.0      | --               |1996   |--
 JDK 1.1      | --               |1997   |RMI, JDBC         
 JDK 1.2      | Playground       |1998   |EJB
 JDK 1.3      | Kestrel(美洲红隼)|2000   |2000年以后基本每2年一个版本  
-JDK 1.4      | Merlin(灰背隼)    |2002   |成熟版本, 正则, NIO, 1.4.2 Mantis 螳螂
+JDK 1.4      | Merlin(灰背隼)    |2002   |成熟版本, 正则, NIO, 1.4.2 Mantis 螳螂, ParallelScanvenge GC
 JDK 1.5      | Tiger            |2004   |语法易用性的改进(自动装箱拆箱, 泛型, 动态注释,for each), JMM Java内存模型, concurrent 包  
-JAVA 6       | Mustang(野马)    |2006    |对虚拟机做了很大的改进, 包括锁与同步, 垃圾回收, 类加载等, 动态语言支持(通过内置Mozilla Javascript Rhino引擎)  
+JAVA 6       | Mustang(野马)    |2006    |对虚拟机做了很大的改进, 包括锁与同步, 垃圾回收, 类加载等, 动态语言支持(通过内置Mozilla Javascript Rhino引擎), 提供插入式注解处理器API, ParallelOld GC  
 OpenJDK      | --               |2006/11 |2006年11月13, Java开源, 随后建立OpenJDK
 JAVA 7       | Dolphin          |2011   |G1收集器, 加强对非Java语言调用, 升级类加载框架
 JAVA 8       | --               |2013   | Lambda, Coin(语言细节进化)??, Jigsaw??(语言级模块化的支持, 1.9)
@@ -234,7 +234,7 @@ Parameters              |Scope      |Usage
 -XX:+UseG1GC            |--         |--
 -XX:+PrintGCDetails     |--         |--
 -XX:+PrintGCTimeStamps  |--         |--  
--Xverify:none           |--         |禁止字节码验证的过程  
+-Xverify:none           |--         |禁止字节码验证的过程(关闭大部分验证, 以减少类加载时间)  
 -Xint                   |--         |强制虚拟机运行于解释模式  
 -Xcomp                  |--         |优先用编译器, 编译器无法进行时用解释器  
 -XX:+TieredCompilation  |--         |开启分层编译后, 1.7默认开启, 1.6手工开启  
@@ -349,6 +349,7 @@ VirtualVM           |--
         3. 子类的父类优先被初始化
         4. 包含main()方法的类  
         5. JDK 1.7动态语言中, 相当于访问static字段或方法的MethodHandle  
+        
         被动调用例子:  
         1. 静态字段被引用时, 仅定义该字段的类的初始化被触发, 其子类初始化不被触发                                        -- 212/233  
         2. 通过数组定义来引用类, 该类的初始化不会被触发                                     -- 212/233    
@@ -473,8 +474,8 @@ VirtualVM           |--
         System.out.println(e==f);                   //false
         System.out.println(c==(a+b));               //true
         System.out.println(c.equals(a+b));          //true
-        System.out.println(g==(a+b));               //true  ???
-        System.out.println(g.equals(a+b));          //false ???
+        System.out.println(g==(a+b));               //true  自动拆箱
+        System.out.println(g.equals(a+b));          //false equals()不处理数据类型的不同
     }
 ```
 
@@ -515,7 +516,7 @@ VirtualVM           |--
             方法调用计数器(Invocation Counter)  
             回边计数器(Back Edge Counter)  
         * 方法调用计数器  
-            ![jvm_jit_invocation_counter_img_1]  
+![jvm_jit_invocation_counter_img_1]  
             -XX:CompileThreshold, Client模式1500, Server模式10000  
 ```java
             if ( 已经编译 ){
@@ -532,7 +533,7 @@ VirtualVM           |--
             -XX:+UseCounterDecay, 使用热度衰减, GC时进行衰减    
             -XX:CounterHalfLifeTime, 半衰期  
         * 回边计数器                                                 -- 335  
-            ![jvm_jit_back_edge_counter_img_1]  
+![jvm_jit_back_edge_counter_img_1]  
             回边: 字节码中遇到控制流向后跳转的指令即是回边  
             回边计数器是为了触发ORS编译  
             -XX:BackEdgeThreshold  
@@ -541,7 +542,7 @@ VirtualVM           |--
     8. 编译过程                                                    -- 338/359  
         -XX:-BackgroundCompilation, 禁止后台编译, oops  
         * Client Compiler 编译过程  
-            ![jvm_client_compiler_process_img_1]  
+![jvm_client_compiler_process_img_1]  
             1. 方法内联  
             2. 常量传播  
             3. 范围检查消除  
