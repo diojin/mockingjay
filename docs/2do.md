@@ -22,31 +22,31 @@ ___
 - [ ] :heart_eyes_cat: 开始死磕, 工匠精神
 
 - [ ] :heart_eyes_cat: go over session from 2017-09-17
-    - [ ] :arrow_right_hook: :One: Browse IT market news every day
-    - [ ] :arrow_right_hook: :One: Go over other preparation stuffs
-        - [x] :arrow_right_hook: :One: ~~Java Basic~~
-        - [x] :arrow_right_hook: :Two: ~~Distributed~~
-        - [x] :arrow_right_hook: :Three: ~~Database~~
-        - [x] :arrow_right_hook: :Four: ~~Framework~~
-        - [ ] :arrow_right_hook: :Five: Understanding the JVM 
-    - [ ] :arrow_right_hook: :Two: Scala for the impatients  
-    - [ ] :arrow_right_hook: :Three: 程序员宝典  
-    - [ ] :arrow_right_hook: :Four: Algorithms
-        - [ ] :arrow_right_hook: :One: go over what's been prepared
-        - [ ] :arrow_right_hook: :Two: check new algorithm for some time every day
-    - [ ] :arrow_right_hook: :Five: Java concurrency in Action
-    - [ ] :arrow_right_hook: :Six: Coupang & Morgan Project
-        - [ ] :arrow_right_hook: :One: Coupang Projects
-        - [ ] :arrow_right_hook: :Two: Morgan Projects: refine(JProfile & Scala) & Data volumn review
-        - [ ] :arrow_right_hook: :Three: CV
-    - [ ] :arrow_right_hook: :Seven: Big Data related stuffs
-    - [ ] :arrow_right_hook: :Eight: Apply for job positions   
+    - [ ] :arrow_right_hook: :one: Browse IT market news every day
+    - [ ] :arrow_right_hook: :one: Go over other preparation stuffs
+        - [x] :arrow_right_hook: :one: ~~Java Basic~~
+        - [x] :arrow_right_hook: :two: ~~Distributed~~
+        - [x] :arrow_right_hook: :three: ~~Database~~
+        - [x] :arrow_right_hook: :four: ~~Framework~~
+        - [ ] :arrow_right_hook: :five: Understanding the JVM 
+    - [ ] :arrow_right_hook: :two: Scala for the impatients  
+    - [ ] :arrow_right_hook: :three: 程序员宝典  
+    - [ ] :arrow_right_hook: :four: Algorithms
+        - [ ] :arrow_right_hook: :one: go over what's been prepared
+        - [ ] :arrow_right_hook: :two: check new algorithm for some time every day
+    - [ ] :arrow_right_hook: :five: Java concurrency in Action
+    - [ ] :arrow_right_hook: :six: Coupang & Morgan Project
+        - [ ] :arrow_right_hook: :one: Coupang Projects
+        - [ ] :arrow_right_hook: :two: Morgan Projects: refine(JProfile & Scala) & Data volumn review
+        - [ ] :arrow_right_hook: :three: CV
+    - [ ] :arrow_right_hook: :seven: Big Data related stuffs
+    - [ ] :arrow_right_hook: :eight: Apply for job positions   
 
 - [ ] :heart_eyes_cat: Plan as of now
-    - [ ] :arrow_right_hook: :One: Algorithms
-    - [ ] :arrow_right_hook: :Two: Big Data related stuffs
-    - [ ] :arrow_right_hook: :Three: Go over what've been prepared
-    - [ ] :arrow_right_hook: :Four: Carry on with the rest
+    - [ ] :arrow_right_hook: :one: Algorithms
+    - [ ] :arrow_right_hook: :two: Big Data related stuffs
+    - [ ] :arrow_right_hook: :three: Go over what've been prepared
+    - [ ] :arrow_right_hook: :four: Carry on with the rest
 
 - [ ] :kissing_cat: :one: bring darling to 野餐
 
