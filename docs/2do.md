@@ -40,6 +40,7 @@ ___
         - [ ] :arrow_right_hook: :two: Morgan Projects: refine(JProfile & Scala) & Data volumn review
         - [ ] :arrow_right_hook: :three: CV
     - [ ] :arrow_right_hook: :seven: Big Data related stuffs
+        - [ ] :arrow_right_hook: :one: Scala interview questions
     - [ ] :arrow_right_hook: :eight: Apply for job positions   
 
 - [ ] :heart_eyes_cat: Plan as of now
