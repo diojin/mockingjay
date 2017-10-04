@@ -32,7 +32,7 @@
       + [AOE Critical Path](#aoe-critical-path)
       + [None Weight Shortest Path](#none-weight-shortest-path) 
       + [Positive Weight Shortest Path](#positive-weight-shortest-path)
-      + [Negtive Weight Shortest Path](#negtiveeight Shortest Path)  
+      + [Negtive Weight Shortest Path](#negtive-weight-shortest-path)  
       + [Shorest Path for all vertexes](#shorest-path-for-all-vertexes)     
       + [Minimum-cost Spanning Tree](#minimum-cost-spanning-tree)
       + [Reachability & Warshall Algorithm](#reachability--warshall-algorithm)
@@ -153,7 +153,7 @@ for ( i = n-1 to 1 ) {
 
 **Restore(K, start, end)**
 Assumption: both left and right subtree of K(start) are heap already
-Compare K(start) with the larger one (say K(larger)) of its left child( K(2*start + 1) ) and right child( K(2*start + 2) ),  if K(start) > K(larger), then it is already a heap, process ends, otherwise, swap K(start) with K(larger), and call R(K, larger, end)
+Compare K(start) with the larger one (say K(larger)) of its left child( `K(2*start + 1)` ) and right child( `K(2*start + 2)` ),  if K(start) > K(larger), then it is already a heap, process ends, otherwise, swap K(start) with K(larger), and call R(K, larger, end)
 
 **HeapSort(K, n)**
 Assumption: n is the length of K
@@ -430,17 +430,17 @@ Basicly, the input data is sorted for several rounds, same to the amount of digi
 **RadixSort(Q, n, p, r)**  
 Q: input data in a queue  
 n: size of input data  
-p: amount of digits of each element, should be same for each element
-r: Radix for each digit, for a decimal number, it is 2
+p: amount of digits of each element, should be same for each element  
+r: Radix for each digit, for a decimal number, it is 2  
 
-1. simply put input data in queue Q, create queues Q0, Q1, ..., Q(r-1) for each value for radix 
-2. For j = 0 to p-1 Do  
-    1. clear Q0, Q1, ..., Q(r-1)
-    2. While Q Not Empty Do
-            X <= Q
-            Get jth digit of X as D(j),  
-            Put X to Q(D(j))
-    3. Merge Q0, Q1,..., Q(r-1) intoto Q    
+1. simply put input data in queue Q, create queues Q0, Q1, ..., Q(r-1) for each value for radix   
+2. For j = 0 to p-1 Do     
+    1. clear Q0, Q1, ..., Q(r-1)   
+    2. While Q Not Empty Do   
+            X <= Q  
+            Get jth digit of X as D(j),    
+            Put X to Q(D(j))  
+    3. Merge Q0, Q1,..., Q(r-1) into Q    
 
 ```scala
   def radixSort(source: Array[String], radix: Int) {
@@ -479,7 +479,7 @@ Bucket sort works as follows:
 **Pseudo Code**  
 ```scala
 function bucketSort(array, n) is
-  buckets ← new array of n empty lists
+  buckets ← create an array of n empty lists
   for i = 0 to (length(array)-1) do
     insert array[i] into buckets[msbits(array[i], k)]
   for i = 0 to n - 1 do
@@ -491,14 +491,6 @@ Here array is the array to be sorted and n is the number of buckets to use. The 
 Note that for bucket sort to be O(n) on average, the number of buckets n must be equal to the length of the array being sorted, and the input array must be uniformly distributed across the range of possible bucket values. If these requirements are not met, the performance of bucket sort will be dominated by the running time of nextSort, which is typically O(n^2) insertion sort, making bucket sort less optimal than O(n\log(n)) comparison sort algorithms like Quicksort.
 
 A common optimization is to put the unsorted elements of the buckets back in the original array first, then run insertion sort over the complete array; because insertion sort's runtime is based on how far each element is from its final position, the number of comparisons remains relatively small, and the memory hierarchy is better exploited by storing the list contiguously in memory.
-
-
-外排序的一个例子是外归并排序（External merge sort），它读入一些能放在内存内的数据量，在内存中排序后输出为一个顺串（即是内部数据有序的临时文件），处理完所有的数据后再进行归并。[1][2]比如，要对 900 MB 的数据进行排序，但机器上只有 100 MB 的可用内存时，外归并排序按如下方法操作：  
-1. 读入 100 MB的数据至内存中，用某种常规方式（如快速排序、堆排序、归并排序等方法）在内存中完成排序。
-2. 将排序完成的数据写入磁盘。
-3. 重复步骤 1 和 2 直到所有的数据都存入了不同的 100 MB的块（临时文件）中。在这个例子中，有 900 MB 数据，单个临时文件大小为 100 MB，所以会产生 9 个临时文件。
-4. 读入每个临时文件（顺串）的前 10 MB （ = 100 MB / (9 块 + 1)）的数据放入内存中的输入缓冲区，最后的 10 MB 作为输出缓冲区。（实践中，将输入缓冲适当调小，而适当增大输出缓冲区能获得更好的效果。） 
-5. 执行九路归并算法，将结果输出到输出缓冲区。一旦输出缓冲区满，将缓冲区中的数据写出至目标文件，清空缓冲区。一旦9个输入缓冲区中的一个变空，就从这个缓冲区关联的文件，读入下一个10M数据，除非这个文件已读完。这是“外归并排序”能在主存外完成排序的关键步骤 -- 因为“归并算法”(merge algorithm)对每一个大块只是顺序地做一轮访问(进行归并)，每个大块不用完全载入主存。  
 
 ###### Value Distribution Sort
 Suppose value range of input dataset K is from u to v, [u, v]
@@ -514,17 +506,26 @@ S: output
 3. compute Count[i], which is the last index of elements whose value equal to i  
     For i = u+1 to v Do  
         COUNT[i] = COUNT[i] + Count[i-1]
-4. output to S  
-    For j = n-1 to 0 DO  {
-        i <- COUNT[Kj]
-        Si = Kj
-        COUNT[Kj] <- i-1
+4. output to S   
+    For j = n-1 to 0 DO  {   
+        i <- COUNT[Kj]   
+        Si = Kj   
+        COUNT[Kj] <- i-1   
     }
     
 ##### External Sort
-PS: Initial sorted segment(ISS): a data segment which can be loaded into memory and is sorted there by internal sort algorithm, size of ISS should be less than memory size.
+
+外排序的一个例子是外归并排序（External merge sort），它读入一些能放在内存内的数据量，在内存中排序后输出为一个顺串（即是内部数据有序的临时文件），处理完所有的数据后再进行归并。[1][2]比如，要对 900 MB 的数据进行排序，但机器上只有 100 MB 的可用内存时，外归并排序按如下方法操作：  
+1. 读入 100 MB的数据至内存中，用某种常规方式（如快速排序、堆排序、归并排序等方法）在内存中完成排序。
+2. 将排序完成的数据写入磁盘。
+3. 重复步骤 1 和 2 直到所有的数据都存入了不同的 100 MB的块（临时文件）中。在这个例子中，有 900 MB 数据，单个临时文件大小为 100 MB，所以会产生 9 个临时文件。
+4. 读入每个临时文件（顺串）的前 10 MB （ = 100 MB / (9 块 + 1)）的数据放入内存中的输入缓冲区，最后的 10 MB 作为输出缓冲区。（实践中，将输入缓冲适当调小，而适当增大输出缓冲区能获得更好的效果。） 
+5. 执行九路归并算法，将结果输出到输出缓冲区。一旦输出缓冲区满，将缓冲区中的数据写出至目标文件，清空缓冲区。一旦9个输入缓冲区中的一个变空，就从这个缓冲区关联的文件，读入下一个10M数据，除非这个文件已读完。这是“外归并排序”能在主存外完成排序的关键步骤 -- 因为“归并算法”(merge algorithm)对每一个大块只是顺序地做一轮访问(进行归并)，每个大块不用完全载入主存。  
+
+PS: **Initial sorted segment(ISS)**: a data segment which can be loaded into memory and is sorted there by internal sort algorithm, size of ISS should be less than memory size.
 
 Tape sort algorithm:  
+* Huffman Merge Algorithm  
 * Balanced Merge Sort
 * Multiple Channels Merge Sort
 * Fibonacci Merge Sort
@@ -607,9 +608,9 @@ Channel 4: R1 ~ R5000
 Because the the copy step, it needs double times of scan, 2 * ceil(log(P)(S)) (Here S is the size of initial files)
 
 **Complexity**:  
-Here S is the size of initial files, P is the number of channels, n is the total size of data       
+Here S is the number of initial files, P is the number of channels, n is the total size of data       
 Internal sorting: `O（S *(n/S)*log(n/S) ）`, assume that nlogn sorting algorithm is applied.  
-External sorting: `O((n/S) * 2 * ceil(log(P)(S))`, not accurate, assume that time for merging each pair of files is O(n/S)  
+External sorting: `O((n/S) * 2 * ceil(log(P,S))`, not accurate, assume that time for merging each pair of files is O(n/S) (here, log(S) is short for log(2, S)) 
 
 
 ###### Fibonacci Merge Sort
@@ -631,11 +632,13 @@ Round|  Tape 1      |     Tape 2        | Tape 3
 7    | ISS(21) * 1  | ---               | ---
 
 Rank P Fibonacci sequence are defined as:  
-F(n) = F(n-1) + F(n-2) + ... + F(n-P)
-F(m) = 0 ( 0 <= m <= P-2)
-F(P-1) = 1 
+F(n) = F(n-1) + F(n-2) + ... + F(n-P)  
+F(m) = 0 ( 0 <= m <= P-2)  
+F(P-1) = 1   
 
 #### Dynamic Planning
+[Back To Indexes](#indexes)   
+
 贪心和动态规划是有联系  
 贪心是“最优子结构+局部最优”，动态规划是“最优独立重叠子结构+全局最优”。一句话理解动态规划，则是枚举所有状态，然后剪枝，寻找最优状态，同时将每一次求解子问题的结果保存在一张“表格”中，以后再遇到重叠的子问题，从表格中保存的状态中查找（俗称记忆化搜索）。
 
@@ -664,8 +667,9 @@ s[i]没有落在T[0…j]中，即s[i]在中间的某一次编辑操作被删除�
 则要么s[i] == t[j]，s[i]直接落在T[j]  。这种情况，编辑操作实际上是将长度为i-1的S’串，编辑成长度为j-1的T’串：即dp[i-1][j-1]；  
 要么s[i] ≠ t[j]，s[i] 落在T[j]后，要将s[i]修改成T[j]，即在上一种情况的基础上，增加一次修改操作：即dp[i-1][j-1] + 1。  
 3. dp[i][j-1] + 1, 即s[i]在T[0…j-1]中, 插入操作  
-若s[i]落在了T[1…j-1]的某个位置，不妨认为是k，因为最小编辑步数的定义，那么，在k+1到j-1的字符，必然是通过插入新字符完成的(因为变化方式只有删除, 替换和插入, 没有同一个串的位置交换, 所以s[i]是变换的最末位字符)。因为共插入了(j-k)个字符，故编辑次数为(j-k)次。而字符串S[1…i]经过编辑，得到了T[1…k]，编辑次数为dp[i][k]。故： dp[i][j] = dp[i][k] + (j-k)。  
-由于最后的(j-k)次是插入操作，可以讲(j-k)逐次规约到dp[i][k]中。即：dp[i][k]+(j-k)=dp[i][k+1] + (j-k-1) 规约到插入操作为1次，得到 dp[i][k]+(j-k) =dp[i][k+1] + (j-k-1) =dp[i][k+2] + (j-k-2)=… =dp[i][k+(j-k-1)] + (j-k)-(j-k-1) =dp[i][j-1] + 1。  
+若s[i]落在了T[1…j-1]的某个位置，不妨认为是k，因为最小编辑步数的定义，那么，在k+1到j-1的字符，必然是通过插入新字符完成的(因为变化方式只有删除, 替换和插入, 没有同一个串内部的相互位置交换, 所以s[i]是变换的最末位字符)。因为共插入了(j-k)个字符，故编辑次数为(j-k)次。而字符串S[1…i]经过编辑，得到了T[1…k]，编辑次数为dp[i][k]。故： dp[i][j] = dp[i][k] + (j-k)。  
+由于最后的(j-k)次是插入操作，可以讲(j-k)逐次规约到dp[i][k]中。即：dp[i][k]+(j-k)=dp[i][k+1] + (j-k-1) 规约到插入操作为1次，得到 dp[i][k]+(j-k) =dp[i][k+1] + (j-k-1) =dp[i][k+2] + (j-k-2)=… =dp[i][k+(j-k-1)] + (j-k)-(j-k-1) =dp[i][j-1] + 1。   
+也可以有个再简单的理解方法, 可以认为是把S[0..i]变成T[0..j-1]然后再插入T[j], 因为S[i](的变换)落在T[0…j-1]中  
 
 算法复杂度: O(N^2)  
 
@@ -780,6 +784,7 @@ dp[i][j] = min {
 
 
 ### Data Structure
+[Back To Indexes](#indexes)   
 #### Tree
 层数: 从根节点到某个结点的路径长度叫做结点的层数, 根节点的层数为0  
 树的高度: 树中的节点的最大层数
@@ -800,7 +805,7 @@ dp[i][j] = min {
 * 如果已知二叉树的先根次序和各结点的次数, 可以唯一确定一棵二叉树
 * 对于树和森林的顺序存储, 还可以采用后根次序和层次次序来进行存储
 * 同时知道先根顺序和中根顺序, 或者同时知道后根顺序和中根顺序, 都可以唯一确定树形
-* 同时知道先根顺序和厚根顺序, 无法确定唯一的树形
+* 同时知道先根顺序和后根顺序, 无法确定唯一的树形
 
 **Binary Tree Definition**  
 ```scala
@@ -937,7 +942,7 @@ stack implementation:
 ```
 
 ##### Tree & Forest
-By using 2 pointer fiels to express a forest, that is, firstChild and nextBrother,  a forest can be converted to a binary tree, vice verse, the cardinal of the relationship is 1:1
+By using 2 pointer fiels to express a forest, that is, firstChild and nextBrother(not firstChild's brother, but its same level brother),  a forest can be converted to a binary tree, vice verse, the cardinal of the relationship is 1:1
 
 **Tree & Forest Definition**  
 ```scala
@@ -1376,7 +1381,8 @@ vl(n) = ve(n)
 2. 按拓扑排序的顺序, 计算各个顶点的最早开始时间, 计算方法是  
 ve(0) = 0   
 ve(j) = max{ ve(i) + weight(<Vi, Vj>) } if there is edge <Vi, Vj>   
-3. 计算(按拓扑排序)最后顶点n的vl(n): vl(n) = ve(n)  
+3. 计算(按拓扑排序)最后顶点n的vl(n):   
+vl(n) = ve(n)  
 4. 按拓扑排序的逆序, 计算各个顶点的最晚开始时间, 计算方法是  
 vl(n) = ve(n)  
 vl(i) = min { vl(j) - weight(<Vi, Vj>) } if there is edge <Vi, Vj>   
@@ -1425,8 +1431,8 @@ dist[]数组用于记录开销
 
 **Negtive Weight Shortest Path Algorithm**  
 1. 初始化阶段, 源点S入队, 并令dist[S] = 0, scratch[S] = -1, path[S] = -1. 对于其他顶点v, dist[v] = max, scratch[v] = 0,  path[v] = -1
-2. 从队列中弹出一个顶点v, 如果scratch[v] > 2n, 则终止算法, 标明有负开销回路, 否则, 计算如下,   
-    1. 遍历v的所有邻接顶点k, 对于每一个k, 计算如下,   
+2. 从队列中弹出一个顶点v, scratch[v]++, 并且计算如下,   
+    1. 遍历v的所有邻接顶点k, 对于每一个k, 计算如下,     
         1. if ( dist[v] + weight(v, k) < dist[k] ) {   
               if ( scratch[k] 是偶数 ) {  
                  表示k不在队列里面   
@@ -1438,11 +1444,15 @@ dist[]数组用于记录开销
                     scratch[k] = scratch[v] + 1   
                  }  
               }  
+              if (scratch[k] > 2n){
+                终止算法, 标明有负开销回路
+              }
               dist[k] = dist[v] + weight(v, k)    
               path[k] = v  
             }   
            }    
 
+Complexity: O(n*e)  
 
 ##### Shorest Path for all vertexes
 * an alternative way, execute Dijkstra algorithm for each vertex, complexity is o(n^3)
@@ -1699,7 +1709,7 @@ Dynamo通过Vector Clock来构建同一对象多个事件的部分有序的时�
 需要特别说明的是，`Vector Clock能解决分布式系统多版本合并的问题, 但是对于确实发生冲突的版本，它无法合并，而需要用户自己去做合并`
 
 [For more information 2][distributed_vector_clock_2]  
-A vector clock is an algorithm for `generating a partial ordering of events in a distributed system` and `detecting causality violations`. Just as in Lamport timestamps, interprocess messages contain the state of the sending process's logical clock. A vector clock of a system of N processes is anarray/vector of N logical clocks, one clock per process; a local "smallest possible values" copy of the global clock-array is kept in each process, with the following rules for clock updates:
+A vector clock is an algorithm for `generating a partial ordering of events in a distributed system` and `detecting causality violations`. Just as in Lamport timestamps, interprocess messages contain the state of the sending process's logical clock. A vector clock of a system of N processes is an array/vector of N logical clocks, one clock per process; a local "smallest possible values" copy of the global clock-array is kept in each process, with the following rules for clock updates:
 * Initially all clocks are zero.
 * Each time a process experiences an internal event, it increments its own logical clock in the vector by one.
 * Each time a process prepares to send a message, it sends its entire vector along with the message being sent.
@@ -1870,7 +1880,7 @@ Conclusion is the same as before, however, there are differences on version valu
     根据经验值，对64位的 SimHash值，海明距离在3以内的可认为相似度比较高。  
 
     如何在海量的样本库中查询与其海明距离在3以内的文章呢？  
-    一种方案是查找待查询文本的64位simhash code的所有3位以内变化的组合(四万多次,组合值C(64)(3) )  
+    一种方案是查找待查询文本的64位simhash code的所有3位以内变化的组合(四万多次查询,组合值C(64)(3) )  
     另一种方案是预生成库中所有样本simhash code的3位变化以内的组合(大约需要占据4万多倍的原始空间)  
 
     我们可以把 64 位的二进制simhash签名均分成4块，每块16位。如果两个签名的海明距离在 3 以内，它们至少有一块完全相同.   
@@ -1914,7 +1924,7 @@ Conclusion is the same as before, however, there are differences on version valu
 
 ###### Top K problem
 海量数据中搜最大的前K个数, 出现频率最高的前K个数  
-通常是分治法+Trie树或者Hash法+堆  
+通常是分治法+(Trie树或者Hash法)+堆  
 Hash法在这里用于统计频率或去重  
 
 * 1亿个浮点数, 取其中最大的10000个  
@@ -2043,11 +2053,12 @@ object BitmapAlgorithm extends App {
 
 **log不写底数默认是多少**    
 普通应用都是10，计算机学科是2，算法是2, 编程语言里面是e。  
-高中数学log不允许不写底数。但是有lg=log10和ln=lne。
-
-2^10 = 1,024                KB
-2^20 = 1,048,576            MB
-2^30 = 1,073,741,824        GB
+高中数学log不允许不写底数。但是有lg=log10和ln=loge。
+value                      |corresponding scale
+---------------------------|----------------------
+2^10 = 1,024               |KB
+2^20 = 1,048,576           |MB
+2^30 = 1,073,741,824       |GB
 
 * 递归很适合各种逆序的操作, 比如逆序打印字符串, 链表等等    
 

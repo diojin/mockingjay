@@ -29,10 +29,10 @@ ___
         - [x] :arrow_right_hook: :three: ~~Database~~
         - [x] :arrow_right_hook: :four: ~~Framework~~
         - [x] :arrow_right_hook: :five: ~~Understanding the JVM~~ 
-    - [ ] :arrow_right_hook: :two: Scala for the impatients  
+    - [x] :arrow_right_hook: :two: ~~Scala for the impatients~~  
     - [ ] :arrow_right_hook: :three: 程序员宝典  
     - [ ] :arrow_right_hook: :four: Algorithms
-        - [ ] :arrow_right_hook: :one: go over what's been prepared
+        - [x] :arrow_right_hook: :one: ~~go over what's been prepared~~
         - [ ] :arrow_right_hook: :two: check new algorithm for some time every day
     - [ ] :arrow_right_hook: :five: Java concurrency in Action
     - [ ] :arrow_right_hook: :six: Coupang & Morgan Project

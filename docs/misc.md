@@ -12,6 +12,7 @@
     - [Misc](#shell-misc)
         + [System Variables](#shell-system-variables)
 * [Others](#others)
+    - [MarkDown Language](#markdown-language)
 
 ### Design Pattern
 
@@ -208,6 +209,7 @@ D类IP地址第一个字节以“lll0”开始，它是一个专门保留的地�
 #### Shell Misc
 ##### Shell System Variables
 
+```shell
 Variable|Usage
 --------|----------------------------------------
 $0      |当前脚本的文件名
@@ -220,5 +222,16 @@ $$      |当前shell进程的pid
 $!      |后台运行的最后一个进程的pid(上一个命令的PID)
 $-      |显示shell使用的当前选项
 $_      |之前命令的最后一个参数
+```
 
 ### Others
+#### MarkDown Language
+**How to jump to internal link**  
+```xml
+[Back To Indexes](#indexes)   
+[for comprehension](#for-comprehension)
+```
+
+
+---
+
