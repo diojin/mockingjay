@@ -23,14 +23,14 @@ ___
 
 - [ ] :heart_eyes_cat: go over session from 2017-09-17
     - [ ] :arrow_right_hook: :one: Browse IT market news every day
-    - [ ] :arrow_right_hook: :one: Go over other preparation stuffs
+    - [x] :arrow_right_hook: :one: ~~Go over other preparation stuffs~~
         - [x] :arrow_right_hook: :one: ~~Java Basic~~
         - [x] :arrow_right_hook: :two: ~~Distributed~~
         - [x] :arrow_right_hook: :three: ~~Database~~
         - [x] :arrow_right_hook: :four: ~~Framework~~
         - [x] :arrow_right_hook: :five: ~~Understanding the JVM~~ 
     - [x] :arrow_right_hook: :two: ~~Scala for the impatients~~  
-    - [ ] :arrow_right_hook: :three: 程序员宝典  
+    - [x] :arrow_right_hook: :three: ~~程序员宝典~~  
     - [ ] :arrow_right_hook: :four: Algorithms
         - [x] :arrow_right_hook: :one: ~~go over what's been prepared~~
         - [ ] :arrow_right_hook: :two: check new algorithm for some time every day
