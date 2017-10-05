@@ -27,7 +27,7 @@
         + [Ad-hoc thread confinement](#ad-hoc-thread-confinement)
         + [Stack confinement](#stack-confinement)
         + [ThreadLocal](#threadlocal)
-    - [3.4 Immutability](34-immutability)
+    - [3.4 Immutability](#34-immutability)
         + [Immutable objects can sometimes provide a weak form of atomicity](#immutable-objects-can-sometimes-provide-a-weak-form-of-atomicity)
     - [3.5 Safe Publication](#35-safe-publication)
         + [Immutable objects and initialization safety](#immutable-objects-and-initialization-safety)  
@@ -50,9 +50,31 @@
         + [Iterators and Concurrentmodificationexception](#iterators-and-concurrentmodificationexception)
     - [5.2 Concurrent collection](#52-concurrent-collection)
         + [ConcurrentHashMap](#concurrenthashmap)
+        + [CopyOnWriteArrayList](#copyonwritearraylist)
+        + [BlockingQueue](#blockingqueue)
+        + [serial thread confinement](#serial-thread-confinement)
+        + [Deques and Work Stealing](#deques-and-work-stealing)
+    - [5.4 Blocking and Interruptible Methods](#54-blocking-and-interruptible-methods)
+    - [5.5 Synchronizers](#55-synchronizers)
+        + [Latches](#latches)
+        + [FutureTask](#futuretask)
+        + [Semaphores](#semaphores)
+        + [Mutex](#mutex)
+        + [Barrier](#barrier)
+            * [CylicBarrier](#cylicbarrier)
+            * [Exchanger](#exchanger)
+    - [Case study, implementing Cache](##case-study-implementing-cache)
+* [6. Task Execution](#6-task-execution)
+    - [6.1 Executing Tasks in Threads](#61-executing-tasks-in-threads)
+    - [6.2 The Executor Framework](#62-the-executor-framework)
+        + [Thread Pools](#thread-pools)
+        + [Executor Lifecycle](#executor-lifecycle)
+        + [Delayed and Periodic Tasks](#delayed-and-periodic-tasks)
 * [Miscellaneous](#miscellaneous)
 
 ## 2. Thread Safety  
+[Back To Indexes](#indexes)   
+
 ### Racing condition VS Data Race  
 A race condition occurs when the correctness of a computation depends on the relative timing or interleaving of multiple threads by the runtime; in other words, when getting the right answer relies on lucky timing.  
 
@@ -172,6 +194,8 @@ Intrinsic locking can be used to guarantee that one thread sees the effects of a
 We can now give the other reason for the rule requiring all threads to synchronize on the same lock when accessing a shared mutable variable to guarantee that values written by one thread are made visible to other threads. Otherwise, if a thread reads a variable without holding the appropriate lock, it might see a stale value.
 
 ### Volatile Variables
+[Back To Indexes](#indexes)   
+
 The Java language also provides an alternative, weaker form of synchronization, volatile variables, to ensure that updates to a variable are propagated predictably to other threads.  
 
 1. Prevent reordering  
@@ -181,7 +205,7 @@ When a field is declared volatile, the compiler and runtime are put on notice th
 Volatile variables are not cached in registers or in caches where they are hidden from other processors, so a read of a volatile variable always returns the most recent write by any thread.  
 PS: Indeed it is implemented by memory barrier, which invalid caches in other threads or CPU  
 
-3. Lightweight
+3. Lightweight  
 Yet accessing a volatile variable performs no locking and so cannot cause the executing thread to block, making volatile variables a lighter-weight synchronization mechanism than synchronized.[5]  
 [5] Volatile reads are only slightly more expensive than nonvolatile reads on most current processor architectures.
 
@@ -486,7 +510,7 @@ Because immutable objects are so important, the `Java Memory Model` offers a spe
 `This guarantee extends to the values of all final fields of properly constructed objects`; `final fields can be safely accessed without additional synchronization.` However, if final fields refer to mutable objects, synchronization is still required to access the state of the objects they refer to.
 
 #### Safe Publication Idioms
-Objects that are not immutable must be safely published, which usually entails synchronization by both the publishing and the consuming thread.   
+Objects that are not immutable must be safely published, which usually entails `synchronization by both the publishing and the consuming thread`.   
 
 For the moment, let's focus on ensuring that the consuming thread can see the object in its as published state; we'll deal with visibility of modifications made after publication soon.  
 
@@ -516,6 +540,7 @@ Static initializers are executed by the JVM at class initialization time; becaus
 3. Mutable objects must be safely published, and must be either threadsafe or guarded by a lock.
 
 ## 4. Composing Objects
+[Back To Indexes](#indexes)   
 ### 4.1 Designing a Thread-safe Class
 Encapsulation makes it possible to determine that a class is thread-safe without having to examine the entire program.  
 
@@ -642,7 +667,7 @@ PS: Indeed it can't guarantee the caller to constructor SafePoint(int x, int y) 
 2. Another approach is to extend the class, assuming it was designed for extension.  
     Extension is more fragile than adding code directly to a class, because the implementation of the synchronization policy is now distributed over multiple, separately maintained source files. If the underlying class were to change its synchronization policy by choosing a different lock to guard its state variables, the subclass would subtly and silently break, because it no longer used the right lock to control concurrent access to the base class's state.
 3. Client-side locking(or external locking)  
-    A third strategy is to extend the functionality of the class without extending the class itself by placing extension code in a "helper" class.  
+    A third strategy is to extend the functionality of the class without extending the class itself by `placing extension code in a "helper" class`.  
 
 **Listing 4.14. Non-thread-safe Attempt to Implement Put-if-absent. Don't Do this**  
 ```java
@@ -817,8 +842,7 @@ ConcurrentHashMap is a hash-based Map like HashMap, but it uses an entirely diff
 ConcurrentHashMap, along with the other concurrent collections, further improve on the synchronized collection classes by providing iterators that do not throw ConcurrentModificationException, thus eliminating the need to lock the collection during iteration. The iterators returned by ConcurrentHashMap are weakly consistent instead of fail-fast. A weakly consistent iterator can tolerate concurrent modification, traverses elements as they existed when the iterator was constructed, and may (but is not guaranteed to) reflect modifications to the collection after the construction of the iterator.
 
 3. The semantics of methods that operate on the entire Map is weakened  
-As with all improvements, there are still a few tradeoffs. The semantics of methods that operate on the entire Map, such as size and isEmpty, have been slightly weakened to reflect the concurrent nature of the collection. Since the result of size could be out of date by the time it is computed, it is really only an estimate, so size is allowed to return an approximation instead of an exact count.  
-
+As with all improvements, there are still a few tradeoffs. The semantics of methods that operate on the entire Map, such as size and isEmpty, have been slightly weakened to reflect the concurrent nature of the collection. Since the result of size could be out of date by the time it is computed, it is really only an estimate, so size is allowed to return an approximation instead of an exact count.   
 While at first this may seem disturbing, in reality methods like size and isEmpty are far less useful in concurrent environments because these quantities are moving targets. So the requirements for these operations were weakened to enable performance optimizations for the most important operations, primarily get, put, containsKey, and remove.  
 
 4. no support for client side locking  
@@ -831,46 +855,51 @@ On the whole, though, this is a reasonable tradeoff: concurrent collections shou
 Because it has so many advantages and so few disadvantages compared to Hashtable or synchronizedMap, replacing synchronized Map implementations with ConcurrentHashMap in most cases results only in better scalability. Only if your application needs to lock the map for exclusive access[3] is ConcurrentHashMap not an appropriate drop-in replacement.  
 [3] Or if you are relying on the synchronization side effects of the synchronizedMap implementations.
 
-6, CopyOnWriteArrayList
-CopyOnWriteArrayList is a concurrent replacement for a synchronized List that offers better concurrency in some common situations and eliminates the need to lock or copy the collection during iteration. (Similarly, CopyOnWriteArraySet is a concurrent replacement for a synchronized Set.)
+#### CopyOnWriteArrayList  
+CopyOnWriteArrayList is a concurrent replacement for a synchronized List that offers better concurrency in some common situations and `eliminates the need to lock or copy the collection during iteration`. (Similarly, CopyOnWriteArraySet is a concurrent replacement for a synchronized Set.)
 
 They implement mutability by creating and republishing a new copy of the collection every time it is modified. Iterators for the copy-on-write collections retain a reference to the backing array that was current at the start of iteration, and since this will never change, they need to synchronize only briefly to ensure visibility of the array contents. ?
 
-The iterators returned by the copy-on-write collections do not throw ConcurrentModificationException and return the elements exactly as they were at the time the iterator was created, regardless of subsequent modifications.
+The iterators returned by the copy-on-write collections do not throw ConcurrentModificationException and return the elements exactly as they were at the time the iterator was created, `regardless of subsequent modifications`.
 
-Obviously, there is some cost to copying the backing array every time the collection is modified, especially if the collection is large; the copy-on-write collections are reasonable to use only when iteration is far more common than modification. This criterion exactly describes many event-notification systems: delivering a notification requires iterating the list of registered listeners and calling each one of them, and in most cases registering or unregistering an event listener is far less common than receiving an event notification.
+Obviously, there is some cost to copying the backing array every time the collection is modified, especially if the collection is large; `the copy-on-write collections are reasonable to use only when iteration is far more common than modification`. This criterion exactly describes many event-notification systems: delivering a notification requires iterating the list of registered listeners and calling each one of them, and in most cases registering or unregistering an event listener is far less common than receiving an event notification.
 
-7, BlockingQueue implementation
+#### BlockingQueue
 
 Build resource management into your design early using blocking queues it is a lot easier to do this up front than to retrofit it later. Blocking queues make this easy for a number of situations, but if blocking queues don't fit easily into your design, you can create other blocking data structures using
-Semaphore (see Section 5.5.3).
+**Semaphore** (see Section 5.5.3).
 
-The class library contains several implementations of BlockingQueue. LinkedBlockingQueue and ArrayBlockingQueue are FIFO queues,analogous to LinkedList and ArrayList but with better concurrent performance than a synchronized List. PriorityBlockingQueue is a priority-ordered queue, which is useful when you want to process elements in an order other than FIFO.
+The class library contains several implementations of BlockingQueue. **LinkedBlockingQueue** and **ArrayBlockingQueue** are FIFO queues,analogous to LinkedList and ArrayList but with better concurrent performance than a synchronized List. **PriorityBlockingQueue** is a priority-ordered queue, which is useful when you want to process elements in an order other than FIFO.
 
-The last BlockingQueue implementation, SynchronousQueue, is not really a queue at all, in that it maintains no storage space for queued elements. Instead, it maintains a list of queued threads waiting to enqueue or dequeue an element. In the dish-washing analogy,this would be like having no dish rack, but instead handing the washed dishes directly to the next available dryer. While this may seem a strange way to implement a queue, it reduces the latency associated with moving data from producer to consumer because the work can be handed off directly. (In a traditional queue, the enqueue and dequeue operations must complete sequentially before a unit of work can be handed off.) The direct handoff also feeds back more information about the state of the task to the producer; when the handoff is accepted, it knows a consumer has taken responsibility for it, rather than simply letting it sit on a queue somewhere much like the difference between handing a document to a colleague and merely putting it in her mailbox and hoping she gets it soon. Since a SynchronousQueue has no storage capacity, put and take will block unless another thread is already waiting to participate in the handoff. Synchronous queues are generally suitable only when there are enough consumers that there nearly always will be one ready to take the handoff.
+The last BlockingQueue implementation, **SynchronousQueue**, is not really a queue at all, in that it `maintains no storage space for queued elements`. Instead, it `maintains a list of queued threads waiting to enqueue or dequeue an element`. In the dish-washing analogy,this would be like having no dish rack, but instead handing the washed dishes directly to the next available dryer. While this may seem a strange way to implement a queue, it `reduces the latency associated with moving data from producer to consumer because the work can be handed off directly`. (In a traditional queue, the enqueue and dequeue operations must complete sequentially before a unit of work can be handed off.) `The direct handoff also feeds back more information about the state of the task to the producer`; when the handoff is accepted, it knows a consumer has taken responsibility for it, rather than simply letting it sit on a queue somewhere much like the difference between handing a document to a colleague and merely putting it in her mailbox and hoping she gets it soon. Since a SynchronousQueue has no storage capacity, put and take will block unless another thread is already waiting to participate in the handoff. `Synchronous queues are generally suitable only when there are enough consumers that there nearly always will be one ready to take the handoff`.
 
-8, benefit of producer-consumer pattern
-The producer-consumer pattern also enables several performance benefits. Producers and consumers can execute concurrently; if one is I/O-bound and the other is CPU-bound, executing them concurrently yields better overall throughput than executing them sequentially.
+**benefit of producer-consumer pattern**  
+The producer-consumer pattern also enables several performance benefits. Producers and consumers can execute concurrently; if one is I/O-bound and the other is CPU-bound, executing them concurrently `yields better overall throughput` than executing them sequentially.
 
-9, serial thread confinement
-For mutable objects, producer-consumer designs and blocking queues facilitate serial thread confinement for handing off ownership of objects from producers to consumers. A thread-confined object is owned exclusively by a single thread, but that ownership can be "transferred" by publishing it safely where only one other thread will gain access to it and ensuring that the publishing thread does not access it after the handoff. The safe publication ensures that the object's state is visible to the new owner, and since the original owner will not touch it again, it is now confined to the new thread. The new owner may modify it freely since it has exclusive access.
+#### serial thread confinement
+For mutable objects, producer-consumer designs and blocking queues facilitate serial thread confinement for handing off ownership of objects from producers to consumers. `A thread-confined object is owned exclusively by a single thread, but that ownership can be "transferred" by publishing it safely where only one other thread will gain access to it and ensuring that the publishing thread does not access it after the handoff`. The safe publication ensures that the object's state is visible to the new owner, and since the original owner will not touch it again, it is now confined to the new thread. The new owner may modify it freely since it has exclusive access.
 
 Object pools exploit serial thread confinement, "lending" an object to a requesting thread. As long as the pool contains sufficient internal synchronization to publish the pooled object safely, and as long as the clients do not themselves publish the pooled object or use it after returning it to the pool, ownership can be transferred safely from thread to thread
 One could also use other publication mechanisms for transferring ownership of a mutable object, but it is necessary to ensure that only one thread receives the object being handed off. Blocking queues make this easy; with a little more work, it could also done with the atomic remove method of ConcurrentMap or the compareAndSet method of AtomicReference.
 
-10, Deques and Work Stealing
+#### Deques and Work Stealing
 
-Just as blocking queues lend themselves to the producer-consumer pattern, deques lend themselves to a related pattern called work stealing. A producer consumer design has one shared work queue for all consumers; in a work stealing design, every consumer has its own deque. If a consumer exhausts the work in its own deque, it can steal work from the tail of someone else's deque. Work stealing can be more scalable than a traditional producer-consumer design because workers don't contend for a shared work queue; most of the time they access only their own deque, reducing contention. When a worker has to access another's queue, it does so from the tail rather than the head, further reducing contention.
+Just as blocking queues lend themselves to the producer-consumer pattern, `deques lend themselves to a related pattern called work stealing`. A producer consumer design has one shared work queue for all consumers; `in a work stealing design, every consumer has its own deque. If a consumer exhausts the work in its own deque, it can steal work from the tail of someone else's deque`. `Work stealing can be more scalable than a traditional producer-consumer design` because workers don't contend for a shared work queue; most of the time they access only their own deque, reducing contention. When a worker has to access another's queue, it does so from the tail rather than the head, further reducing contention.
 
-Work stealing is well suited to problems in which consumers are also producers when performing a unit of work is likely to result in the identification of more work. For example, processing a page in a web crawler usually results in the identification of new pages to be crawled. Similarly, many graph-exploring algorithms, such as marking the heap during garbage collection, can be efficiently parallelized using work stealing. When a worker identifies a new unit of work, it places it at the end of its own deque (or alternatively, in a work sharing design, on that of another worker); when its deque is empty, it looks for work at the end of someone else's deque, ensuring that each worker stays busy
+`Work stealing is well suited to problems in which consumers are also producers when performing a unit of work is likely to result in the identification of more work`. For example, processing a page in a `web crawler` usually results in the identification of new pages to be crawled. Similarly, many graph-exploring algorithms, such as marking the heap during garbage collection, can be efficiently parallelized using work stealing. When a worker identifies a new unit of work, it places it at the end of its own deque (or alternatively, in a work sharing design, on that of another worker); when its deque is empty, it looks for work at the end of someone else's deque, ensuring that each worker stays busy
 
-11, Blocking and Interruptible Methods
-Threads may block, or pause, for several reasons: waiting for I/O completion, waiting to acquire a lock, waiting to wake up from Thread.sleep, or waiting for the result of a computation in another thread. When a thread blocks, it is usually suspended and placed in one of the blocked thread states (BLOCKED, WAITING, or TIMED_WAITING).
+### 5.4 Blocking and Interruptible Methods
 
-12,
 Thread provides the interrupt method for interrupting a thread and for querying whether a thread has been interrupted. Each thread has a boolean property that represents its interrupted status; interrupting a thread sets this status.
 
-13, Listing 5.10. Restoring the Interrupted Status so as Not to Swallow the Interrupt.
+When your code calls a method that throws InterruptedException, then your method is a blocking method too, and must have a plan for responding to interruption. For library code, there are basically two choices:  
+1. Propagate the InterruptedException.  
+This is often the most sensible policy if you can get away with it just propagate the InterruptedException to your caller. This could involve not catching InterruptedException, or catching it and throwing it again after performing some brief activity-specific cleanup.
+2. Restore the interrupt.   
+`Sometimes you cannot throw InterruptedException, for instance when your code is part of a Runnable`. In these situations, you must catch InterruptedException and restore the interrupted status by calling interrupt on the current thread, so that code higher up the call stack can see that an interrupt was issued, as demonstrated in Listing 5.10.
+
+**Listing 5.10. Restoring the Interrupted Status so as Not to Swallow the Interrupt.**  
+```java
 public class TaskRunnable implements Runnable {
     BlockingQueue<Task> queue;
 
@@ -883,22 +912,16 @@ public class TaskRunnable implements Runnable {
         }
     }
 }
+```
 
-When your code calls a method that throws InterruptedException, then your method is a blocking method too, and must have a plan for responding to interruption. For library code, there are basically two choices:
+### 5.5 Synchronizers
+A synchronizer is any object that coordinates the control flow of threads based on its state. Blocking queues can act as synchronizers; other types of synchronizers include **semaphores**, **barriers**, and **latches**.
 
-a, Propagate the InterruptedException. This is often the most sensible policy if you can get away with it just propagate the InterruptedException to your caller. This could involve not catching InterruptedException, or catching it and throwing it again after performing some brief activity-specific cleanup.
-b, Restore the interrupt. Sometimes you cannot throw InterruptedException, for instance when your code is part of a Runnable. In these situations, you must catch InterruptedException and restore the interrupted status by calling interrupt on the current thread, so that code higher up the call stack can see that an interrupt was issued, as demonstrated in Listing 5.10.
+#### Latches
+A latch is a synchronizer that can delay the progress of threads until it reaches its terminal state [CPJ 3.4.2]. A latch acts as a gate: until the latch reaches the terminal state the gate is closed and no thread can pass, and in the terminal state the gate opens, allowing all threads to pass. Once the latch reaches the terminal state, it cannot change state again, so it remains open forever. Latches can be used to ensure that certain activities do not proceed until other one-time activities complete
 
-14, Synchronizers
-A synchronizer is any object that coordinates the control flow of threads based on its state. Blocking queues can act as synchronizers; other types of synchronizers include semaphores, barriers, and latches.
-
-15, Latches
-
-A latch is a synchronizer that can delay the progress of threads until it reaches its terminal state [CPJ 3.4.2]. A latch acts as a gate: until the latch reaches the terminal state the gate is closed and no thread can pass, and in the terminal state the gate opens, allowing all threads to pass. Once the latch reaches the terminal state, it cannot change state again, so it remains open forever. Latches can be
-used to ensure that certain activities do not proceed until other one-time activities complete
-
-15.1 
-Listing 5.11. Using CountDownLatch for Starting and Stopping Threads in Timing Tests
+**Listing 5.11. Using CountDownLatch for Starting and Stopping Threads in Timing Tests**  
+```java
 public class TestHarness {
     public long timeTasks(int nThreads, final Runnable task)
             throws InterruptedException {
@@ -918,7 +941,6 @@ public class TestHarness {
                     }
                 }
             };
-            
             t.start();
         }
         long start = System.nanoTime();
@@ -928,45 +950,47 @@ public class TestHarness {
         return end - start;
     }
 }
+```
 
-16, FutureTask
-
+#### FutureTask
 FutureTask also acts like a latch. (FutureTask implements Future, which describes an abstract result-bearing computation [CPJ 4.3.3].) A computation represented by a FutureTask is implemented with a Callable, the result-bearin
-g equivalent of Runnable, and can be in one of three states: waiting to run, running, or completed.Completion subsumes all the ways a computation can complete, including normal
-completion, cancellation, and exception.
+g equivalent of Runnable, and can be in one of three states: waiting to run, running, or completed. Completion subsumes all the ways a computation can complete, including normal completion, cancellation, and exception.
 
-class FutureTask<V> implements RunnableFuture<V>
-interface RunnableFuture<V> extends Runnable, Future<V>
+```java
+class FutureTask<V> implements RunnableFuture<V> 
+interface RunnableFuture<V> extends Runnable, Future<V> {...}
+```
 
-The behavior of Future.get depends on the state of the task. If it is completed, get returns the result immediately, and otherwise blocks until the task transitions to the completed state and then returns the result or throws an exception. FutureTask conveys the result from the thread executing the computation to the thread(s) retrieving the result; the specification of FutureTask guarantees that this transfer
-constitutes a safe publication of the result.
+The behavior of Future.get depends on the state of the task. If it is completed, get returns the result immediately, and otherwise blocks until the task transitions to the completed state and then returns the result or throws an exception. FutureTask conveys the result from the thread executing the computation to the thread(s) retrieving the result; the specification of FutureTask guarantees that this transfer constitutes a safe publication of the result.
 
-1, Semaphores
+#### Semaphores
 Counting semaphores are used to control the number of activities that can access a certain resource or perform a given action at the same time [CPJ 3.4.1]. Counting semaphores can be used to implement resource pools or to impose a bound on a collection.
 
-2, Mutex
-A degenerate case of a counting semaphore is a binary semaphore, a Semaphore with an initial count of one. A binary semaphore can be used as a mutex with nonreentrant locking semantics; whoever holds the sole permit holds the mutex.
+#### Mutex
+A degenerate case of a counting semaphore is a binary semaphore, a Semaphore with an initial count of one. A binary semaphore can be used as a mutex with `nonreentrant locking semantics`; whoever holds the sole permit holds the mutex.
 
-3, Barriers
+#### Barriers
 We have seen how latches can facilitate starting a group of related activities or waiting for a group of related activities to complete. Latches are single-use objects; once a latch enters the terminal state, it cannot be reset.
 
-Barriers are similar to latches in that they block a group of threads until some event has occurred [CPJ 4.4.3]. The key difference is that with a barrier, all the threads must come together at a barrier point at the same time in order to proceed. Latches are for waiting for events; barriers are for waiting for other threads. A barrier implements the protocol some families use to rendezvous during a day at the
-mall: "Everyone meet at McDonald's at 6:00; once you get there, stay there until everyone shows up, and then we'll figure out what we're doing next."
+`Barriers are similar to latches in that they block a group of threads until some event has occurred [CPJ 4.4.3]`. The key difference is that with a barrier, all the threads must come together at a barrier point at the same time in order to proceed. Latches are for waiting for events; `barriers are for waiting for other threads`. A barrier implements the protocol some families use to rendezvous during a day at the mall: "Everyone meet at McDonald's at 6:00; once you get there, stay there until everyone shows up, and then we'll figure out what we're doing next."   
 
-CyclicBarrier allows a fixed number of parties to rendezvous repeatedly at a barrier point and is useful in parallel iterative algorithms that break down a problem into a fixed number of independent subproblems. Threads call await when they reach the barrier point, and await blocks until all the threads have reached the barrier point. If all threads meet at the barrier point, the barrier has been successfully passed, in which case all threads are released and the barrier is reset so it can be used again. If a call to await times out or a thread blocked in await is interrupted, then the barrier is considered broken and all outstanding calls to await terminate with BrokenBarrierException. If the barrier is successfully passed, await returns a unique arrival index for each thread, which can be used to "elect" a leader that takes some special action in the next iteration. CyclicBarrier also lets you pass a barrier action to the constructor; this is a Runnable that is executed (in one of the subtask threads) when the barrier is successfully passed but before the blocked threads are released.
+##### CylicBarrier
+**CyclicBarrier** allows a fixed number of parties to rendezvous `repeatedly` at a barrier point and is useful in **parallel iterative algorithms** that break down a problem into a fixed number of independent subproblems. Threads call await when they reach the barrier point, and await blocks until all the threads have reached the barrier point. If all threads meet at the barrier point, the barrier has been successfully passed, in which case all threads are released and the barrier is reset so it can be used again. If a call to await times out or a thread blocked in await is interrupted, then the barrier is considered broken and all outstanding calls to await terminate with BrokenBarrierException. If the barrier is successfully passed, await returns a unique arrival index for each thread, which can be used to "elect" a leader that takes some special action in the next iteration. CyclicBarrier also lets you pass a barrier action to the constructor; this is a Runnable that is executed (in one of the subtask threads) when the barrier is successfully passed but before the blocked threads are released.
 
-4, CellularAutomata, case study
+**CellularAutomata, case study**  
 CellularAutomata in Listing 5.15 demonstrates using a barrier to compute a cellular automata simulation, such as Conway's Life game (Gardner, 1970). When parallelizing a simulation, it is generally impractical to assign a separate thread to each element (in the case of Life, a cell); this would require too many threads, and the overhead of coordinating them would dwarf the computation. Instead, it makes sense to partition the problem into a number of subparts, let each thread solve a subpart, and then merge the results. CellularAutomata partitions the board into Ncpu parts, where Ncpu is the number of CPUs available, and assigns each part to a thread.[5] 
 
-[5] For computational problems like this that do no I/O and access no shared data, Ncpu or Ncpu + 1 threads yield optimal throughput; more threads do not help, and may in fact degrade performance as the threads compete for CPU and memory resources.
+[5] `For computational problems like this that do no I/O and access no shared data, Ncpu or Ncpu + 1 threads yield optimal throughput`; more threads do not help, and may in fact degrade performance as the threads compete for CPU and memory resources.
 
 At each step, the worker threads calculate new values for all the cells in their part of the board. When all worker threads have reached the barrier, the barrier action commits the new values to the data model. After the barrier action runs, the worker threads are released to compute the next step of the calculation, which includes consulting an isDone method to determine whether further iterations are required.
 
-5, Another form of barrier is Exchanger, a two-party barrier in which the parties exchange data at the barrier point [CPJ 3.4.3].
+##### Exchanger
+Another form of barrier is Exchanger, a two-party barrier in which the parties exchange data at the barrier point [CPJ 3.4.3].
 
-6, Case study, implement Cache
-// Listing 5.16. Initial Cache Attempt Using HashMap and Synchronization. 
-// Not good
+#### Case study, implementing Cache
+```java
+// Listing 5.16. Initial Cache Attempt Using HashMap and Synchronization.   
+// Not good  
 public interface Computable<A, V> {
     V compute(A arg) throws InterruptedException;
 }
@@ -977,7 +1001,7 @@ public class ExpensiveFunction implements Computable<String, BigInteger> {
         return new BigInteger(arg);
     }
 }
-
+@ThreadSafe
 public class Memoizer1<A, V> implements Computable<A, V> {
     @GuardedBy("this")
     private final Map<A, V> cache = new HashMap<A, V>();
@@ -996,11 +1020,12 @@ public class Memoizer1<A, V> implements Computable<A, V> {
         return result;
     }
 }
-
+```
 HashMap is not thread-safe, so to ensure that two threads do not access the HashMap at the same time, Memoizer1 takes the conservative approach of synchronizing the entire compute method. This ensures thread safety but has an obvious scalability problem: only one thread at a time can execute compute at all. If another thread is busy computing a result, other threads calling compute may be blocked for a long time. If multiple threads are queued up waiting to compute values not already computed, compute may actually take longer than it would have without memoization. This is not the sort of performance improvement we had hoped to achieve through caching.
 
+```java
 // Listing 5.17. Replacing HashMap with ConcurrentHashMap.  
-// Still not good
+// Still not good, not strictly thread safe
 public class Memoizer2<A, V> implements Computable<A, V> {
     private final Map<A, V> cache = new ConcurrentHashMap<A, V>();
     private final Computable<A, V> c;
@@ -1018,13 +1043,14 @@ public class Memoizer2<A, V> implements Computable<A, V> {
         return result;
     }
 }
+```
+Memoizer2 in Listing 5.17 improves on the awful concurrent behavior of Memoizer1 by replacing the HashMap with a ConcurrentHashMap. Since ConcurrentHashMap is thread-safe, there is no need to synchronize when accessing the backing Map, thus eliminating the serialization induced by synchronizing compute in Memoizer1.  
+Memoizer2 certainly has better concurrent behavior than Memoizer1: multiple threads can actually use it concurrently. `But it still has some defects as a cache there is a window of vulnerability in which two threads calling compute at the same time could end up computing the same value.` `In the case of memoization, this is merely inefficient. the purpose of a cache is to prevent the same data from being calculated multiple times. For a more general-purpose caching mechanism, it is far worse; for an object cache that is supposed to provide once-and-only-once initialization, this vulnerability would also pose a safety risk.`  
+The problem with Memoizer2 is that if one thread starts an expensive computation, other threads are not aware that the computation is in progress and so may start the same computation, as illustrated in Figure 5.3. We'd like to somehow represent the notion that "thread X is currently computing f (27)", so that if another thread arrives looking for f (27), it knows that the most efficient way to find it is to head over to Thread X's house, hang out there until X is finished, and then ask "Hey, what did you get for f (27)?"  
 
-Memoizer2 in Listing 5.17 improves on the awful concurrent behavior of Memoizer1 by replacing the HashMap with a ConcurrentHashMap. Since ConcurrentHashMap is thread-safe, there is no need to synchronize when accessing the backing Map, thus eliminating the serialization induced by synchronizing compute in Memoizer1.
-Memoizer2 certainly has better concurrent behavior than Memoizer1: multiple threads can actually use it concurrently. But it still has some defects as a cache there is a window of vulnerability in which two threads calling compute at the same time could end up computing the same value. In the case of memoization, this is merely inefficient. the purpose of a cache is to prevent the same data from being calculated multiple times. For a more general-purpose caching mechanism, it is far worse; for an object cache that is supposed to provide once-and-only-once initialization, this vulnerability would also pose a safety risk.
-The problem with Memoizer2 is that if one thread starts an expensive computation, other threads are not aware that the computation is in progress and so may start the same computation, as illustrated in Figure 5.3. We'd like to somehow represent the notion that "thread X is currently computing f (27)", so that if another thread arrives looking for f (27), it knows that the most efficient way to find it is to head over to Thread X's house, hang out there until X is finished, and then ask "Hey, what did you get for f (27)?"
-
+```java
 // Listing 5.18. Memoizing Wrapper Using FutureTask.
-// Still not good enough
+// Still not good enough, not strictly thread safe
 public class Memoizer3<A, V> implements Computable<A, V> {
     private final Map<A, Future<V>> cache = new ConcurrentHashMap<A, Future<V>>();
     private final Computable<A, V> c;
@@ -1053,15 +1079,16 @@ public class Memoizer3<A, V> implements Computable<A, V> {
         }
     }
 }
-
-Memoizer3 in Listing 5.18 redefines the backing Map for the value cache as a ConcurrentHashMap<A,Future<V>> instead of a
-ConcurrentHashMap<A,V>. Memoizer3 first checks to see if the appropriate calculation has been started (as opposed to finished, as in Memoizer2). If not, it creates a FutureTask, registers it in the Map, and starts the computation; otherwise it waits for the result of the existing computation. The result might be available immediately or might be in the process of being computed but this is transparent to the caller of Future.get.
-The Memoizer3 implementation is almost perfect: it exhibits very good concurrency (mostly derived from the excellent concurrency of ConcurrentHashMap), the result is returned efficiently if it is already known, and if the computation is in progress by another thread, newly arriving threads wait patiently for the result. 
-It has only one defect there is still a small window of vulnerability in which two threads might compute the same value. This window is far smaller than in Memoizer2, but because the if block in compute is still a nonatomic check-then-act sequence, it is possible for two threads to call compute with the same value at roughly the same time, both see that the cache does not contain the desired value, and both start the computation. 
+```
+Memoizer3 in Listing 5.18 redefines the backing Map for the value cache as a ConcurrentHashMap<A,Future<V>> instead of a ConcurrentHashMap<A,V>. Memoizer3 first checks to see if the appropriate calculation has been started (as opposed to finished, as in Memoizer2). If not, it creates a FutureTask, registers it in the Map, and starts the computation; otherwise it waits for the result of the existing computation. The result might be available immediately or might be in the process of being computed but this is transparent to the caller of Future.get.  
+`The Memoizer3 implementation is almost perfect: it exhibits very good concurrency (mostly derived from the excellent concurrency of ConcurrentHashMap), the result is returned efficiently if it is already known, and if the computation is in progress by another thread, newly arriving threads wait patiently for the result.`   
+`It has only one defect there is still a small window of vulnerability in which two threads might compute the same value.` `This window is far smaller than in Memoizer2, but because the if block in compute is still a nonatomic check-then-act sequence, it is possible for two threads to call compute with the same value at roughly the same time, both see that the cache does not contain the desired value, and both start the computation.` 
 
 Memoizer3 is vulnerable to this problem because a compound action (put-if-absent) is performed on the backing map that cannot be made atomic using locking. Memoizer in Listing 5.19 takes advantage of the atomic putIfAbsent method of ConcurrentMap, closing the window of vulnerability in Memoizer3.
 
+```java
 // Listing 5.19. Final Implementation of Memoizer.
+@ThreadSafe
 public class Memoizer<A, V> implements Computable<A, V> {
     private final ConcurrentMap<A, Future<V>> cache = new ConcurrentHashMap<A, Future<V>>();
     private final Computable<A, V> c;
@@ -1096,19 +1123,22 @@ public class Memoizer<A, V> implements Computable<A, V> {
         }
     }
 }
+```
 
-Caching a Future instead of a value creates the possibility of cache pollution: if a computation is cancelled or fails, future attempts to compute the result will also indicate cancellation or failure. To avoid this, Memoizer removes the Future from the cache if it detects that the computation was cancelled; it might also be desirable to remove the Future upon detecting a RuntimeException if the computation might succeed on a future attempt. Memoizer also does not address cache expiration, but this could be accomplished by using a subclass of FutureTask that associates an expiration time with each result and periodically scanning the cache for expired entries. (Similarly, it does not address cache eviction, where old entries are removed to make room for new ones so that the cache does not consume too much
-memory.)
-With our concurrent cache implementation complete, we can now add real caching to the factorizing servlet from Chapter 2, as promised. Factorizer in Listing 5.20 uses Memoizer to cache previously computed values efficiently and scalably.
+`Caching a Future instead of a value creates the possibility of cache pollution`: if a computation is cancelled or fails, future attempts to compute the result will also indicate cancellation or failure. To avoid this, Memoizer removes the Future from the cache if it detects that the computation was cancelled; it might also be desirable to remove the Future upon detecting a RuntimeException if the computation might succeed on a future attempt. Memoizer also does not address cache expiration, but this could be accomplished by using a subclass of FutureTask that associates an expiration time with each result and periodically scanning the cache for expired entries. (Similarly, it does not address cache eviction, where old entries are removed to make room for new ones so that the cache does not consume too much
+memory.)  
+With our concurrent cache implementation complete, we can now add real caching to the factorizing servlet from Chapter 2, as promised. Factorizer in Listing 5.20 uses Memoizer to cache previously computed values efficiently and scalably.  
 
-7, Executing Tasks in Threads
-
+## 6. Task Execution
+### 6.1 Executing Tasks in Threads
 The first step in organizing a program around task execution is identifying sensible task boundaries.
 
 Server applications should exhibit both good throughput and good responsiveness under normal load.Further, applications should exhibit graceful degradation as they become overloaded, rather than simply falling over under heavy load. Choosing good task boundaries, coupled with a sensible task execution policy (see Section 6.2.2), can help achieve these goals
-8, In some situations, sequential processing may offer a simplicity or safety advantage; most GUI frameworks process tasks sequentially using a single thread. 
 
-9, Case study, Web server with different task execution policy
+In some situations, sequential processing may offer a simplicity or safety advantage; most GUI frameworks process tasks sequentially using a single thread. 
+
+**Case study, Web server with different task execution policy**  
+```java
 // Listing 6.2. Web Server that Starts a New Thread for Each Request.
 // Not good
 class ThreadPerTaskWebServer {
@@ -1125,8 +1155,10 @@ class ThreadPerTaskWebServer {
         }
     }
 }
+```
 Under light to moderate load, the thread-per-task approach is an improvement over sequential execution. As long as the request arrival rate does not exceed the server's capacity to handle requests, this approach offers better responsiveness and throughput.
 
+```java
 // Listing 6.4. Web Server Using a Thread Pool.
 class TaskExecutionWebServer {
     private static final int NTHREADS = 100;
@@ -1145,58 +1177,82 @@ class TaskExecutionWebServer {
         }
     }
 }
+```
 
 
-9.1 Disadvantages of Unbounded Thread Creation
-a, Thread lifecycle overhead. Thread creation and teardown are not free. The actual overhead varies across platforms, but thread creation takes time, introducing latency into request processing, and requires some processing activity by the JVM and OS. If requests are frequent and lightweight, as in most server applications, creating a new thread for each  request can consume significant computing resources.
+**Disadvantages of Unbounded Thread Creation**  
+1. Thread lifecycle overhead.   
+Thread creation and teardown are not free. The actual overhead varies across platforms, but thread creation takes time, introducing latency into request processing, and requires some processing activity by the JVM and OS. If requests are frequent and lightweight, as in most server applications, creating a new thread for each  request can consume significant computing resources.
 
-b, Resource consumption. Active threads consume system resources, especially memory. When there are more runnable threads than available processors, threads sit idle. Having many idle threads can tie up a lot of memory, putting pressure on the garbage collector,and having many threads competing for the CPUs can impose other performance costs as well. If you have enough threads to keep all the CPUs busy, creating more threads won't help and may even hurt.
+2. Resource consumption.  
+Active threads consume system resources, especially memory. When there are more runnable threads than available processors, threads sit idle. Having many idle threads can tie up a lot of memory, putting pressure on the garbage collector,and having many threads competing for the CPUs can impose other performance costs as well. If you have enough threads to keep all the CPUs busy, creating more threads won't help and may even hurt.
 
-c, Stability. There is a limit on how many threads can be created. The limit varies by platform and is affected by factors including JVM invocation parameters, the requested stack size in the Thread constructor, and limits on threads placed by the underlying operating system.[2]
+3. Stability.   
+There is a limit on how many threads can be created. The limit varies by platform and is affected by factors including JVM invocation parameters, the requested stack size in the Thread constructor, and limits on threads placed by the underlying operating system.[2]  
 When you hit this limit, the most likely result is an OutOfMemoryError. trying to recover from such an error is very risky; it is far easier to structure your program to avoid hitting this limit.
 
 [2] On 32-bit machines, a major limiting factor is address space for thread stacks. Each thread maintains two execution stacks, one for Java code and one for native code. Typical JVM defaults yield a combined stack size of around half a megabyte. (You can change this with the -Xss JVM flag or through the Thread constructor.) If you divide the per-thread stack size into 232, you get a limit of a few thousands or tens of thousands of threads. Other factors, such as OS limitations, may impose stricter limits.
 
-10, The primary abstraction for task execution in the Java class libraries is not Thread, but Executor.
+### 6.2 The Executor Framework
+The primary abstraction for task execution in the Java class libraries is not Thread, but **Executor**.  
 
-Executor may be a simple interface, but it forms the basis for a flexible and powerful framework for asynchronous task execution that supports a wide variety of task execution policies. It provides a standard means of decoupling task submission from task execution,describing tasks with Runnable. The Executor implementations also provide lifecycle support and hooks for adding statistics gathering,application management, and monitoring.
+**Executor** may be a simple interface, but it forms the basis for a flexible and powerful framework for `asynchronous task execution` that supports a wide variety of `task execution policies`. It provides a standard means of decoupling task submission from task execution,describing tasks with Runnable. The Executor implementations also provide `lifecycle support` and `hooks` for adding statistics gathering,application management, and monitoring.
 
-Executor is based on the producer-consumer pattern, where activities that submit tasks are the producers (producing units of work to be done) and the threads that execute tasks are the consumers (consuming those units of work). Using an Executor is usually the easiest path to implementing a producer-consumer design in your application.
+`Executor is based on the producer-consumer pattern`, where activities that submit tasks are the producers (producing units of work to be done) and the threads that execute tasks are the consumers (consuming those units of work). Using an Executor is usually the easiest path to implementing a producer-consumer design in your application.
 
-11, Thread Pools
+```java
+public interface Executor {
+    void execute(Runnable command);
+}
+```
 
-The class library provides a flexible thread pool implementation along with some useful predefined configurations. You can create a thread pool by calling one of the static factory methods in Executors:
+### Thread Pools
+The class library provides a flexible thread pool implementation along with some useful predefined configurations. You can create a thread pool by calling one of the `static factory methods in Executors`:  
+* newFixedThreadPool.   
+A fixed-size thread pool creates threads as tasks are submitted, up to the maximum pool size, and then attempts to keep the pool size constant (adding new threads if a thread dies due to an unexpected Exception).  
+* newCachedThreadPool.   
+A cached thread pool has more flexibility to reap idle threads when the current size of the pool exceeds the demand for processing, and to add new threads when demand increases, but places no bounds on the size of the pool.  
+* newSingleThreadExecutor.   
+A single-threaded executor creates a single worker thread to process tasks, replacing it if it dies unexpectedly. Tasks are guaranteed to be processed sequentially according to the order imposed by the task queue (FIFO, LIFO, priority order).[4]  
+[4] Single-threaded executors also provide sufficient internal synchronization to guarantee that any memory writes made by tasks are visible to subsequent tasks; this means that objects can be safely confined to the "task thread" even though that thread may be replaced with another from time to time.  
+* newScheduledThreadPool.   
+A `fixed-size thread pool` that supports delayed and periodic task execution, similar to Timer. (See Section 6.2.5.)
+```java
+class ScheduledThreadPoolExecutor extends ThreadPoolExecutor implements ScheduledExecutorService;
+interface ScheduledExecutorService extends ExecutorService {...}
+```
 
-newFixedThreadPool. A fixed-size thread pool creates threads as tasks are submitted, up to the maximum pool size, and then attempts to keep the pool size constant (adding new threads if a thread dies due to an unexpected Exception).
+But the JVM can't exit until all the (nondaemon) threads have terminated, so failing to shut down an Executor could prevent the JVM from exiting.  
 
-newCachedThreadPool. A cached thread pool has more flexibility to reap idle threads when the current size of the pool exceeds the demand for processing, and to add new threads when demand increases, but places no bounds on the size of the pool.
+### Executor Lifecycle
 
-newSingleThreadExecutor. A single-threaded executor creates a single worker thread to process tasks, replacing it if it dies unexpectedly. Tasks are guaranteed to be processed sequentially according to the order imposed by the task queue (FIFO, LIFO, priority order).[4]
-[4] Single-threaded executors also provide sufficient internal synchronization to guarantee that any memory writes made by tasks are visible to subsequent tasks; this means that objects can be safely confined to the "task thread" even though that thread may be replaced with another from time to time.
+```java
+public interface ExecutorService extends Executor {
+    void shutdown();
+    List<Runnable> shutdownNow();
+    boolean isShutdown();
+    boolean isTerminated();
+    boolean awaitTermination(long timeout, TimeUnit unit)
+    throws InterruptedException;
+    // ... additional convenience methods for task submission
+}
+```
 
-newScheduledThreadPool. A fixed-size thread pool that supports delayed and periodic task execution, similar to Timer. (See Section 6.2.5.)
+The lifecycle implied by ExecutorService has three states `running`, `shutting down`, and `terminated`.
 
-class ScheduledThreadPoolExecutor extends ThreadPoolExecutor implements ScheduledExecutorService
-interface ScheduledExecutorService extends ExecutorService 
+The **shutdown** method initiates a graceful shutdown: no new tasks are accepted but previously submitted tasks are allowed to complete including those that have not yet begun execution. 
 
-12, But the JVM can't exit until all the (nondaemon) threads have terminated, so failing to shut down an Executor could prevent the JVM from exiting.
+The **shutdownNow** method initiates an abrupt shutdown: it attempts to cancel outstanding tasks and does not start any tasks that are queued but not begun.
 
-1, ExecutorService, shut down methods 
+Tasks submitted to an ExecutorService after it has been shut down are handled by the rejected execution handler (see Section 8.3.3), which might silently discard the task or might cause execute to throw the unchecked RejectedExecutionException. Once all tasks have completed, the ExecutorService Transitions to the terminated state. `You can wait for an ExecutorService to reach the terminated state with awaitTermination, or poll for whether it has yet terminated with isTerminated`. `It is common to follow shutdown immediately by awaitTermination`, creating the effect of synchronously shutting down the ExecutorService.
 
-The lifecycle implied by ExecutorService has three states running, shutting down, and terminated.
+### Delayed and Periodic Tasks
+**Timer vs ScheduledThreadPoolExecutor vs DelayQueue**  
+* Timer  
+The Timer facility manages the execution of deferred ("run this task in 100 ms") and periodic ("run this task every 10 ms") tasks. However, Timer has some drawbacks, and ScheduledThreadPoolExecutor should be thought of as its replacement.[6]  
+[6] Timer does have support for scheduling based on absolute, not relative time, so that tasks can be sensitive to changes in the system clock; `ScheduledThreadPoolExecutor supports only relative time.`
 
-The shutdown method initiates a graceful shutdown: no new tasks are accepted but previously submitted tasks are allowed to complete including those that have not yet begun execution. 
-
-The shutdownNow method initiates an abrupt shutdown: it attempts to cancel outstanding tasks and does not start any tasks that are queued but not begun.
-
-Tasks submitted to an ExecutorService after it has been shut down are handled by the rejected execution handler (see Section 8.3.3), which might silently discard the task or might cause execute to throw the unchecked RejectedExecutionException. Once all tasks have completed, the ExecutorService Transitions to the terminated state. You can wait for an ExecutorService to reach the terminated state with awaitTermination, or poll for whether it has yet terminated with isTerminated. It is common to follow shutdown immediately by awaitTermination, creating the effect of synchronously shutting down the ExecutorService.
-
-2, Delayed and Periodic Tasks: Timer vs ScheduledThreadPoolExecutor vs DelayQueue
-
-The Timer facility manages the execution of deferred ("run this task in 100 ms") and periodic ("run this task every 10 ms") tasks. However, Timer has some drawbacks, and ScheduledThreadPoolExecutor should be thought of as its replacement.[6]
-[6] Timer does have support for scheduling based on absolute, not relative time, so that tasks can be sensitive to changes in the system clock; ScheduledThreadPoolExecutor supports only relative time.
-
-A Timer creates only a single thread for executing timer tasks. If a timer task takes too long to run, the timing accuracy of other
+A Timer creates only a `single thread` for executing timer tasks. If a timer task takes too long to run, the timing accuracy of other
 TimerTasks can suffer. If a recurring TimerTask is scheduled to run every 10 ms and another Timer-Task takes 40 ms to run, the recurring task either (depending on whether it was scheduled at fixed rate or fixed delay) gets called four times in rapid succession after the long-running task completes, or "misses" four invocations completely. Scheduled thread pools address this limitation by letting you provide multiple threads for executing deferred and periodic tasks.
 
 Another problem with Timer is that it behaves poorly if a TimerTask throws an unchecked exception. The Timer thread doesn't catch the exception, so an unchecked exception thrown from a TimerTask terminates the timer thread. Timer also doesn't resurrect the thread in this situation; instead, it erroneously assumes the entire Timer was cancelled. In this case, TimerTasks that are already scheduled but not yet executed are never run, and new tasks cannot be scheduled. (This problem, called "thread leakage" is described in Section 7.3, along with techniques for avoiding it.)
