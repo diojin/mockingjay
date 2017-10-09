@@ -34,7 +34,7 @@ ___
     - [ ] :arrow_right_hook: :four: Algorithms
         - [x] :arrow_right_hook: :one: ~~go over what's been prepared~~
         - [ ] :arrow_right_hook: :two: check new algorithm for some time every day
-    - [ ] :arrow_right_hook: :five: Java concurrency in Action
+    - [x] :arrow_right_hook: :five: ~~Java concurrency in Action~~
     - [ ] :arrow_right_hook: :six: Coupang & Morgan Project
         - [ ] :arrow_right_hook: :one: Coupang Projects
         - [ ] :arrow_right_hook: :two: Morgan Projects: refine(JProfile & Scala) & Data volumn review
