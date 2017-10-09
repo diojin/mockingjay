@@ -241,6 +241,7 @@ Parameters              |Scope      |Usage
 -XX:CompileThreshold    |--         |方法调用计数器额阀值, Client模式1500, Server模式10000  
 -XX:+UseCounterDecay    |--         |方法调用计数器用到, 使用热度衰减, GC时进行衰减, 默认使用  
 -XX:CounterHalfLifeTime |--         |方法调用计数器用到, 热度衰减的半衰期    
+-XX:+PrintCompilation   |--         |prints out a message when dynamic compilation runs
 
     7. GC 日志                                                -- 89  
 ```json

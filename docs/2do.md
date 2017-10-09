@@ -42,6 +42,8 @@ ___
     - [ ] :arrow_right_hook: :seven: Big Data related stuffs
         - [ ] :arrow_right_hook: :one: Scala interview questions
     - [ ] :arrow_right_hook: :eight: Apply for job positions   
+    - [ ] :arrow_right_hook: :nine: Miscellaneous tasks
+        - [ ] :arrow_right_hook: :one: linux monitoring tools, such as iostat, sar, top, vmstat, and etc, by sample scripts.
 
 - [ ] :heart_eyes_cat: Plan as of now
     - [ ] :arrow_right_hook: :one: Algorithms
