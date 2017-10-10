@@ -8,8 +8,16 @@
             * [Phonegap](#phonegap)
 * [JMeter](#jmeter)
     - [Case study](#jmeter-case-study)
-        + [JMeter Coupon Case Study](#jmeter-coupon-case-study)
+* [Databaes](#database)
+    - [Tungsten Replicator](#tungsten-replicator)
+    - [PureData System for Analytics(PDA)](#puredata-system-for-analyticspda)
+    - [Sysbench](#sysbench)
 * [Miscellaneous](#miscellaneous)
+    - [Akamai](#akamai)
+    - [Pinpoint](#pinpoint)
+    - [Other facilities](#other-facilities)
+
+
 
 ## Android
 [Back To Indexes](#indexes)  
@@ -213,57 +221,79 @@ __jMeter - Best Practices__
     * Clean the Files tab prior to every test run.
 
 ### JMeter Case Study
-#### JMeter Coupon Case Study
-10.255.255.223  xtrigger-perf01-mv              or use VNC to logon this server  
-Data:   /pound/share/maple
-Home:   /home/maple/workspaces/performance-runner/
 
-Gather data from both JMeter JTL log and WAS, publish to ES clusters, and later referred by Kibana.
+## Database
+### Tungsten Replicator
+**Tungsten practise on CDC(Change Data Capture)**  
+Tungsten Replicator is one of the CDC solutions. CDC (Change Data Capture) is the feature to capture the changed data from Data Source and transfer and apply the data to Target System.  
+1. Read Binlog files of MySQL from source 
+2. Capture the changed data 
+3. Generate the capture in THL and save it  
+4. Get the generated THL to target via remote
+5. Read the changed data in THL and load it on Memory Q(In-Memory Queue)
+6. What's loaded on Memory Q(In-Memory Queue) is applied on target DB. Tungsten is in Java, so it is through JDBC  
 
-[jmeter_test_example_entire_flow]  
+`Transaction History Log (THL)`
+It holds the data `on transaction level`, managed as file based on __GTID (Global Transaction ID)__. So it's designed to have multi-master configuration.  
+MySQL directly reads Binary Log file during the step to transform the changed data from source to THL Oracle interfaces with Oracle Change Data Capture(CDC). (Oracle requires setting for CDC. The script is provided) 
 
-1. Prepare for running JMeter slave node
+__Structure__  
+DB are configured as 3 layers: Standby, Consolidation, and Target.  
+* Standby  
+Standby DBs in real service  
+* Standby -> Consolidation  
+Standby -> Consolidation is configured as MySQL replication: 1 Consolidation server mapped to maximum 6 Standby DBs.  
+* Consolidation -> Target  
+Consolidation -> Target uses Tungsten replicator 
 
-dist -f "stop.jmeter.sh @DIST_HOST" 10.255.255.221 10.255.255.222
-dist -f "start.jmeter.sh @DIST_HOST" 10.255.255.221 10.255.255.222
+`Why is it Standby-Consolidation-Target configuration instead of Standby-Target? (Why do we need Consolidation?)`  
+1. As for Tungsten replication, parameter "binlog_format=row" needs to be applied. But we cannot use row base in real db server, hence using this way to configure similar to row base while it's not service server(means merely config standby db server to row base, but rather master db).
+2. In order to add service or table to be synchronized in CDC structure, initial (data) loading is needed. And data inflow for source needs to be blocked, so as to sync the data between source and target. But CDC structure in real service cannot be done in this regard. (So only Standby DB server is blocked then)
 
-2. testing metaphor properties, as well as properties files and jmx files  
-it uses Metaphor to illustrate that separates the testing context units from the Dashboard
+### PureData System for Analytics(PDA)
+PDA is a high-performance, scalable, `massively parallel` system that enables clients to gain insight from their data and perform analytics on `enormous data volumes`.
 
-3. run testing  
-./jmeter_runner_for_ES.py {testing_metaphor}.properties
+PDA, powered by Netezza technology, provides faster performance, is big data and business intelligence (BI) ready, and provides advanced security all in a wider range of appliance models.
 
-4. report to es server
-./report_runner_for_ES.py {testing_metaphor}.properties
+### Sysbench
+[SysBench] is a modular, cross-platform and multi-threaded benchmark tool for evaluating OS parameters that are important for a system running a database under intensive load.
 
-Statistics to gather:  
-1. JMeter data 
-    1. TPS, successful tps & failure tps
-    2. max/mean response time
-2. WAS jmx data  
-    including System(load average, system cpu load), heap memory, GC TIME(MINOR/FULL), GC COUNT(MINOR/FULL), CLASSLOADING(total loaded/unloaded class count), THREADBUSY(threadCount, totalStartedThreadCount, peakThreadCount,  daemonThreadCount 
+The idea of this benchmark suite is to `quickly get an impression about system performance without setting up complex database benchmarks or even without installing a database at all`.
 
-Data example,  compared a memcached version with another version without memcached
-
-TPS = Transactions / Time  =  Thread Count / mean response time 
-
-item|source|settings|TPS|Response time|others
-:---------------------|:-----:|--------:|-------:|:--------|:-------
-findBySubscriptionIdAndVendorItemId|orders(1,224,280), order_items(1,350,144) on 20150908|thread=50, slave server=2, loop count=200,000|tps = 10000 | max response < 1s, mean response = 10 ms| orders(6,726,007), order_items(12,022,210) on 20170109
-`getTransitionBanners_memcached`|on 20160407, transitions(510), transition_target_members(52082), transition_banners(435)| thread=100, slave server=2, loop count=200,000 | tps = 24000 | max response < 1s, mean response = 8.3 ms| on 20170109, transitions(6245), transition_target_members(784,288), transition_banners(5795)
-`getTransitionBanners`|on 20160407, transitions(510), transition_target_members(52082), transition_banners(435)| thread=100, slave server=2, loop count=100,000 | tps = 8000 | max response < 1s, mean response = 25 ms|
-getNextBox|on 20160325, subscription(2,980,191), order_calendar(8,413,559), shipment_day(857,582)| thread=50, slave server=2, loop count=200,000 | tps = 28000 | max response < 1s, mean response = 3.6 ms| on 20170109, subscription(1,427,685/5,762,064)(active/all), order_calendar(17,849,581)(active row count should be same as subscription table), shipment_day(340,164/1,231,910)
+[SysBench_1]  
 
 
 ## Miscellaneous
 [Back To Indexes](#indexes)  
+
+### Akamai
+__Akamai__ Technologies, Inc. is an American `content delivery network (CDN)` and `cloud services provider` headquartered in Cambridge, Massachusetts, in the United States. Akamai's content delivery network is one of the world's largest distributed computing platforms, responsible for serving between 15 and 30 percent of all web traffic.[6] The company operates a network of servers around the world and rents capacity on these servers to customers who want their websites to work faster by distributing content from locations close to the user. Over the years its customers have included Apple, Facebook, Bing, Valve, Twitter, eBay, Google, LinkedIn and healthcare.gov. When a user navigates to the URL of an Akamai customer, their browser is redirected to one of Akamai's copies of the website.
+
+Web Application Firewall??
+
+### Pinpoint
+[Pinpoint] Pinpoint is an __APM (Application Performance Management)__ tool for large-scale distributed systems written in Java. Modelled after Dapper, Pinpoint provides a solution to help analyze the `overall structure of the system and how components within them are interconnected` by tracing transactions across distributed applications.
+
+* `Install agents without changing a single line of code`
+* Minimal impact on performance (approximately 3% increase in resource usage)
+
+### Other facilities
+* `Chakra Max` for database access control
+* `Nimbo storage` for storage solution
+* ETL tool: `IBM InfoSphere DataStage` vs `TeraStream`  
+`IBM InfoSphere DataStage` is an ETL tool and part of the IBM Information Platforms Solutions suite and IBM InfoSphere. It uses a graphical notation to construct data integration solutions and is available in various versions such as the Server Edition, the Enterprise Edition, and the MVS Edition.(not free)  
+`TeraStream`™ is the high-performance data integration solution in conjunction with DB in a variety of server environments to do the core functional ETL routines (Extract, Transform, and Load). It can be efficiently applied to high-volume batch processing, real-time data connectivity and data conversion. It guarantees a differentiated file handling performance from the existing data integration solutions in market. (Brand Name: DataStreams, Place of Origin: South Korea)  
+[TeraStream ETL]  
+* `MaxGauge` for MySQL/Oracle monitoring
+* `Upsource` for code review
+
+
 
 ---
 [webview_strategy]:http://www.human-element.com/webview-strategy-creating-mobile-apps-part-13/ "Webview Strategy"
 [PhoneGap]:http://phonegap.com/ "PhoneGap"
 [jmeter dynamic HTML report]:http://jmeter.apache.org/usermanual/generating-dashboard.html "Generating Report Dashboard"
 [jmeter_quick_guide]:http://www.tutorialspoint.com/jmeter/jmeter_quick_guide.htm
-[jmeter_test_example_entire_flow]:https://wiki.compound.net:8443/pages/viewpage.action?pageId=29227149
 [elasticsearch_wiki]:https://en.wikipedia.org/wiki/Elasticsearch
 [elasticsearch_home]:https://www.elastic.co/products/elasticsearch
 [kibana_home]:https://www.elastic.co/products/kibana
