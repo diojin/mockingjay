@@ -7,6 +7,9 @@
     - [Tuning](#oracle-tuning)
     - [Examples](#oracle-examples)
     - [Misc](#oracle-misc)
+* [Mysql](#mysql)
+    - [Examples](#mysql-examples)
+    - [Misc](#mysql-misc)
 * [Miscellaneous](#miscellaneous)
     - [Examples](#examples)
     - [Uncategorized](#uncategorized)
@@ -147,6 +150,17 @@ group by rollup(C1)
 
 
 #### Oracle Misc
+
+## Mysql
+### Mysql Examples
+### Mysql Misc
+#### Enable Update multiple raws
+```sql
+SET SQL_SAFE_UPDATES=0;
+SET SQL_SAFE_UPDATES=1;
+```
+
+
 
 ### Miscellaneous
 #### Examples
