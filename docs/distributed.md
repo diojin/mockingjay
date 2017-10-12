@@ -1,6 +1,6 @@
 ## Distributed
 ---
-
+* [Terms](#terms)
 * [Hadoop](#hadoop)
     - [Hive](#hive)
     - [HBase](#hbase)
@@ -47,6 +47,28 @@
     - [3 results of distribute computing](#3-results-of-distribute-computing)
     - [Mobile Agent](#mobile-agent)
     - [Cache](#cache)
+
+## Terms
+
+**Personally identifiable information (PII)** is any data that could potentially identify a specific individual. Any information that can be used to distinguish one person from another and can be used for de-anonymizing anonymous data can be considered PII. 
+
+The abbreviation **viz.** (or viz without a full stop), short for the Latin videlicet, is used as a synonym for "namely", "that is to say", "to wit", or "as follows".
+
+__On-premises software__ (sometimes abbreviated as "on-prem") is installed and runs on computers on the premises (in the building) of the person or organization using the software, rather than at a remote facility such as a server farm or cloud. On-premises software is sometimes referred to as “shrinkwrap” software, and off-premises software is commonly called “software as a service” ("SaaS") or “cloud computing”.
+
+__Fan-in__ is the number of inputs a gate can handle  
+fan-in network 输入网络
+fan-in factor 输入端数
+
+__Network-attached storage (NAS)__ is a type of dedicated file storage device that provides local-area network local area network (LAN) nodes with file-based shared storage through a standard Ethernet connection. NAS devices, which typically do not have a keyboard or display, are configured and managed with a browser-based utility program. Each NAS resides on the LAN as an independent network node and has its own IP address.
+
+__Fraud Detection Systems(FDS)__ Cases of card companies breaching their customers’ personal information are on the rise. Therefore, the Korea Financial Supervisory Service advised PG (Payment Gateway) companies, as well as card companies, to build Fraud Detection Systems (hereafter FDS), and FDS has become a necessary part of all the Korean payment systems. 
+
+__TeraStream__ A Simplified "IP Network" Service Delivery Model
+
+__SPOF__: Single point of failure
+
+__C10k__: its a name given to the issue of optimizing the web server software to handle large number of requsts at one time. In the range of 10,000 requests at a time, hence the name
 
 ### Hadoop
 

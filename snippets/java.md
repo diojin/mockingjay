@@ -8,6 +8,8 @@
 * [Function Style Programming](#function-style-programming)
 * [Design Pattern](#design-pattern)
   - [Examples](#design-pattern-examples)
+* [Libraries](#libraries)
+  - [Libraries Misc](#libraries-misc)
 * [Miscellaneous](#miscellaneous) 
   - [Socket](#java-socket)
   - [EJB2](#ejb2)
@@ -109,9 +111,7 @@ public class MainThread {
 4. CompletionService
 5. Customized, such as an implementation of AbstractQueuedSynchronizer  
 
-Stream
----
-
+## Stream
 Streams differ from collections in several ways:
 
 **No storage**. A stream is not a data structure that stores elements; instead, it conveys elements from a source such as a data structure, an array, a generator function, or an I/O channel, through a pipeline of computational operations.
@@ -126,9 +126,8 @@ __Functional in nature__. An operation on a stream produces a result, but does n
 
 **Consumable**. The elements of a stream are only visited once during the life of a stream. Like an Iterator, a new stream must be generated to revisit the same elements of the source.
 
-Function Style Programming
----
-#### examples
+## Function Style Programming
+### examples
 1. case 1
 
 ```java
@@ -143,10 +142,10 @@ public class VendorItemSubscriptionDTO {
 }
 ```
 
-### Design Pattern
-#### Design Pattern Examples
+## Design Pattern
+### Design Pattern Examples
 
-##### Example 1
+#### Example 1
 >web应用，主要有两个部分，一个是帐户的管理，一个是客户购买商品。    
 其中帐户的管理主要是：  
 * 更改账号的状态，存到db 
@@ -170,7 +169,7 @@ PS:
 2. Decorator, 动态增加额外的操作,例如市场调查. 如果使用Template Method, 灵活性不大.
 3. Observer, 账户状态的改变涉及到几个同时的操作, 可以使用Observer
 
-##### Example 2
+#### Example 2
 
 >用php写一个在线编辑器的类，这个类要求是在最后生成工具栏之前，无论何时用什么样的顺序都能加上新的功能。  
 Requirements:  
@@ -181,7 +180,7 @@ PS:
 1. Composite模式
 2. Singleton 模式
 
-##### Example 3
+#### Example 3
 
 >假设是原始社会,有石头,2块石头互磨可以变成石刀,石刀可以去砍木头,木头被砍成木材,木材可以组成椅子,请你用oo的思想把这些事物和他们之间的关系表达出来,但是要考虑到以后可能我会增加以下几点:    
 1. 有可能我还想让石刀去砍椅子,把椅子砍成木材, 
@@ -195,18 +194,18 @@ PS:
 for 1, 3 使用Mediator模式
 for 2, 使用bridge或Strategy模式
 
-##### Example 4
+#### Example 4
 >金额转换，阿拉伯数字的金额转换成中国传统的形式如：  
 （￥1011）－>（一千零一拾一元整）输出。
 
 建议看一下李建忠讲的＜C＃面向对象设计模式纵横谈＞ 第19讲，Chain Of Responsibility 职责链模式(行为型模式)
 
-##### Example 5
+#### Example 5
 > 如何用图例给出windows下的文件目录的设计模式    
 
 Composite
 
-##### Unreolved Examples
+#### Unreolved Examples
 
 >Design a remote control program a on a Pocket PC device(which is a PDA based on Microsoft Windows CE.Net),and support touch screen,GUI programming,and infrared port to communicate with the TVs).The functions are almost the same with the common TV remote(such as changing channel,volume,TV/AV change,ON/OFF and anything you think which should be on a TV remote).The additional functions are the undo,redo command.   
 Based on MVC pattern,give an Object-Oriented Design using UML diagrams and written text (plesase be in details)for the above requirements,.Explicitly all design patterns used and justify your use of them.No code required.
@@ -230,11 +229,17 @@ PS: State, Strategy
 
 >JVM相当于那种设计模式
 
+## Libraries
+### Libraries Misc
+#### org.joda.time.DateTimeComparator
+```java
+import org.joda.time.DateTimeComparator;
+int result = DateTimeComparator.getDateOnlyInstance().compare(today, notifyDate);
+```
 
-
-### Miscellaneous
-#### Java Socket
-##### example 1
+## Miscellaneous
+### Java Socket
+#### example 1
 ```java
 package test;
 import java.net.*;
@@ -309,7 +314,7 @@ public class Client {
 
 ```
 
-#### EJB2
+### EJB2
 
 ```java
 
@@ -347,4 +352,4 @@ public class AddBean Implements SessionBean
 ```
 
 
-#### Misc Examples
+### Misc Examples

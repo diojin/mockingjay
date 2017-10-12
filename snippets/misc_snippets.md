@@ -17,7 +17,8 @@
 * [Miscellaneous](#miscellaneous)
     - [Lombok](#lombok)
         + [Examples](#lombok-examples)
-
+    - [Memcached](#memcached)
+        + [Example 1](#memcached-example-1)
 
 ## QueryDSL
 ### QueryDSL Misc
@@ -101,5 +102,149 @@ due to non license, need to re-config a new virtual device
 @Data               // ps; to generate a mutable class
 @Value              // ps: to generate a immutable class
 ```
+
+### Memcached
+[Back To Indexes](#indexes)  
+#### Memcached Example 1
+```java
+@CacheName(SubscribeOrderMemcachedConfig.CACHE_NAME)
+@ReadThroughMultiCache(namespace = "get-product-multi-get-v1", expiration = 1800, option = @ReadThroughMultiCacheOption(generateKeysFromResult = true, skipNullsInResult = true))
+public List<ProductDto> getProductsUseCache(@ParameterValueKeyProvider List<Long> productIds){
+    List<ProductDto> productDtos = Lists.newArrayList();
+    for (Long productId : productIds) {
+        ProductDto product = getProduct(productId);
+        if(product != null){
+            productDtos.add(product);
+        }
+    }
+    return productDtos;
+}
+```
+
+```java
+@CacheName(SubscribeOrderMemcachedConfig.CACHE_NAME)
+class DefaultNextBoxDateCacheCore implements NextBoxDateCacheCore {
+    @ReadThroughSingleCache(namespace = CacheSettings.NextcouponBox.namespace, expiration = CacheSettings.NextcouponBox.expiration)
+    public CachedcouponBox getFromCache(@NotNull @ParameterValueKeyProvider String memberId) {
+        // nothing to implement
+        return null;
+    }
+
+    @UpdateSingleCache(namespace = CacheSettings.NextcouponBox.namespace, expiration = CacheSettings.NextcouponBox.expiration)
+    @ReturnDataUpdateContent
+    public CachedcouponBox setCache(@NotNull @ParameterValueKeyProvider String memberId, @NotNull CachedcouponBox couponBox) {
+        return couponBox;
+    }
+
+    @InvalidateSingleCache(namespace = CacheSettings.NextcouponBox.namespace)
+    public void removeCache(@NotNull @ParameterValueKeyProvider String memberId) {
+        // nothing to implement
+    }
+}
+
+```
+
+
+```java
+@Configuration
+@ImportResource("classpath:simplesm-context.xml")
+public class MemcachedConfig {
+
+    @Autowired
+    private Environment environment;
+
+    @Bean
+    @DependsOn("cacheBase")
+    public CacheFactory cacheFactory() {
+        CacheFactory cacheFactory = new CacheFactory();
+        cacheFactory.setCacheName("coupon");
+        cacheFactory.setCacheAliases(Arrays.asList("member"));
+        cacheFactory.setCacheClientFactory(new MemcacheClientFactoryImpl());
+        cacheFactory.setAddressProvider(new DefaultAddressProvider(environment.getRequiredProperty("coupon.memcached.server")));
+        CacheConfiguration configuration = new CacheConfiguration();
+        configuration.setConsistentHashing(true);
+        configuration.setOperationTimeout(Integer.parseInt(environment.getRequiredProperty("coupon.memcached.operation.timeout")));
+        configuration.setUseBinaryProtocol(true);
+        cacheFactory.setConfiguration(configuration);
+        cacheFactory.setDefaultSerializationType(SerializationType.CUSTOM);
+
+        GzipDecorationTranscoder customTranscoder = new GzipDecorationTranscoder();
+        customTranscoder.setThreashold(10000);
+        customTranscoder.setTranscoder(new KryoTranscoder(2097152));
+        cacheFactory.setCustomTranscoder(customTranscoder);
+
+        JsonObjectMapper jsonObjectMapper = new JsonObjectMapper();
+        jsonObjectMapper.configure(MapperFeature.AUTO_DETECT_FIELDS, true);
+        jsonObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        jsonObjectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+        cacheFactory.setJsonTranscoder(new JsonTranscoder(jsonObjectMapper));
+
+        return cacheFactory;
+    }
+
+    @Bean
+    public Settings settings() {
+        Settings settings = new Settings();
+        settings.setOrder(500);
+        return settings;
+    }
+}
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:ehcache="http://ehcache-spring-annotations.googlecode.com/svn/schema/ehcache-spring"
+       xmlns:aop="http://www.springframework.org/schema/aop" xmlns:cache="http://www.springframework.org/schema/cache"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
+        http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <bean name="couponMemcachedClient" class="com.google.code.ssm.CacheFactory">
+        <property name="cacheName" value="coupon" />
+        <property name="cacheAliases">
+            <list>
+                <value>member</value>
+            </list>
+        </property>
+        <property name="cacheClientFactory">
+            <bean name="cacheClientFactory" class="com.google.code.ssm.providers.spymemcached.MemcacheClientFactoryImpl" />
+        </property>
+        <property name="addressProvider">
+            <bean class="com.google.code.ssm.config.DefaultAddressProvider">
+                <property name="address" value="${coupon.memcached.server}" />
+            </bean>
+        </property>
+        <property name="configuration">
+            <bean class="com.google.code.ssm.providers.CacheConfiguration">
+                <property name="consistentHashing" value="true" />
+                <property name="operationTimeout" value="${coupon.memcached.operation.timeout}" />
+                <property name="useBinaryProtocol" value="true" />
+            </bean>
+        </property>
+        <property name="defaultSerializationType"
+                  value="#{T(com.google.code.ssm.api.format.SerializationType).CUSTOM}" />
+        <property name="customTranscoder">
+            <bean class="com.coupon.common.inf.memcached.transcoder.GzipDecorationTranscoder">
+                <property name="threashold" value="10000"/> <!-- if the cpu is too small to catch the rate of fall -->
+                <property name="transcoder">
+                    <bean class="com.coupon.common.inf.memcached.transcoder.KryoTranscoder">
+                        <constructor-arg value="2097152" /> <!-- 2mb, gzip to ensure that the available capacity for more than 1mb -->
+                    </bean>
+                </property>
+            </bean>
+        </property>
+    </bean>
+</beans>
+```
+
+<entry key="coupon.memcached.server">10.10.5.222:11811</entry>
+<entry key="coupon.memcached.operation.timeout">1000</entry>
 
 ---

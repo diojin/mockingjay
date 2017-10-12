@@ -3,6 +3,7 @@
 * [Design Pattern](#design-pattern)
     - [Design Principles](#design-principles)
     - [MVC model](#mvc-model)
+    - [JSP Design Pattern](#jsp-design-pattern)
     - [Singleton](#singleton)
 * [Network](#network)
     - [Socket](#socket)
@@ -12,11 +13,12 @@
     - [Misc](#shell-misc)
         + [System Variables](#shell-system-variables)
 * [Others](#others)
+    - [Toolkits](#toolkits)
     - [MarkDown Language](#markdown-language)
 
-### Design Pattern
+## Design Pattern
 
-#### Design Principles
+### Design Principles
 从设计原则到设计模式  
 1. 针对接口编程，而不是针对实现编程
 2. 优行使用类组合，而不是类继承
@@ -48,7 +50,7 @@
 迪米特法则说的是一个对象应该对其它对象有尽可能少的了解。即只与你直接的朋友通信，不要跟陌生人说话。如果需要和陌生人通话，而你的朋友与陌生人是朋友，那么可以将你对陌生人的调用由你的朋友转发.  
 迪米特法则（Law of Demeter, LoD）又叫最少知识原则（Least Knowledge Principle, LKP）, 迪米特法则可以简单说成：talk only to your immediate friends, 门面模式（Facade）和中介模式（Mediator），都是迪米特法则应用的例子
 
-#### MVC model
+### MVC model
 From P 14/14  - Design Patterns.Elements of Reusable Object-Oriented Software
 
 The Model/View/Controller (MVC) triad of classes [KP88] is used to build user interfaces in Smalltalk-80. Looking at the design patterns inside MVC should help you see what we mean by the term "pattern."
@@ -66,7 +68,7 @@ The View-Controller relationship is an example of the **Strategy** (349) design 
 
 MVC uses other design patterns, such as Factory Method (121) to specify the default controller class for a view and Decorator (196) to add scrolling to a view. But the main relationships in MVC are given by the Observer, Composite, and Strategy design patterns.
 
-#### JSP Design Pattern
+### JSP Design Pattern
 
 JSP设计模式包括两个：  
 1. Model1，JSP+JavaBean设计模式  
@@ -76,7 +78,7 @@ JSP设计模式包括两个：
 在这种模式中，Servlet用来处理请求的事务，充当了控制器（Controller即“C”）的角色，Servlet负责响应客户对业务逻辑的请求并根据用户的请求行为，决定将哪个JSP页面发送给客户。JSP页面处于表现层，也就是视图（View即“V”）的角色。JavaBean则负责数据的处理，也就是模型（Model即“M”）的角色。
 
 
-#### Singleton
+### Singleton
 ```java
 /**
  * 1, 懒汉写法, lazy initialization
@@ -158,9 +160,9 @@ enum Singleton4{
 }
 
 ```
-### Network
+## Network
 
-#### Socket
+### Socket
 
 __Socket可工作于阻塞和非阻塞两种模式__  
 先还是简单所列一下几中调用方式的常见解释：  
@@ -173,9 +175,9 @@ __Socket可工作于阻塞和非阻塞两种模式__
 
 对于UDP协议而言，由于UDP没有发送缓存，因此所有UDP协议即使在阻塞模式下也不会发生阻塞。 
 
-#### Network Misc
+### Network Misc
 
-##### IP address categories
+#### IP address categories
 现在的IP网络使用32位地址，以点分十进制表示，如172.16.0.0。  
 地址格式为：  
 IP地址=网络地址＋主机地址 或 IP地址=主机地址＋子网地址＋主机地址。 
@@ -205,9 +207,9 @@ D类IP地址第一个字节以“lll0”开始，它是一个专门保留的地�
 * B类地址：172.16.0.0～172.31.255.255
 * C类地址：192.168.0.0～192.168.255.255
 
-### Shell
-#### Shell Misc
-##### Shell System Variables
+## Shell
+### Shell Misc
+#### Shell System Variables
 
 ```shell
 Variable|Usage
@@ -224,8 +226,14 @@ $-      |显示shell使用的当前选项
 $_      |之前命令的最后一个参数
 ```
 
-### Others
-#### MarkDown Language
+## Others
+### Toolkits
+* SourceTree  
+git tools
+
+
+
+### MarkDown Language
 **How to jump to internal link**  
 ```xml
 [Back To Indexes](#indexes)   
