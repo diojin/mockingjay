@@ -1,11 +1,8 @@
 ## Distributed
 ---
+## Indexes  
+
 * [Terms](#terms)
-* [Hadoop](#hadoop)
-    - [Hive](#hive)
-    - [HBase](#hbase)
-    - [Misc](#hadoop-misc)
-        + [MapReduce](#mapreduce)
 * [Cluster](#cluster)
     - [Cluster types](#cluster-types)
     - [Load Balance Algorithm](#load-balance-algorithm)
@@ -69,72 +66,6 @@ __TeraStream__ A Simplified "IP Network" Service Delivery Model
 __SPOF__: Single point of failure
 
 __C10k__: its a name given to the issue of optimizing the web server software to handle large number of requsts at one time. In the range of 10,000 requests at a time, hence the name
-
-### Hadoop
-
-Hadoop 是一个实现了MapReduce 计算模型的开源分布式并行编程框架，程序员可以借助Hadoop 编写程序，将所编写的程序运行于计算机机群上，从而实现对海量数据的处理
-
- 此外，Hadoop 还提供一个分布式文件系统(HDFS）及分布式数据库（HBase）用来将数据存储或部署到各个计算节点上。所以，你可以大致认为：Hadoop=HDFS（文件系统，数据存储技术相关）+HBase（数据库）+MapReduce（数据处理）。Hadoop 框架如图所示：
-![hadoop_1]
-
-我们已经知道，Hadoop是Google的MapReduce一个Java实现。MapReduce是一种简化的分布式编程模式，让程序自动分布到一个由普通机器组成的超大集群上并发执行。Hadoop主要由HDFS、MapReduce和HBase等组成。具体的hadoop的组成如下图：
-![hadoop_2]
-
-__The project includes these modules:__  
-* Hadoop Common: The common utilities that support the other Hadoop modules.
-* Hadoop Distributed File System (HDFS™): A distributed file system that provides high-throughput access to application data.
-* Hadoop YARN: A framework for job scheduling and cluster resource management.
-* Hadoop MapReduce: A YARN-based system for parallel processing of large data sets.
-
-__Other Hadoop-related projects at Apache include:__  
-* Ambari™: A web-based tool for provisioning, managing, and monitoring Apache Hadoop clusters which includes support for Hadoop HDFS, Hadoop MapReduce, Hive, HCatalog, HBase, ZooKeeper, Oozie, Pig and Sqoop. Ambari also provides a dashboard for viewing cluster health such as heatmaps and ability to view MapReduce, Pig and Hive applications visually alongwith features to diagnose their performance characteristics in a user-friendly manner.
-* Avro™: A data serialization system.
-* Cassandra™: A scalable multi-master database with no single points of failure.
-* Chukwa™: A data collection system for managing large distributed systems.
-* HBase™: A scalable, distributed database that `supports structured data storage` for large tables.
-* Hive™: A data warehouse infrastructure that provides data summarization and ad hoc querying.
-* Mahout™: A Scalable machine learning and data mining library.
-* Pig™: A high-level data-flow language and execution framework for parallel computation.
-* Spark™: A fast and general compute engine for Hadoop data. Spark provides a simple and expressive programming model that supports a wide range of applications, including ETL, machine learning, stream processing, and graph computation.
-* Tez™: A generalized data-flow programming framework, built on Hadoop YARN, which provides a powerful and flexible engine to execute an arbitrary DAG of tasks to process data for both batch and interactive use-cases. Tez is being adopted by Hive™, Pig™ and other frameworks in the Hadoop ecosystem, and also by other commercial software (e.g. ETL tools),` to replace Hadoop™ MapReduce as the underlying execution engine`.
-* ZooKeeper™: A high-performance coordination service for distributed applications.
-
-
-#### Hive
-Hive是基于Hadoop的一个数据仓库工具，处理能力强而且成本低廉。
-
-__主要特点：__  
-存储方式是将结构化的数据文件映射为一张数据库表。提供类SQL语言，实现完整的SQL查询功能。可以将SQL语句转换为MapReduce任务运行，十分适合数据仓库的统计分析。
-
-__不足之处：__  
-* 采用行存储的方式（SequenceFile）来存储和读取数据, 效率低
-* 当要读取数据表某一列数据时需要先取出所有数据然后再提取出某一列的数据，效率很低。
-* 同时，它还占用较多的磁盘空间
-
-由于以上的不足，有人（查礼博士）介绍了一种将分布式数据处理系统中以记录为单位的存储结构变为以列为单位的存储结构，进而减少磁盘访问数量，提高查询处理性能。这样，由于相同属性值具有相同数据类型和相近的数据特性，以属性值为单位进行压缩存储的压缩比更高，能节省更多的存储空间。
-
-#### HBase
-HBase是一个分布式的、面向列的开源数据库，它不同于一般的关系数据库,是一个适合于非结构化数据存储的数据库。另一个不同的是HBase基于列的而不是基于行的模式。HBase使用和 BigTable非常相同的数据模型。用户存储数据行在一个表里。一个数据行拥有一个可选择的键和任意数量的列，一个或多个列组成一个ColumnFamily，一个Fmaily下的列位于一个HFile中，易于缓存数据。表是疏松的存储的，因此用户可以给行定义各种不同的列。在HBase中数据按主键排序，同时表按主键划分为多个HRegion
-
-#### Hadoop Misc
-##### MapReduce
-![mapreduce_1]  
-
-原始状态下，输入–Map — Shuffle — Reduce — 输出  
-![mapreduce_2]
-
-首先，让我们以WordCount为例来解释MapReduce是怎么工作的.  
-![mapreduce_example_1]
-
-map数据输入  
-Hadoop针对文本文件缺省使用LineRecordReader类来实现读取，一行一个key/value对，key取偏移量，value为行内容。  
-如下是map1的输入数据：  
-Key1                  Value1   
-0         Hello World Bye World  
-如下是map2的输入数据：   
-Key1                Value1   
-0         Hello Hadoop GoodBye Hadoop  
-
 
 ### Cluster
 
@@ -1262,8 +1193,6 @@ __缓存数据的淘汰__
 
 ---
 [distributed_misc_1]:http://www.enterprise-technology.net/network3.htm "p2p vs cs"
-[hadoop_1]:/resources/img/java/hadoop_1.png "Hadoop framework"
-[hadoop_2]:/resources/img/java/hadoop_2.png "Hadoop product line"
 [stm_1]: https://en.wikipedia.org/wiki/Software_transactional_memory#Java "Software_transactional_memory"
 [cluster_types_1]:https://www.centos.org/docs/5/html/Cluster_Suite_Overview/s1-clstr-basics-CSO.html "Cluster Types"
 [cluster_1]:http://www.jfox.info/java-ji-qun-ji-shu-mian-shi-de-yi-xie-zhi-shi-zhun-bei "Cluster Overview"
@@ -1274,9 +1203,6 @@ __缓存数据的淘汰__
 [cloud-computing-1]:https://hubpages.com/technology/cloud-computing-architecture "Cloud Computing Architecture Explained"
 [cloud-computing-2]:/resources/img/java/cloud_computing_1.png "A cloud computing architecture example"
 [data_streaming_1]:/resources/img/java/data_streaming_1.png "Stream vs Batch"
-[mapreduce_1]:/resources/img/java/mapreduce_1.png "Map Reduce Flowchart"
-[mapreduce_2]:/resources/img/java/mapreduce_2.png "Map Reduce Flowchart"
-[mapreduce_example_1]:/resources/img/java/mapreduce_example_1.png "Map Reduce WordCount"
 [distributed_2pc_1]:/resources/img/java/distributed_2pc_1.png "Two-Phrase Commit Protocol"
 [distributed_3pc_1]:https://en.wikipedia.org/wiki/Three-phase_commit_protocol "Three-Phrase Commit Protocol"
 [distributed_3pc_2]:http://coolshell.cn/articles/10910.html "Three-Phrase Commit Protocol"
@@ -1306,6 +1232,3 @@ __缓存数据的淘汰__
 [distributed_2armies_img_1]:/resources/img/java/distributed_2armies_1.png "Two Armies Problems"
 [distributed_2armies_img_2]:/resources/img/java/distributed_2armies_2.png "TCP协议的基本原理"
 [distributed_2armies_img_3]:/resources/img/java/distributed_2armies_3.png "量子隐形传态的原理图"
-
-
-
