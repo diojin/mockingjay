@@ -3,12 +3,21 @@
 ## Indexes
 * [Virtual Box with CentOS](#virtual-box-with-centos)
 * [Hadoop](#hadoop)
+    - [Reset Hadoop](#reset-hadoop)
+* [Spark](#spark)  
+    - [Installation issues](#spark-installation-issues)
+        + [sbt installation issues](#sbt-installation-issues)
 * [Virtual Box](#virtual-box)
     - [How to clone a virtual machine](#how-to-clone-a-virtual-machine)
     - [Shared Folder with Host Machine](#shared-folder-with-host-machine)
     - [Different network connection configurations](#different-network-connection-configurations)
+    - [Increase VDI disk size](#increase-vdi-disk-size)
     - [Misc](#virtualbox-misc)
 * [Miscellaneous](#miscellaneous)
+    - [virtualenv](#virtualenv)
+
+[hadoop-multi-node-setup-1]  
+[hadoop-multi-node-setup-2]  
 
 ## Virtual Box with CentOS
 1. Download latest VirtualBox: [VirtualBox Download]  
@@ -25,26 +34,637 @@ Version: CentOS-7 (1708)
             2. Disable KDUMP
             3. Enable NETWORK
 
+hostname |VM Instance |ip address     |mac address       |Roles
+---------|------------|---------------|------------------|---------------------
+Matthew  |CentOS1     |192.168.31.215 |08:00:27:db:91:f3 |Master, NameNode, SecondaryNameNode, ResourceManager, JobHistoryServer
+Mark     |CentOS2     |192.168.31.245 |08:00:27:e0:a4:67 |NodeManager,DataNode
+Luke     |CentOS3     |192.168.31.239 |08:00:27:80:3b:1e |NodeManager,DataNode
+
+>HDFS daemons are NameNode, SecondaryNameNode, and DataNode. YARN damones are ResourceManager, NodeManager, and WebAppProxy. If MapReduce is to be used, then the MapReduce Job History Server will also be running. For large installations, these are generally running on separate hosts.
+
 ## Hadoop
 1. Create Hadoop user
 ```shell
-> su
-> useradd -m hadoop -g root -s /bin/bash
+$ su
+$ useradd -m hadoop -g root -s /bin/bash
 # setup password
-> passwd hadoop 
+$ passwd hadoop 
 # add user hadoop as administrator
-> visudo            #  equals to "vi /etc/sudoers"
+$ visudo            #  equals to "vi /etc/sudoers"
 ```
-2. 
+In general, it is recommended that HDFS and YARN run as separate users. In the majority of installations, HDFS processes execute as ‘hdfs’. YARN is typically using the ‘yarn’ account.  
 
-1. Required softwares for Linux include  
+2. Required softwares for Linux include  
     [hadoop-setup-single-node]  
-    1. Java™ must be installed. JAVA 1.7
-    2. ssh must be installed and sshd must be running to use the Hadoop scripts that manage remote Hadoop daemons.
+    1. Java™ must be installed. JAVA 1.7 or later 
+    ```shell
+    sudo yum install java-1.8.0-openjdk java-1.8.0-openjdk-devel
+    ```
+    By default, it is installed under /usr/lib/jvm/java-1.7.0-openjdk-1.7.0.151-2.6.11.1.el7_4.x86_64   
+    How to find installation location if there is already one  
+    ```shell
+    $ rpm -qa | grep java
+    ...
+    java-1.8.0-openjdk-1.8.0.144-0.b01.el7_4.x86_64
+    $ rpm -ql java-1.8.0-openjdk-1.8.0.144-0.b01.el7_4.x86_64
+    ```
 
+    Set up JAVA_HOME environment variable  
+    ```shell
+    $ vi ~/.bashrc
+    export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.151-2.6.11.1.el7_4.x86_64
+    ```
 
-In general, it is recommended that HDFS and YARN run as separate users. In the majority of installations, HDFS processes execute as ‘hdfs’. YARN is typically using the ‘yarn’ account.
+    2. ssh must be installed and sshd must be running to use the Hadoop scripts that manage remote Hadoop daemons.  
+        1. Fist check if ssh is already installed  
+        ```shell
+        $ rpm -qa | grep ssh
+        ```
+        if there are something like below, then installed already  
+        openssh-7.4p1-12.el7_4.x86_64  
+        openssh-server-7.4p1-12.el7_4.x86_64  
+        libssh2-1.4.3-10.el7_2.1.x86_64  
+        openssh-clients-7.4p1-12.el7_4.x86_64   
+        otherwise, install them as below.  
+        ```shell
+        sudo yum install openssh-clients
+        sudo yum install openssh-server
+        ```
+        2. set up key-based ssh  
+        for Single Node Cluster  
+        ```shell
+        cd ~/.ssh/                     # if .ssh doesn't exist, ssh to any server, like localhost at first to create it.
+        ssh-keygen -t rsa              # press enter to pass all settings
+        cat id_rsa.pub >> authorized_keys 
+        chmod 600 ./authorized_keys
+        ```
+        for Fully-Distributed Mode, refer to setup in 3.3  
+3. Hadoop
+    1. download and installation  
+    ```shell
+    $ cd ~
+    $ wget http://mirror.bit.edu.cn/apache/hadoop/common/hadoop-2.7.4/
+    $ sudo tar -zxf ~/shared/hadoop-2.7.4.tar.gz -C /usr/local
+    $ cd /usr/local/
+    $ sudo mv hadoop-2.7.4 hadoop  
+    $ sudo chown -R hadoop:root hadoop        
+    ```
+    To test if hadoop is installed correctly  
+    ```shell
+    $ cd /usr/local/hadoop
+    $ ./bin/hadoop version
+    ```
+    Setup Hadoop Environment Variables  
+    ```shell
+    $ vi ~/.bashrc
+    export HADOOP_HOME=/usr/local/hadoop
+    export HADOOP_INSTALL=$HADOOP_HOME
+    export HADOOP_MAPRED_HOME=$HADOOP_HOME
+    export HADOOP_COMMON_HOME=$HADOOP_HOME
+    export HADOOP_HDFS_HOME=$HADOOP_HOME
+    export YARN_HOME=$HADOOP_HOME
+    export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+    export HADOOP_PREFIX=$HADOOP_HOME
+    export PATH=$PATH:$HADOOP_HOME/sbin:$HADOOP_HOME/bin
+    ```
+    It is also traditional to configure HADOOP_PREFIX in the system-wide shell environment configuration. For example, a simple script inside /etc/profile.d
+    2. Add FQDN Mapping  
+    ```shell
+    $ vi /etc/hosts
+    192.168.31.215  Matthew
+    192.168.31.245  Mark
+    192.168.31.239  Luke
+    ```
+    Change hostname if necessary  
+    ```shell
+    $ sudo vim /etc/hostname
+    # or else
+    $ hostnamectl set-hostname {HOSTNAME}
+    ```
+    3. Configuring Key Based Login  
+    It’s required to set up hadoop user to ssh itself without password, as well as other cluster nodes  
+    ```shell
+    # log to any cluster node, execute the following
+    $ ssh-keygen -t rsa
+    $ ssh-copy-id -i ~/.ssh/id_rsa.pub hadoop@Matthew
+    $ ssh-copy-id -i ~/.ssh/id_rsa.pub hadoop@Mark
+    $ ssh-copy-id -i ~/.ssh/id_rsa.pub hadoop@Luke
+    $ chmod 0600 ~/.ssh/authorized_keys
+    ```
+    What ssh-copy-id does has indeed similar effect to  
+    ```shell
+    # as for local machine
+    $ cat ./id_rsa.pub >> ./authorized_keys
+    # as for other server, say "Target" server
+    $ scp ~/.ssh/id_rsa.pub hadoop@Target:/home/hadoop/
+    # then log to Target
+    $ cat ~/id_rsa.pub >> ~/.ssh/authorized_keys
+    $ rm ~/id_rsa.pub
+    ```
+4. Configure Hadoop  
+    1. Change 5 configuration files on Master Server under $HADOOP_HOME/etc/hadoop, that is, core-site.xml, hdfs-site.xml, mapred-site.xml, yarn-site.xml, slaves    
+        1. Edit core-site.xml  
+        ```xml
+        <!-- Add the following inside the configuration tag -->
+        <property>
+            <name>fs.defaultFS</name>
+            <value>hdfs://Matthew:9000/</value>
+        </property>
+        <property>
+            <name>hadoop.tmp.dir</name>
+            <value>file:/usr/local/hadoop/tmp</value>
+            <description>A base for other temporary directories.</description>
+        </property>
+        ```
+        2. Edit hdfs-site.xml  
+        ```xml
+        <property>
+            <name>dfs.namenode.secondary.http-address</name>
+            <value>Matthew:50090</value>
+        </property>
+        <property>
+            <name>dfs.replication</name>
+            <value>2</value>
+        </property>
+        <property>
+            <name>dfs.namenode.name.dir</name>
+            <value>file:/usr/local/hadoop/tmp/dfs/name</value>
+        </property>
+        <property>
+            <name>dfs.datanode.data.dir</name>
+            <value>file:/usr/local/hadoop/tmp/dfs/data</value>
+        </property>
+        ```
+        3. Edit mapred-site.xml  
+        ```xml
+        <property>
+            <name>mapreduce.framework.name</name>
+            <value>yarn</value>
+        </property>
+        <property>
+            <name>mapreduce.jobhistory.address</name>
+            <value>Matthew:10020</value>
+        </property>
+        <property>
+            <name>mapreduce.jobhistory.webapp.address</name>
+            <value>Matthew:19888</value>
+        </property>
+        <property> 
+            <name>mapreduce.map.memory.mb</name> 
+            <value>256</value> 
+            <description>memory limitation for each map task</description> 
+        </property> 
+        <property> 
+            <name>mapreduce.map.java.opts</name> 
+            <value>-Xmx205m</value> 
+            <description>Larger heap-size for child jvms of maps</description>
+        </property>
+        
+        <property> 
+            <name>mapreduce.reduce.memory.mb</name> 
+            <value>256</value> 
+            <description>memory limitation for each reduce task</description> 
+        </property> 
+        <property> 
+            <name>mapreduce.reduce.java.opts</name> 
+            <value>-Xmx205m</value> 
+            <description>Larger heap-size for child jvms of reduces.</description>
+        </property>
+        <property>  
+            <name>yarn.app.mapreduce.am.resource.mb</name>  
+            <value>256</value>
+        </property>
+        <property> 
+            <name>yarn.app.mapreduce.am.command-opts</name> 
+            <value>-Xmx205m</value>
+        </property>
+        <property>
+            <name>mapreduce.map.cpu.vcores</name>
+            <value>1</value>
+            <description>The number of virtual cores required for each map task.</description>
+        </property>
+        <property>
+            <name>mapreduce.reduce.cpu.vcores</name>
+            <value>1</value>
+            <description>The number of virtual cores required for each map task.</description>
+        </property>
+        ```
+        4. Edit yarn-site.xml  
+        ```xml
+        <property>
+            <name>yarn.resourcemanager.hostname</name>
+            <value>Matthew</value>
+        </property>
+        <property>
+            <name>yarn.nodemanager.aux-services</name>
+            <value>mapreduce_shuffle</value>
+        </property>
+        <property>  
+            <name>yarn.nodemanager.resource.memory-mb</name>  
+            <value>1024</value>  
+            <discription>Available memory for the node, MB</discription>  
+        </property>  
+        <property>  
+            <name>yarn.scheduler.minimum-allocation-mb</name>  
+            <value>128</value>  
+            <discription>minimal memory for single task，1024MB by default</discription>
+        </property>  
+        <property>  
+            <name>yarn.scheduler.maximum-allocation-mb</name>  
+            <value>256</value>  
+            <discription>maximum memory for single task，8192MB by default</discription>  
+        </property>
+        <property>
+            <name>yarn.nodemanager.vmem-check-enabled</name>
+            <value>false</value>
+            <description>Whether virtual memory limits will be enforced for containers</description>
+        </property>
+        <property>
+            <name>yarn.nodemanager.vmem-pmem-ratio</name>
+            <value>4</value>
+            <description>Ratio between virtual memory to physical memory when setting memory limits for containers, default is 2.1</description>
+        </property>
+        <property>
+            <name>yarn.scheduler.minimum-allocation-vcores</name>
+            <value>1</value>
+            <description>The minimum allocation for every container request at the RM, in terms of virtual CPU cores. Requests lower than this won't take effect, and the specified value will get allocated the minimum.</description>
+        </property>
+        <property>
+            <name>yarn.scheduler.maximum-allocation-vcores</name>
+            <value>1</value>
+            <description>The maximum allocation for every container request at the RM, in terms of virtual CPU cores. Requests higher than this won't take effect, and will get capped to this value.</description>
+        </property>
+        <property>
+            <name>yarn.nodemanager.resource.cpu-vcores</name>
+            <value>2</value>
+            <description>Number of CPU cores that can be allocated for containers.</description>
+        </property>
+        ```
+        5. Edit slaves  
+        Servers listed here are DataNode, localhost is not included, so that the Master server Matthew is not DataNode.
+        ```json
+        Mark
+        Luke
+        ```
 
+        Key things to remember is:  
+        * Values of mapreduce.map.memory.mb and mapreduce.reduce.memory.mb should be at least yarn.scheduler.minimum-allocation-mb
+        * Values of mapreduce.map.java.opts and mapreduce.reduce.java.opts should be around "0.8 or 0.75 times the value of" corresponding mapreduce.map.memory.mb and mapreduce.reduce.memory.mb configurations. 
+        * Similarly, value of yarn.app.mapreduce.am.command-opts should be "0.8 or 0.75 times the value of" yarn.app.mapreduce.am.resource.mb
+        * beyond virtual memory limits issue  
+        This is happening on Centos/RHEL 6 due to its aggressive allocation of virtual memory.It can be resolved either by:  
+            1. Disable virtual memory usage check by setting yarn.nodemanager.vmem-check-enabled to false;
+            2. Increase VM:PM ratio by setting yarn.nodemanager.vmem-pmem-ratio to some higher value.
+    2. Edit hadoop-env.sh 
+    $HADOOP_HOME/etc/hadoop/hadoop-env.sh  
+    ```shell
+    export  HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+    export  HADOOP_OPTS="$HADOOP_OPTS -Djava.library.path=$HADOOP_HOME/lib:$HADOOP_COMMON_LIB_NATIVE_DIR"
+    ```
+    3. Copy these 5 configuration files as well as hadoop-env.sh to Slaver Servers.  
+    4. Format NameNode if it is 1st time started
+    Here, execute the command on Matthew  
+    ```shell
+    hdfs namenode -format
+    ```
+    5. As for CentOS, stop firewall so that telnet won't be blocked  
+    Otherwise, live datanode would be 0.  
+        * CentOS7  
+        ```shell
+        systemctl stop firewalld.service    
+        systemctl disable firewalld.service     # diable auto start service
+        ```
+        * CentOS6.x  
+        ```shell
+        sudo service iptables stop   
+        sudo chkconfig iptables off  
+        # or else
+        sudo /etc/init.d/iptables stop
+        sudo chkconfig iptables off
+        ```
+
+5. Start Hadoop
+Hadoop needs to be started on Master Server, that is, Matthew. Running following scripts on Master server.    
+    1. start-dfs.sh  
+    jps result:  
+    Matthew(Master)  
+    6835 SecondaryNameNode  
+    6628 NameNode   
+    Mark/Luke(Slaves)  
+    4866 DataNode   
+    2. start-yarn.sh  
+    jps result:  
+    Matthew(Master)  
+    6835 SecondaryNameNode  
+    6628 NameNode  
+    `7416 ResourceManager`  
+    Mark/Luke(Slaves)  
+    `5217 NodeManager`  
+    4866 DataNode  
+    3. mr-jobhistory-daemon.sh start historyserver  
+    jps result:  
+    Matthew(Master)  
+    6835 SecondaryNameNode  
+    6628 NameNode  
+    `7830 JobHistoryServer`  
+    7416 ResourceManager  
+    Mark/Luke(Slaves)  
+    5217 NodeManager  
+    4866 DataNode  
+
+6. Verift hadoop status:  
+    1. run following command on Master Node      
+    ```shell
+    hdfs dfsadmin -report
+    ```
+    2. check status by http://Matthew:50070/  
+
+7. Execute one distributed job
+Running on Master server Matthew  
+    1. create HDFS user directory  
+    ```shell
+    $ hdfs dfs -mkdir -p /user/hadoop
+    ```
+    2. copy some files to HDFS  
+    ```shell
+    $ hdfs dfs -mkdir input
+    $ hdfs dfs -put /usr/local/hadoop/etc/hadoop/*.xml input
+    ```
+    3. Run a MapReduce Job  
+    ```shell
+    $ hadoop jar /usr/local/hadoop/share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar grep input output 'dfs[a-z.]+'
+    ```
+    Use http://Matthew:8088/cluster to monitor the progress.  
+    If no response, that might be due to memory size or YARN memory configuration  
+    Verify result:  
+    ```shell
+    $ hdfs dfs -cat output/*
+    ```
+
+8. Execute another distributed job
+Running on Master server Matthew  
+    1. Preparation   
+    ```shell
+    $ echo "hello world hello Hello" > ~/workspace/tmp/test.txt
+    $ hdfs dfs -mkdir /input
+    $ hadoop fs -put ~/workspace/tmp/test.txt /input
+    ```
+    2. Run a MapReduce Job  
+    ```shell
+    $ hadoop jar /usr/local/hadoop/share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar wordcount /input /output
+    ```
+
+9. stop hadoop  
+```shell
+stop-yarn.sh
+stop-dfs.sh
+mr-jobhistory-daemon.sh stop historyserver
+```
+
+### Reset Hadoop
+1. Clean up logs under ${HADOOP_HOME}/logs on both master and slaves
+2. Clean up all files under ${hadoop.tmp.dir}, ${dfs.namenode.name.dir} and ${dfs.namenode.data.dir}, keep the directories, on both master and slaves  
+For slaves, clean up all files under ${hadoop.tmp.dir}/nm-local-dir  
+3. format namenode  
+```shell
+    hdfs namenode -format
+```
+
+## Spark
+1. Using Spark's "Hadoop Free" Build  
+To use these builds, you need to modify SPARK_DIST_CLASSPATH to include Hadoop’s package jars. The most convenient place to do this is by adding an entry in conf/spark-env.sh  
+```shell
+# If 'hadoop' binary is on your PATH
+export SPARK_DIST_CLASSPATH=$(hadoop classpath)
+
+# With explicit path to 'hadoop' binary
+export SPARK_DIST_CLASSPATH=$(/path/to/hadoop/bin/hadoop classpath)
+
+# Passing a Hadoop configuration directory
+export SPARK_DIST_CLASSPATH=$(hadoop --config /path/to/configs classpath)
+```
+Download spark-x.x.x-bin-without-hadoop.tgz  
+
+2. Prerequisite  
+Spark runs on both Windows and UNIX-like systems (e.g. Linux, Mac OS). It’s easy to run locally on one machine — all you need is to have java installed on your system PATH, or the JAVA_HOME environment variable pointing to a Java installation.  
+
+Spark runs on Java 8+, Python 2.7+/3.4+ and R 3.1+. For the Scala API, Spark 2.2.0 uses Scala 2.11. You will need to use a compatible Scala version (2.11.x).
+
+**Optional installations**  
+* sbt  
+```shell
+$ curl https://bintray.com/sbt/rpm/rpm | sudo tee /etc/yum.repos.d/bintray-sbt-rpm.repo
+$ sudo yum install sbt
+```
+will install it under /usr/share/sbt and /usr/share/doc/sbt, start script is /usr/share/sbt/bin/sbt  
+it can be downloaded at [sbt-download-url-1]  
+some referencing script   
+```shell
+wget http://dl.bintray.com/sbt/rpm/sbt-0.13.5.rpm
+sudo yum localinstall sbt-0.13.5.rpm
+```
+**Manually installation**:  
+    * extract sbt-x.x.x.tgz to designated path,for instance, /usr/local/sbt
+    * add {install_path}/bin to $PATH
+    * use {install_path}/bin/sbt script
+```shell
+## verify if installed successfully
+$ sbt sbt-version
+```
+**Extremely Manually installation**:  
+    * only sbt-launch.jar is required, put it under designated path,for instance, /usr/local/sbt
+```shell
+wget https://repo.typesafe.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.9/sbt-launch.jar -O ./sbt-launch.jar
+```
+    * create a script as {install_path}/bin/sbt, whose content is as below, 
+```shell
+#!/bin/bash
+SBT_OPTS="-Xms512M -Xmx1536M -Xss1M -XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=256M"
+java $SBT_OPTS -jar `dirname $0`/sbt-launch.jar "$@"
+```
+
+* Scala  
+    * Download scala package and extract it  
+    [scala-download-url-1]  
+    * config environment variable SCALA_HOME and PATH
+
+* python  
+    1. install via EPEL repository  
+    Red Hat has added Python 3.4 for CentOS 6 and 7 through the EPEL repository.  
+    **[EPEL] How to install Python 3.4 on CentOS 6 & 7**  
+    ```shell
+    $ sudo yum install -y epel-release
+    $ sudo yum install -y python34
+    # Install pip3
+    $ sudo yum install -y python34-setuptools  # install easy_install-3.4
+    $ sudo easy_install-3.4 pip
+    # I guess you would like to install virtualenv or virtualenvwrapper
+    $ sudo pip3 install virtualenv
+    $ sudo pip3 install virtualenvwrapper
+    ```
+    2. manually compile any version
+        1. install dependencies  
+        ```shell
+        $ yum -y install bzip2-devel expat-devel gdbm-devel ncurses-devel openssl-devel  readline-devel sqlite-devel tk-devel zlib-devel
+        # or else install more dependencies if required
+        $ yum -y install bzip2-devel bzip2-libs expat-devel gdbm-devel ncurses-devel openssl openssl-devel openssl-static readline readline-devel readline-static sqlite-devel tk-devel zlib-devel
+        ```
+        2. install python  
+        ```shell
+        $ wget https://www.python.org/ftp/python/3.6.3/Python-3.6.3.tgz
+        $ tar -xzvf Python-3.6.0.tgz -C  /tmp
+        $ cd /tmp/Python-3.6.0/
+        $ ./configure --prefix=/usr/local
+        $ make
+        $ make altinstall
+        ```
+        in order to install a collateral version to system default version, use `make altinstall`,  to install on an alternative installation directory, pass --prefix={path} to the `configure` command.   
+        3. change environment settings  
+        After the make install step: In order to use your new Python installation, it could be, that you still have to add the [prefix]/bin to the $PATH and [prefix]/lib to the $LD_LIBRARY_PATH (depending of the --prefix you passed)  
+        python3.6 executables：/usr/local/bin/python3.6  
+        pip3 executables：/usr/local/bin/pip3.6  
+        pyenv3 executables：/usr/local/bin/pyenv-3.6  
+        4. optional, change other possible dependencies  
+            1. change /usr/bin/python links, optional, depending on step 3   
+            ```shell
+            $ cd/usr/bin
+            $ mv python python.backup
+            $ ln -s /usr/local/bin/python3.6 /usr/bin/python
+            $ ln -s /usr/local/bin/python3.6 /usr/bin/python3
+            ```
+            2. change yum scripts' python dependency, optional?   
+            ```shell
+            $ cd /usr/bin
+            $ ls yum*
+            yum yum-config-manager yum-debug-restore yum-groups-manager
+            yum-builddep yum-debug-dump yumdownloader
+            # change headers from #!/usr/bin/python to #!/usr/bin/python2
+            ```
+            3. modify gnome-tweak-tool configuration file, optional?  
+            ```shell
+            $ vi /usr/bin/gnome-tweak-tool
+            # from #!/usr/bin/python to #!/usr/bin/python2
+            ```
+            4. modify urlgrabber configuration file, optional?
+            ```shell
+            $ vi /usr/libexec/urlgrabber-ext-down
+            # from #!/usr/bin/python 改为 #!/usr/bin/python2
+            ```
+
+3. Spark Installation   
+Simply extract archive file to designated directory  
+```shell
+$ sudo tar -zxvf spark-2.2.0-bin-without-hadoop.tgz -C /usr/local
+```
+4. Config environment variables  
+    1. Master Server  
+        1. edit ~/.bashrc  
+        ```shell
+        export SPARK_HOME=/usr/local/spark
+        export PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
+        ```
+        2. edit slaves  
+        ```shell
+        $ cd /usr/local/spark/
+        $ cp ./conf/slaves.template ./conf/slaves
+        # remove localhost from slaves
+        $ vi ./conf/slaves
+        Mark
+        Luke
+        ```
+        3. edit spark_env.sh          
+        ```shell
+        $ cp ./conf/spark-env.sh.template ./conf/spark-env.sh
+        export SPARK_DIST_CLASSPATH=$($HADOOP_HOME/bin/hadoop classpath)
+        export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+        export SPARK_MASTER_IP=192.168.31.215
+        ```
+    2. copy all spark files and .bashrc to corresponding directories of other slave servers    
+    ```shell
+    $ tar -zcvf ~/workspace/tmp/spark.tar.gz /usr/local/spark
+    $ scp ~/workspace/tmp/spark.tar.gz hadoop@Mark:~/
+    $ scp ~/.bashrc hadoop@Mark:~
+    $ scp ~/workspace/tmp/spark.tar.gz hadoop@Luke:~/
+    $ scp ~/.bashrc hadoop@Luke:~
+    ```
+    3. on each slave server, extract spark file to designated directory  
+    ```shell
+    $ sudo tar -zxvf ~/spark.tar.gz -C /usr/local
+    ```
+
+5. start spark cluster  
+    1. start hadoop server
+    2. start master server  
+    ```shell
+    $ cd /usr/local/spark/
+    $ sbin/start-master.sh
+    ```
+    jps result:  
+    Matthew(Master)  
+    6835 SecondaryNameNode  
+    6628 NameNode  
+    7830 JobHistoryServer  
+    7416 ResourceManager  
+    14891 `Master`  
+    3. start slave servers
+    ```shell
+    $ sbin/start-slaves.sh
+    ```
+    Mark/Luke(Slaves)  
+    5217 NodeManager  
+    4866 DataNode  
+    37876 `Worker`  
+    4. Verification  
+    User http://Matthew:8080 to monitor spark cluster status 
+6. stop spark server  
+```shell
+$ sbin/stop-slaves.sh
+$ sbin/stop-master.sh
+```
+
+### Spark Installation issues
+#### sbt installation issues
+注意：由于网络的原因，所以当你输入sbt命令的时候，会出现卡着的情况，实际上这是在下载相关的依赖包，一定要耐心等！我直接开了后台进程等让它慢慢下载的，估计好几个小时...另外由于sbt默认的repository是maven，里面有些会被墙, 因此建议使用oschina的repository, 3 ways:  
+1. repositories file  
+```shell
+$ cd ~/.sbt/
+$ touch repositories
+$ vim repositories
+```
+Content of repositories is:  
+```html
+[repositories]  
+local  
+osc: http://maven.oschina.net/content/groups/public/  
+typesafe: http://repo.typesafe.com/typesafe/ivy-releases/, [organization]/[module]/(scala_[scalaVersion]/)(sbt_[sbtVersion]/)[revision]/[type]s/[artifact](-[classifier]).[ext], bootOnly  
+sonatype-oss-releases  
+maven-central  
+sonatype-oss-snapshots  
+```
+2. change sbt-launch.jar  
+```shell
+$ wget https://repo.typesafe.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.9/sbt-launch.jar -O ./sbt-launch.jar      # 下载
+$ unzip -q ./sbt-launch.jar
+```
+需要修改其中的 ./sbt/sbt.boot.properties 文件（vim ./sbt/sbt.boot.properties），将 [repositories] 处修改为如下内容（即增加了一条 oschina 镜像，并且将原有的 https 镜像都改为相应的 http 版）：
+```html
+[repositories]
+  local
+  oschina: http://maven.oschina.net/content/groups/public/
+  jcenter: http://jcenter.bintray.com/
+  typesafe-ivy-releases: http://repo.typesafe.com/typesafe/ivy-releases/, [organization]/[module]/[revision]/[type]s/[artifact](-[classifier]).[ext], bootOnly
+  maven-central: http://repo1.maven.org/maven2/
+```
+保存后，重新打包 jar：
+```shell
+jar -cfM ./sbt-launch.jar .       
+```
+注意打包时，需要使用 -M 参数，否则 ./META-INF/MANIFEST.MF 会被修改，导致运行时会出现 “./sbt-launch.jar中没有主清单属性” 的错误。  
+3. download offline repository packages  
+http://pan.baidu.com/s/1eRO8pP4
+extract code: jryh
+
+另外有时候输入sbt的时候会提示一个lock文件，这个是在~/.sbt目录下面的boot文件夹下，删除即可。另外查看下载信息可查看boot文件夹下的update.log  
 
 ## Virtual Box        
 ### How to clone a virtual machine
@@ -73,7 +693,7 @@ In general, it is recommended that HDFS and YARN run as separate users. In the m
 ### Shared Folder with Host Machine
 1. Start VM Instance
 2. Menu -> Devices -> Install Enhancement Functions  
-    May need to install dependencies for CentOS 6.5 before installation
+    Might need to install dependencies for CentOS 6.5 before installation, in my case, no need.  
     ```shell
     yum install -y gcc gcc-devel gcc-c++ gcc-c++-devel make kernel kernel-devel
     shutdown -r now
@@ -81,10 +701,13 @@ In general, it is recommended that HDFS and YARN run as separate users. In the m
 3. Configure a shared folder for the VM Instance
 4. Mount shared folder
 ```shell
+mkdir #{mount_directory}
 sudo mount -t vboxsf #{shared_folder_name} #{mount_directory}
 #for example
+mkdir /home/xingoo/shared
 sudo mount -t vboxsf shared_file /home/xingoo/shared
 ```
+By default, the folder is mounted automaticlly under /media/sf_{shared_folder_name}, owned by root, if auto-mounted is selected in VM instance setting
 
 ### Different network connection configurations
 VMWare提供了三种工作模式(Similar with VirtualBox)，它们是bridged(桥接模式)、NAT(网络地址转换模式)和host-only(主机模式)。   
@@ -103,11 +726,157 @@ NAT模式优点就是能够上网。
 3.  NAT(网络地址转换模式)  
 使用NAT模式，就是让虚拟系统借助NAT(网络地址转换)功能，通过宿主机器所在的网络来访问公网。也就是说，使用NAT模式可以实现在虚拟 系统里访问互联网。NAT模式下的虚拟系统的TCP/IP配置信息是由VMnet8(NAT)虚拟网络的DHCP服务器提供的，无法进行手工修改，因此虚拟系统也就无法和本局域网中的其他真实主机进行通讯。采用NAT模式最大的优势是虚拟系统接入互联网非常简单，你不需要进行任何其他的配置，只需要宿主机器能访问互联网即可。
 
+### Increase VDI disk size
+[virtualbox-extend-vdi-capacity-url-1]  
+
+对于VMDK是VMware开发并使用的，同时也被SUN的xVM、QEMU、SUSE Studio、.NET DiscUtils支持，所以兼容性会好些  
+VDI是Virtual Box 自己的处理格式，而且Virtual Box支持Windows和Linux，所以对于使用VirtualBox的用户比较好  
+VHD是Windows专有的处理格式，HDD是Apple专有的处理格式，所以不会支持跨平台，一般不会考虑  
+LVM中有PV、VG、LV分别表示物理卷、卷组、逻辑卷  
+
+1. resize VDI or VMDK  
+    1. VDI  
+    ```shell
+    $ D:\Outerhaven\Softwares\VirtualBox\VBoxManage.exe modifyhd CenOS1.vdi --resize 16000
+    ```
+    2. VMDK  
+    VMDK converts to VDI, then extend  
+    ```shell
+    $ VBoxManage clonehd "xxxx.vmdk" "cloned.vdi" --format vdi  
+    $ VBoxManage modifyhd "cloned.vdi" --resize 16000  //这里的单位是M  
+    ```
+    then convert back to VMDK
+    ```shell
+    $ VBoxManage clonehd "cloned.vdi" "resized.vmdk" --format vmdk
+    # to list all cloned disks
+    $ VBoxManage list hdds   
+    ```
+    下面就是在打开虚拟机--选个系统--右击--设置--存储--控制器SATA--右边的添加虚拟硬盘--选择克隆的文件就行了。  
+2. Use LVM to extend  
+LVM（Logic Volume Manager）  
+    1. check before operation  
+    ```shell
+    $ sudo fdisk -l
+    ```
+    there are something like /dev/sda, /dev/sda1, /dev/sda2, etc.
+    2. step 1  
+    ```shell
+    sudo fdisk /dev/sda
+    ```
+    input as below,  
+    ```html
+    Welcome to fdisk (util-linux 2.23.2).
+
+    Changes will remain in memory only, until you decide to write them.
+    Be careful before using the write command.
+
+
+    Command (m for help): n
+    Partition type:
+       p   primary (2 primary, 0 extended, 2 free)
+       e   extended
+    Select (default p): p
+    Partition number (3,4, default 3): 3
+    First sector (16777216-32767999, default 16777216): 
+    Using default value 16777216
+    Last sector, +sectors or +size{K,M,G} (16777216-32767999, default 32767999): 
+    Using default value 32767999
+    Partition 3 of type Linux and of size 7.6 GiB is set
+
+    Command (m for help): t
+    Partition number (1-3, default 3): 3
+    Hex code (type L to list all codes): 8e
+    Changed type of partition 'Linux' to 'Linux LVM'
+
+    Command (m for help): w
+    The partition table has been altered!
+
+    Calling ioctl() to re-read partition table.
+
+    WARNING: Re-reading the partition table failed with error 16: Device or resource busy.
+    The kernel still uses the old table. The new table will be used at
+    the next reboot or after you run partprobe(8) or kpartx(8)
+    Syncing disks.
+    ```
+    reboot to make it effective  
+    ```shell
+    $ sudo reboot
+    ```
+    3. step 2, format to ext4  
+    ```shell
+    $ sudo mkfs.ext4 /dev/sda3  
+    ```
+    4, step 3, check volumn group  
+    ```shell
+    $ sudo vgdisplay
+    ```
+    part of result is as below, volumn group name is centos  
+    ```html
+      --- Volume group ---
+      VG Name               centos
+      ...
+    ```
+    5. step 4, create physic volumn  
+    ```shell
+    $ sudo pvcreate /dev/sda3
+    WARNING: ext4 signature detected on /dev/sda3 at offset 1080. Wipe it? [y/n]: y
+    Wiping ext4 signature on /dev/sda3.
+    Physical volume "/dev/sda3" successfully created.
+    ```
+    6. step 5, extend pv to volumn group  
+    ```shell
+    $ sudo vgextend centos /dev/sda3
+    ```
+    7. step 6, check logic volumn and extend pv to it  
+    ```shell
+    $ sudo lvdisplay
+    --- Logical volume ---
+    LV Path                /dev/centos/root
+    LV Name                root
+    ...
+    LV Size                <6.20 GiB
+    ...
+    ```
+    /dev/centos/root is the logic volumn of root, where we want to extend  
+    ```shell   
+    # extend all available size 
+    $ sudo lvextend /dev/centos/root /dev/sda3
+    # or else, specify calculated size explicitly  
+    $ sudo lvextend -L +6.96 /dev/centos/root 
+    ```
+    If there is an issue saying "Cannot change VG centos while PVs are missing", run following command    
+    ```shell
+    $ sudo vgreduce --removemissing centos
+    ```
+
+    8. step 7, extend LV's size   
+    ```shell
+    $ sudo xfs_growfs /dev/centos/root
+    # command below is obsolete, only for reference.
+    $ sudo resize2fs /dev/centos/root 
+    ```
+    reboot to make it effect  
+    ```shell
+    $ sudo reboot
+    ```
+
 ### VirtualBox Misc
 * 如果宿主机是windows经常需要来回的拷贝内容，那么可以打开【共享粘贴板】，步骤为：  
 设备-->共享粘贴板-->双向
 
 ## Miscellaneous
+### virtualenv
+VirtualEnv helps you create a Local Environment(not System wide) Specific to the Project you are working upon.  
+
+Hence, As you start working on Multiple projects, your projects would have different Dependencies (e.g different Django versions) hence you would need a different virtual Environment for each Project. VirtualEnv does this for you.
+
+As, you are using VirtualEnv.. Try VirtualEnvWrapper : https://pypi.python.org/pypi/virtualenvwrapper  
+
+It provides some utilities to create switch and remove virtualenvs easily, e.g:
+
+mkvirtualenv <name>: To create a new Virtualenv  
+workon <name> : To use a specified virtualenv  
+and some others
 
 ---
 [centos-download]:https://www.centos.org/download/ "CentOS Download"
@@ -115,3 +884,8 @@ NAT模式优点就是能够上网。
 [install-centos-on-virtualbox]:http://dblab.xmu.edu.cn/blog/164/ "install-centos-on-virtualbox"
 [VirtualBox-copy-VM-reset-network]:https://cnzhx.net/blog/copy-centos-and-reset-network-in-vm/ "VirtualBox 中复制 CentOS 虚拟机并重设网络"
 [hadoop-setup-single-node]:http://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/SingleCluster.html "Hadoop: Setting up a Single Node Cluster."
+[hadoop-multi-node-setup-1]:https://tecadmin.net/set-up-hadoop-multi-node-cluster-on-centos-redhat/ "How to Set Up Hadoop 1.x Multi-Node Cluster on CentOS 7/6"
+[hadoop-multi-node-setup-2]:http://dblab.xmu.edu.cn/blog/install-hadoop-cluster/ "Hadoop集群安装配置教程_Hadoop2.6.0_Ubuntu/CentOS"
+[sbt-download-url-1]:https://github.com/sbt/sbt/releases/download/v1.0.2/sbt-1.0.2.tgz "sbt download url"
+[scala-download-url-1]:http://www.scala-lang.org/download/ "scala download url"
+[virtualbox-extend-vdi-capacity-url-1]:http://blog.csdn.net/onlysingleboy/article/details/38562283 "VirtualBox虚拟机linux(CentOS)扩容 (不破坏已有文件 增加原先设置的大小  扩容至根目录)"

@@ -1,6 +1,23 @@
 # 			Big Data
 ---
 ## Indexes
+* [Hadoop](#hadoop)
+    - [MapReduce](#mapreduce)
+    - [Issue Resolve](#hadoop-issue-resolve)
+        + [Raise log threshold](#hadoop-raise-log-threshold)
+        + [Unable to load native-hadoop library for your platform](#hadoop-unable-to-load-native-hadoop-library-for-your-platform)
+    - [Misc](#hadoop-misc)
+        + [Hadoop job management](#hadoop-jon-management)     
+* [Spark](#spark)
+    - [Issue Resolve](#spark-issue-resolve)
+        + [Raise log threshold](#spark-raise-log-threshold)
+        + [Unable to load native-hadoop library for your platform](#spark-unable-to-load-native-hadoop-library-for-your-platform)
+    - [Spark Misc](#spark-misc)
+        + [Spark Streaming vs Storm vs Samza](#spark-streaming-vs-storm-vs-samza)
+            * [Spark Voices from others](#spark-voices-from-others)
+        + [Spark Learning Materials](#spark-learning-materials)
+* [Hive](#hive)
+* [HBase](#hbase)
 * [BigData Common](#bigdata-common)
     - [Cloudera’s CCA & CCP Certification](#clouderas-cca--ccp-certification)
         + [CCA Administrator Exam (CCA131)](#cca-administrator-exam-cca131)
@@ -8,17 +25,264 @@
         + [CCA Data Analyst (CCA159)](#cca-data-analyst-cca159)
         + [CCP Data Engineer Exam (DE575)](#ccp-data-engineer-exam-de575)
     - [Misc](#bigdata-common-misc)
-* [Hadoop](#hadoop)
-    - [Hive](#hive)
-    - [HBase](#hbase)
-    - [Misc](#hadoop-misc)
-        + [MapReduce](#mapreduce)
-* [Spark](#spark)
-    - [Spark Misc](#spark-misc)
-        + [Spark Streaming vs Storm vs Samza](#spark-streaming-vs-storm-vs-samza)
-            * [Spark Voices from others](#spark-voices-from-others)
-        + [Spark Learning Materials](#spark-learning-materials)
 * [Miscellaneous](#miscellaneous)
+
+## Hadoop
+
+Hadoop 是一个实现了MapReduce 计算模型的开源分布式并行编程框架，程序员可以借助Hadoop 编写程序，将所编写的程序运行于计算机机群上，从而实现对海量数据的处理
+
+ 此外，Hadoop 还提供一个分布式文件系统(HDFS）及分布式数据库（HBase）用来将数据存储或部署到各个计算节点上。所以，你可以大致认为：Hadoop=HDFS（文件系统，数据存储技术相关）+HBase（数据库）+MapReduce（数据处理）。Hadoop 框架如图所示：
+![hadoop_1]
+
+我们已经知道，Hadoop是Google的MapReduce一个Java实现。MapReduce是一种简化的分布式编程模式，让程序自动分布到一个由普通机器组成的超大集群上并发执行。Hadoop主要由HDFS、MapReduce和HBase等组成。具体的hadoop的组成如下图：
+![hadoop_2]
+
+__The project includes these modules:__  
+* Hadoop Common: The common utilities that support the other Hadoop modules.
+* Hadoop Distributed File System (HDFS™): A distributed file system that provides high-throughput access to application data.
+* Hadoop YARN: A framework for job scheduling and cluster resource management.
+* Hadoop MapReduce: A YARN-based system for parallel processing of large data sets.
+
+__Other Hadoop-related projects at Apache include:__  
+* Ambari™: A web-based tool for provisioning, managing, and monitoring Apache Hadoop clusters which includes support for Hadoop HDFS, Hadoop MapReduce, Hive, HCatalog, HBase, ZooKeeper, Oozie, Pig and Sqoop. Ambari also provides a dashboard for viewing cluster health such as heatmaps and ability to view MapReduce, Pig and Hive applications visually alongwith features to diagnose their performance characteristics in a user-friendly manner.
+* Avro™: A data serialization system.
+* Cassandra™: A scalable multi-master database with no single points of failure.
+* Chukwa™: A data collection system for managing large distributed systems.
+* HBase™: A scalable, distributed database that `supports structured data storage` for large tables.
+* Hive™: A data warehouse infrastructure that provides data summarization and ad hoc querying.
+* Mahout™: A Scalable machine learning and data mining library.
+* Pig™: A high-level data-flow language and execution framework for parallel computation.
+* Spark™: A fast and general compute engine for Hadoop data. Spark provides a simple and expressive programming model that supports a wide range of applications, including ETL, machine learning, stream processing, and graph computation.
+* Tez™: A generalized data-flow programming framework, built on Hadoop YARN, which provides a powerful and flexible engine to execute an arbitrary DAG of tasks to process data for both batch and interactive use-cases. Tez is being adopted by Hive™, Pig™ and other frameworks in the Hadoop ecosystem, and also by other commercial software (e.g. ETL tools),` to replace Hadoop™ MapReduce as the underlying execution engine`.
+* ZooKeeper™: A high-performance coordination service for distributed applications.
+
+### MapReduce
+![mapreduce_1]  
+
+原始状态下，输入–Map — Shuffle — Reduce — 输出  
+![mapreduce_2]
+
+首先，让我们以WordCount为例来解释MapReduce是怎么工作的.  
+![mapreduce_example_1]
+
+map数据输入  
+Hadoop针对文本文件缺省使用LineRecordReader类来实现读取，一行一个key/value对，key取偏移量，value为行内容。  
+如下是map1的输入数据：  
+Key1                  Value1   
+0         Hello World Bye World  
+如下是map2的输入数据：   
+Key1                Value1   
+0         Hello Hadoop GoodBye Hadoop  
+
+
+### Hadoop Issue Resolve
+所以如果集群以前能启动，但后来启动不了，特别是 DataNode 无法启动，不妨试着删除所有节点（包括 Slave 节点）上的 /usr/local/hadoop/tmp 文件夹，再重新执行一次 hdfs namenode -format，再次启动试试。
+
+#### Hadoop Raise log threshold
+```shell
+export HADOOP_ROOT_LOGGER=DEBUG,console 
+hadoop fs -text /test/data/origz/access.log.gz  ## what for??
+```
+or else  
+$HADOOP_CONF_DIR/log4j.properties file:  
+log4j.logger.org.apache.hadoop.util.NativeCodeLoader=DEBUG  
+
+#### Hadoop Unable to load native-hadoop library for your platform
+>WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform… using builtin-java classes where applicable
+
+$HADOOP_HOME/etc/hadoop/hadoop-env.sh  
+```shell
+export  HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export  HADOOP_OPTS="$HADOOP_OPTS -Djava.library.path=$HADOOP_HOME/lib:$HADOOP_COMMON_LIB_NATIVE_DIR"
+```
+
+however, if it is 32bit system and hadoop is 64bit, you need to compile 32bit hadoop ([bitdata-hadoop-compile-1]) and override libraries under lib/native  
+```shell
+$ file ../lib/native/libhadoop.so.1.0.0    # verify bit of hadoop
+```
+
+### Hadoop Misc
+#### Hadoop job management
+1. job submission  
+```shell
+$ hadoop jar <jar> [mainClass] args..
+# for example
+$ hadoop jar hadoop-examples-1.0.0.jar wordcount /text/input /test/output
+```
+2. job termination  
+    1. before Hadoop 2.3.0  
+    ```shell
+    $ hadoop job -list 
+    $ hadoop job -kill $jobId
+    # for exampe, kill all jobs belongs to username
+    $ for i in `hadoop job -list | grep -w  username| awk '{print $1}' | grep job_`; do 
+        hadoop job -kill $i; 
+      done
+    ```
+    2. Hadoop 2.3.0 or later  
+    ```shell
+    $ yarn application -list
+    $ yarn application -kill {ApplicationI}
+    ```
+
+## Spark
+
+### Spark Issue Resolve
+#### Spark Raise log threshold
+```shell
+$ vim $SPARK_HOME/conf/log4j.properties
+log4j.rootCategory=WARNING, console  
+```
+
+#### Spark Unable to load native-hadoop library for your platform
+>WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform… using builtin-java classes where applicable
+
+```shell
+$ vim $SPARK_HOME/conf/spark-env.sh
+
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_COMMON_LIB_NATIVE_DIR  
+```
+
+### Spark Misc
+#### Spark Streaming vs Storm vs Samza
+[bigdata-spark-vs-storm-1]   
+[7-most-common-hadoop-and-spark-projects-1]  
+[bigdata-spark-vs-storm-2]  
+All three real-time computation systems are open-source, low-latency, distributed, scalable and fault-tolerant.   
+
+![bigdata-spark-vs-storm-vs-samza-img-1]  
+
+Header              |Storm              |Spark              |Samza 
+--------------------|-------------------|-------------------|------------------
+`Delivery Semantics`|At least once, Exactly-once with Trident |Exactly once unless exception |At least once 
+`State Management`  |Stateless, roll your own or Trident      |Stateful, to storage          |Stateful, key-value store
+`Latency`        |Sub-second, OR some says 毫秒级 |Seconds depending on batch size | Sub-second
+`Language Support`|Any JVM-language,Ruby,Python,Javascript,Perl |Scala,Java,Python | Scala, Java, JVM-language only 
+吞吐量              |低                 |高                  |-
+事务机制            |支持完善            |支持，但不够完善     |-
+健壮性 / 容错性     |ZooKeeper，Acker，非常强 | Checkpoint，WAL，一般 |-
+动态调整并行度      |支持                |不支持              |-
+
+
+* Apache Spark
+    * micro batching  
+    Spark Streaming (an extension of the core Spark API) doesn’t process streams one at a time like Storm. Instead, it slices them in small batches of time intervals before processing them.  
+    Spark Streaming implements a method for "batching" incoming updates in user-defined time intervals that get transformed into their own RDDs  
+    * Spark Ecosystem  
+    如果一个项目除了实时计算之外，还包括了离线批处理、交互式查询等业务功能，而且实时计算中，可能还会牵扯到高延迟批处理、交互式查询等功能，那么就应该首选Spark生态，用Spark Core开发离线批处理，用Spark SQL开发交互式查询，用Spark Streaming开发实时计算，三者可以无缝整合，给系统提供非常高的可扩展性  
+    * Spark能更好地适用于数据挖掘与机器学习等需要迭代（前一步计算输出是下一步计算的输入）的Map Reduce的算法
+    * 粗粒度更新状态的应用  
+    由于RDD的特性，Spark不适用那种异步细粒度更新状态的应用，例如Web服务的存储或者是增量的Web爬虫和索引。就是对于那种增量修改的应用模型不适合。  
+    * 分布式调试与管理依然用Yarn，文件系统依然会使用HDFS。  
+    * Easy to use, supporting all the important Big Data Languages (Scala, Python, Java, R)
+    * [Data-Parallel computations]  
+    * User cases:   
+        * Speaking of micro-batching, if you must have stateful computations, exactly-once delivery and don’t mind a higher latency
+        * specially if you also plan for graph operations, machine learning or SQL access. The Apache Spark stack lets you combine several libraries with streaming (Spark SQL, MLlib, GraphX) and provides a convenient unifying programming model. In particular, streaming algorithms (e.g. streaming k-means) allow Spark to facilitate decisions in real-time.
+    * Companies:  
+    Amazon, Yahoo!, NASA JPL, eBay Inc., Baidu…  
+
+* Apache Storm
+    * one at a time  
+    * complex event processing, CEP  
+    Sometimes, you'll see such systems use Spark and HBase -- but generally they fall on their faces and have to be converted to Storm  
+    * 在动态处理大量生成的“小数据块”上要更好  
+    * 分布式RPC  
+    由于Storm的处理组件是分布式的，而且处理延迟极低，所以可以作为一个通用的分布式RPC框架来使用。  
+    * [Task-Parallel computations]  
+    * User cases:  
+        * a high-speed event processing system that allows for incremental computations
+        * If you further need to run distributed computations on demand, while the client is waiting synchronously for the results, you’ll have Distributed RPC (DRPC) out-of-the-box.
+        * because Storm uses Apache Thrift, you can write topologies in any programming language. 
+        * If you need state persistence and/or exactly-once delivery though, you should look at the higher-level Trident API, which also offers micro-batching. 
+        * 实时金融系统，要求纯实时进行金融交易和分析
+        * 对于实时计算的功能中，要求可靠的事务机制和可靠性机制，即数据的处理完全精准，一条也不能多，一条也不能少
+        * 若还需要针对高峰低峰时间段，动态调整实时计算程序的并行度，以最大限度利用集群资源（通常是在小型公司，集群资源紧张的情况）
+        * 如果一个大数据应用系统，它就是纯粹的实时计算，不需要在中间执行SQL交互式查询、复杂的transformation算子等
+    * Companies:  
+    Twitter, Yahoo!, Spotify, The Weather Channel...  
+    Storm and Kafka are the future of stream processing, and they are already in use at a number of high-profile companies including Groupon, Alibaba, and The Weather Channel.
+
+    
+* Apache Samza
+    * one at a time
+    * typically relies on Hadoop’s YARN (Yet Another Resource Negotiator) and Apache Kafka
+    * User cases:  
+    If you have a large amount of state to work with (e.g. many gigabytes per partition), Samza co-locates storage and processing on the same machines, allowing to work efficiently with state that won’t fit in memory. The framework also offers flexibility with its pluggable API: its default execution, messaging and storage engines can each be replaced with your choice of alternatives. Moreover, if you have a number of data processing stages from different teams with different codebases, Samza ‘s fine-grained jobs would be particularly well-suited, since they can be added/removed with minimal ripple effects.
+    * Companies:  
+    LinkedIn, Intuit, Metamarkets, Quantiply, Fortscale…
+
+There are three general categories of delivery patterns:  
+1. At-most-once:  
+messages may be lost. This is usually the least desirable outcome.
+2. At-least-once:  
+messages may be redelivered (no loss, but duplicates). This is good enough for many use cases.
+3. Exactly-once:  
+each message is delivered once and only once (no loss, no duplicates). This is a desirable feature although difficult to guarantee in all cases.
+
+Another aspect is state management. There are different strategies to store state. Spark Streaming writes data into the distributed file system (e.g. HDFS). Samza uses an embedded key-value store. With Storm, you’ll have to either roll your own state management at your application layer, or use a higher-level abstraction called Trident.
+
+##### Spark Voices from others
+Knowledge of Hadoop, Spark, Kafka, Flume is highly preferred
+
+很多大公司现在对实时流处理的应用比较广泛，因此现在storm比较重要。hadoop兴起已经很长时间了，它的基本组件hdfs+yarn都已经比较稳定，重点学会用好这些组件。spark编程模型和效率都比hadoop mapreduce要好，所以批处理框架现在spark比较重要。现在大公司一般需要大数据的人才要懂得实时处理和批处理两种。所以感觉仔细研究spark和storm，对hadoop只需懂得原理，会使用方可。
+
+spark仅仅用的hadoop的hdfs用作数据存储（当然你非要从本地文件系统读写文件也不是不可以）。你只需要知道hdfs的put，以及怎么从hdfs读数据就够了。
+
+还是需要熟悉Hadoop下的，但仅仅限于其中的HDFS就可以了。毕竟，这个是大数据分布式文件系统的事实上的标准文件系统了
+
+最近一年一直作为面试官在招人，最大的感受就是spark开发工程师的需求很大，但是来面试的水平都很差。spark以其优越的性能和计算模型赢得了越来越多的公司青睐，在可以预见的未来，spark 开发工程师的需求量会越来越高。另外spark在数据挖掘、图计算方面有天然的优势，国内的公司在大数据使用上已经逐渐的由简单的数据报表到特征挖掘以及机器学习了。 编辑于 2017-03-28
+
+首先你要明白，不是你懂spark就能找到工作，spark是你找工作的时候一个很重的加分项，首先你得基础功底要扎实，如果做到了，那么spark的前景还是很好的，我们公司今年开始转向spark平台了，国内很多公司也在相继向spark迁移,  发布于 2017-05-15
+
+作者：Si Luvenia
+链接：https://www.zhihu.com/question/19795366/answer/106364880
+来源：知乎
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+
+关于Hadoop的使用方式：
+感觉现在各个公司使用Hadoop的方式都不一样，主要我觉得有两种吧。
+第一种是long running cluster形式，比如Yahoo，不要小看这个好像已经没什么存在感的公司，Yahoo可是Hadoop的元老之一。这种就是建立一个Data Center，然后有几个上千Node的Hadoop Cluster一直在运行。比较早期进入Big Data领域的公司一般都在使用或者使用过这种方式。
+另一种是只使用MapReduce类型。毕竟现在是Cloud时代，比如AWS的Elastic MapReduce。这种是把数据存在别的更便宜的地方，比如s3，自己的data center， sql database等等，需要分析数据的时候开启一个Hadoop Cluster，Hive/Pig/Spark/Presto/Java分析完了就关掉。不用自己做Admin的工作，方便简洁。
+所以个人如果要学Hadoop的话我也建议第二种，AWS有免费试用时间（但是EMR并不免费，所以不要建了几千个Node一个月后发现破产了。。），可以在这上面学习。最重要的是你可以尝试各种不同的配置对于任务的影响，比如不同的版本，不同的container size，memory大小等等，这对于学习Spark非常有帮助。
+
+#### Spark Learning Materials
+
+我只推荐两个  
+* Hadoop The Definitive Guide最新版，这也是我当时的入门书，写的非常好。强烈强烈建议看英文版的，否则容易交流障碍。。。这本书的例子都在github上可以下载下来，都跑一跑。另外Hadoop相关职位的面试问题大部分都来自于这本书，这本书看两遍基本上面试没问题。这是唯一一本我觉得从头到尾必看的书。
+* Cloudera的tutorial，user guide，blog和best practice。这个比较官方和实效性。这不是说你要一页一页看完，是你有实际问题自己解决不了了来找参考资料。
+
+* 另外还有一个传说中的Google三篇论文，那是Distributed System 和Big Data的开山始祖。其实我没看懂。。有兴趣也可以翻一翻。
+
+我的日常，感觉每天看log都快要看到眼瞎。
+如果你使用Hadoop，那么看log的时间估计会占了一大半。怎么看log，先从Resource Manager web UI开始入手吧。这是个web UI，可以让你查看每个任务的具体进展，container的运行等等。
+
+关于Hadoop的使用方式：
+感觉现在各个公司使用Hadoop的方式都不一样，主要我觉得有两种吧。
+第一种是long running cluster形式，比如Yahoo，不要小看这个好像已经没什么存在感的公司，Yahoo可是Hadoop的元老之一。这种就是建立一个Data Center，然后有几个上千Node的Hadoop Cluster一直在运行。比较早期进入Big Data领域的公司一般都在使用或者使用过这种方式。
+另一种是只使用MapReduce类型。毕竟现在是Cloud时代，比如AWS的Elastic MapReduce。这种是把数据存在别的更便宜的地方，比如s3，自己的data center， sql database等等，需要分析数据的时候开启一个Hadoop Cluster，Hive/Pig/Spark/Presto/Java分析完了就关掉。不用自己做Admin的工作，方便简洁。
+所以个人如果要学Hadoop的话我也建议第二种，AWS有免费试用时间（但是EMR并不免费，所以不要建了几千个Node一个月后发现破产了。。），可以在这上面学习。最重要的是你可以尝试各种不同的配置对于任务的影响，比如不同的版本，不同的container size，memory大小等等，这对于学习Spark非常有帮助。
+
+https://spark.apache.org/docs/latest/index.html
+https://spark.apache.org/docs/latest/quick-start.html
+https://spark.apache.org/docs/latest/rdd-programming-guide.html
+
+## Hive
+Hive是基于Hadoop的一个数据仓库工具，处理能力强而且成本低廉。
+
+__主要特点：__  
+存储方式是将结构化的数据文件映射为一张数据库表。提供类SQL语言，实现完整的SQL查询功能。可以将SQL语句转换为MapReduce任务运行，十分适合数据仓库的统计分析。
+
+__不足之处：__  
+* 采用行存储的方式（SequenceFile）来存储和读取数据, 效率低
+* 当要读取数据表某一列数据时需要先取出所有数据然后再提取出某一列的数据，效率很低。
+* 同时，它还占用较多的磁盘空间
+
+由于以上的不足，有人（查礼博士）介绍了一种将分布式数据处理系统中以记录为单位的存储结构变为以列为单位的存储结构，进而减少磁盘访问数量，提高查询处理性能。这样，由于相同属性值具有相同数据类型和相近的数据特性，以属性值为单位进行压缩存储的压缩比更高，能节省更多的存储空间。
+
+## HBase
+HBase是一个分布式的、面向列的开源数据库，它不同于一般的关系数据库,是一个适合于非结构化数据存储的数据库。另一个不同的是HBase基于列的而不是基于行的模式。HBase使用和 BigTable非常相同的数据模型。用户存储数据行在一个表里。一个数据行拥有一个可选择的键和任意数量的列，一个或多个列组成一个ColumnFamily，一个Fmaily下的列位于一个HFile中，易于缓存数据。表是疏松的存储的，因此用户可以给行定义各种不同的列。在HBase中数据按主键排序，同时表按主键划分为多个HRegion
 
 ## BigData Common
 
@@ -212,198 +476,7 @@ CCP Data Engineer Exam (DE575) 数据工程师认证
 认证准备建议：Spark and Hadoop开发者培训；设计及构建大数据应用；考生需对Hadoop有深入了解、具有实际使用大数据工具的经验、以及具备解决实际数据工程问题的专家级水平
 考试形式：4小时；提供一个大数据集供使用、7个高性能节点组成的CDH5机群；解决大数据用户可能碰到的5-8个实际问题  
 
-
 ### BigData Common Misc
-
-## Hadoop
-
-Hadoop 是一个实现了MapReduce 计算模型的开源分布式并行编程框架，程序员可以借助Hadoop 编写程序，将所编写的程序运行于计算机机群上，从而实现对海量数据的处理
-
- 此外，Hadoop 还提供一个分布式文件系统(HDFS）及分布式数据库（HBase）用来将数据存储或部署到各个计算节点上。所以，你可以大致认为：Hadoop=HDFS（文件系统，数据存储技术相关）+HBase（数据库）+MapReduce（数据处理）。Hadoop 框架如图所示：
-![hadoop_1]
-
-我们已经知道，Hadoop是Google的MapReduce一个Java实现。MapReduce是一种简化的分布式编程模式，让程序自动分布到一个由普通机器组成的超大集群上并发执行。Hadoop主要由HDFS、MapReduce和HBase等组成。具体的hadoop的组成如下图：
-![hadoop_2]
-
-__The project includes these modules:__  
-* Hadoop Common: The common utilities that support the other Hadoop modules.
-* Hadoop Distributed File System (HDFS™): A distributed file system that provides high-throughput access to application data.
-* Hadoop YARN: A framework for job scheduling and cluster resource management.
-* Hadoop MapReduce: A YARN-based system for parallel processing of large data sets.
-
-__Other Hadoop-related projects at Apache include:__  
-* Ambari™: A web-based tool for provisioning, managing, and monitoring Apache Hadoop clusters which includes support for Hadoop HDFS, Hadoop MapReduce, Hive, HCatalog, HBase, ZooKeeper, Oozie, Pig and Sqoop. Ambari also provides a dashboard for viewing cluster health such as heatmaps and ability to view MapReduce, Pig and Hive applications visually alongwith features to diagnose their performance characteristics in a user-friendly manner.
-* Avro™: A data serialization system.
-* Cassandra™: A scalable multi-master database with no single points of failure.
-* Chukwa™: A data collection system for managing large distributed systems.
-* HBase™: A scalable, distributed database that `supports structured data storage` for large tables.
-* Hive™: A data warehouse infrastructure that provides data summarization and ad hoc querying.
-* Mahout™: A Scalable machine learning and data mining library.
-* Pig™: A high-level data-flow language and execution framework for parallel computation.
-* Spark™: A fast and general compute engine for Hadoop data. Spark provides a simple and expressive programming model that supports a wide range of applications, including ETL, machine learning, stream processing, and graph computation.
-* Tez™: A generalized data-flow programming framework, built on Hadoop YARN, which provides a powerful and flexible engine to execute an arbitrary DAG of tasks to process data for both batch and interactive use-cases. Tez is being adopted by Hive™, Pig™ and other frameworks in the Hadoop ecosystem, and also by other commercial software (e.g. ETL tools),` to replace Hadoop™ MapReduce as the underlying execution engine`.
-* ZooKeeper™: A high-performance coordination service for distributed applications.
-
-
-### Hive
-Hive是基于Hadoop的一个数据仓库工具，处理能力强而且成本低廉。
-
-__主要特点：__  
-存储方式是将结构化的数据文件映射为一张数据库表。提供类SQL语言，实现完整的SQL查询功能。可以将SQL语句转换为MapReduce任务运行，十分适合数据仓库的统计分析。
-
-__不足之处：__  
-* 采用行存储的方式（SequenceFile）来存储和读取数据, 效率低
-* 当要读取数据表某一列数据时需要先取出所有数据然后再提取出某一列的数据，效率很低。
-* 同时，它还占用较多的磁盘空间
-
-由于以上的不足，有人（查礼博士）介绍了一种将分布式数据处理系统中以记录为单位的存储结构变为以列为单位的存储结构，进而减少磁盘访问数量，提高查询处理性能。这样，由于相同属性值具有相同数据类型和相近的数据特性，以属性值为单位进行压缩存储的压缩比更高，能节省更多的存储空间。
-
-### HBase
-HBase是一个分布式的、面向列的开源数据库，它不同于一般的关系数据库,是一个适合于非结构化数据存储的数据库。另一个不同的是HBase基于列的而不是基于行的模式。HBase使用和 BigTable非常相同的数据模型。用户存储数据行在一个表里。一个数据行拥有一个可选择的键和任意数量的列，一个或多个列组成一个ColumnFamily，一个Fmaily下的列位于一个HFile中，易于缓存数据。表是疏松的存储的，因此用户可以给行定义各种不同的列。在HBase中数据按主键排序，同时表按主键划分为多个HRegion
-
-### Hadoop Misc
-#### MapReduce
-![mapreduce_1]  
-
-原始状态下，输入–Map — Shuffle — Reduce — 输出  
-![mapreduce_2]
-
-首先，让我们以WordCount为例来解释MapReduce是怎么工作的.  
-![mapreduce_example_1]
-
-map数据输入  
-Hadoop针对文本文件缺省使用LineRecordReader类来实现读取，一行一个key/value对，key取偏移量，value为行内容。  
-如下是map1的输入数据：  
-Key1                  Value1   
-0         Hello World Bye World  
-如下是map2的输入数据：   
-Key1                Value1   
-0         Hello Hadoop GoodBye Hadoop  
-
-## Spark
-### Spark Misc
-#### Spark Streaming vs Storm vs Samza
-[bigdata-spark-vs-storm-1]   
-[7-most-common-hadoop-and-spark-projects-1]  
-[bigdata-spark-vs-storm-2]  
-All three real-time computation systems are open-source, low-latency, distributed, scalable and fault-tolerant.   
-
-![bigdata-spark-vs-storm-vs-samza-img-1]  
-
-Header              |Storm              |Spark              |Samza 
---------------------|-------------------|-------------------|------------------
-`Delivery Semantics`|At least once, Exactly-once with Trident |Exactly once unless exception |At least once 
-`State Management`  |Stateless, roll your own or Trident      |Stateful, to storage          |Stateful, key-value store
-`Latency`        |Sub-second, OR some says 毫秒级 |Seconds depending on batch size | Sub-second
-`Language Support`|Any JVM-language,Ruby,Python,Javascript,Perl |Scala,Java,Python | Scala, Java, JVM-language only 
-吞吐量              |低                 |高                  |-
-事务机制            |支持完善            |支持，但不够完善     |-
-健壮性 / 容错性     |ZooKeeper，Acker，非常强 | Checkpoint，WAL，一般 |-
-动态调整并行度      |支持                |不支持              |-
-
-
-* Apache Spark
-    * micro batching  
-    Spark Streaming (an extension of the core Spark API) doesn’t process streams one at a time like Storm. Instead, it slices them in small batches of time intervals before processing them.  
-    Spark Streaming implements a method for "batching" incoming updates in user-defined time intervals that get transformed into their own RDDs  
-    * Spark Ecosystem  
-    如果一个项目除了实时计算之外，还包括了离线批处理、交互式查询等业务功能，而且实时计算中，可能还会牵扯到高延迟批处理、交互式查询等功能，那么就应该首选Spark生态，用Spark Core开发离线批处理，用Spark SQL开发交互式查询，用Spark Streaming开发实时计算，三者可以无缝整合，给系统提供非常高的可扩展性  
-    * Spark能更好地适用于数据挖掘与机器学习等需要迭代（前一步计算输出是下一步计算的输入）的Map Reduce的算法
-    * 粗粒度更新状态的应用  
-    由于RDD的特性，Spark不适用那种异步细粒度更新状态的应用，例如Web服务的存储或者是增量的Web爬虫和索引。就是对于那种增量修改的应用模型不适合。  
-    * 分布式调试与管理依然用Yarn，文件系统依然会使用HDFS。  
-    * Easy to use, supporting all the important Big Data Languages (Scala, Python, Java, R)
-    * [Data-Parallel computations]  
-    * User cases:   
-        * Speaking of micro-batching, if you must have stateful computations, exactly-once delivery and don’t mind a higher latency
-        * specially if you also plan for graph operations, machine learning or SQL access. The Apache Spark stack lets you combine several libraries with streaming (Spark SQL, MLlib, GraphX) and provides a convenient unifying programming model. In particular, streaming algorithms (e.g. streaming k-means) allow Spark to facilitate decisions in real-time.
-    * Companies:  
-    Amazon, Yahoo!, NASA JPL, eBay Inc., Baidu…  
-
-* Apache Storm
-    * one at a time  
-    * complex event processing, CEP  
-    Sometimes, you'll see such systems use Spark and HBase -- but generally they fall on their faces and have to be converted to Storm  
-    * 在动态处理大量生成的“小数据块”上要更好  
-    * 分布式RPC  
-    由于Storm的处理组件是分布式的，而且处理延迟极低，所以可以作为一个通用的分布式RPC框架来使用。  
-    * [Task-Parallel computations]  
-    * User cases:  
-        * a high-speed event processing system that allows for incremental computations
-        * If you further need to run distributed computations on demand, while the client is waiting synchronously for the results, you’ll have Distributed RPC (DRPC) out-of-the-box.
-        * because Storm uses Apache Thrift, you can write topologies in any programming language. 
-        * If you need state persistence and/or exactly-once delivery though, you should look at the higher-level Trident API, which also offers micro-batching. 
-        * 实时金融系统，要求纯实时进行金融交易和分析
-        * 对于实时计算的功能中，要求可靠的事务机制和可靠性机制，即数据的处理完全精准，一条也不能多，一条也不能少
-        * 若还需要针对高峰低峰时间段，动态调整实时计算程序的并行度，以最大限度利用集群资源（通常是在小型公司，集群资源紧张的情况）
-        * 如果一个大数据应用系统，它就是纯粹的实时计算，不需要在中间执行SQL交互式查询、复杂的transformation算子等
-    * Companies:  
-    Twitter, Yahoo!, Spotify, The Weather Channel...  
-    Storm and Kafka are the future of stream processing, and they are already in use at a number of high-profile companies including Groupon, Alibaba, and The Weather Channel.
-
-    
-* Apache Samza
-    * one at a time
-    * typically relies on Hadoop’s YARN (Yet Another Resource Negotiator) and Apache Kafka
-    * User cases:  
-    If you have a large amount of state to work with (e.g. many gigabytes per partition), Samza co-locates storage and processing on the same machines, allowing to work efficiently with state that won’t fit in memory. The framework also offers flexibility with its pluggable API: its default execution, messaging and storage engines can each be replaced with your choice of alternatives. Moreover, if you have a number of data processing stages from different teams with different codebases, Samza ‘s fine-grained jobs would be particularly well-suited, since they can be added/removed with minimal ripple effects.
-    * Companies:  
-    LinkedIn, Intuit, Metamarkets, Quantiply, Fortscale…
-
-There are three general categories of delivery patterns:  
-1. At-most-once:  
-messages may be lost. This is usually the least desirable outcome.
-2. At-least-once:  
-messages may be redelivered (no loss, but duplicates). This is good enough for many use cases.
-3. Exactly-once:  
-each message is delivered once and only once (no loss, no duplicates). This is a desirable feature although difficult to guarantee in all cases.
-
-Another aspect is state management. There are different strategies to store state. Spark Streaming writes data into the distributed file system (e.g. HDFS). Samza uses an embedded key-value store. With Storm, you’ll have to either roll your own state management at your application layer, or use a higher-level abstraction called Trident.
-
-##### Spark Voices from others
-Knowledge of Hadoop, Spark, Kafka, Flume is highly preferred
-
-很多大公司现在对实时流处理的应用比较广泛，因此现在storm比较重要。hadoop兴起已经很长时间了，它的基本组件hdfs+yarn都已经比较稳定，重点学会用好这些组件。spark编程模型和效率都比hadoop mapreduce要好，所以批处理框架现在spark比较重要。现在大公司一般需要大数据的人才要懂得实时处理和批处理两种。所以感觉仔细研究spark和storm，对hadoop只需懂得原理，会使用方可。
-
-spark仅仅用的hadoop的hdfs用作数据存储（当然你非要从本地文件系统读写文件也不是不可以）。你只需要知道hdfs的put，以及怎么从hdfs读数据就够了。
-
-还是需要熟悉Hadoop下的，但仅仅限于其中的HDFS就可以了。毕竟，这个是大数据分布式文件系统的事实上的标准文件系统了
-
-最近一年一直作为面试官在招人，最大的感受就是spark开发工程师的需求很大，但是来面试的水平都很差。spark以其优越的性能和计算模型赢得了越来越多的公司青睐，在可以预见的未来，spark 开发工程师的需求量会越来越高。另外spark在数据挖掘、图计算方面有天然的优势，国内的公司在大数据使用上已经逐渐的由简单的数据报表到特征挖掘以及机器学习了。 编辑于 2017-03-28
-
-首先你要明白，不是你懂spark就能找到工作，spark是你找工作的时候一个很重的加分项，首先你得基础功底要扎实，如果做到了，那么spark的前景还是很好的，我们公司今年开始转向spark平台了，国内很多公司也在相继向spark迁移,  发布于 2017-05-15
-
-作者：Si Luvenia
-链接：https://www.zhihu.com/question/19795366/answer/106364880
-来源：知乎
-著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
-
-关于Hadoop的使用方式：
-感觉现在各个公司使用Hadoop的方式都不一样，主要我觉得有两种吧。
-第一种是long running cluster形式，比如Yahoo，不要小看这个好像已经没什么存在感的公司，Yahoo可是Hadoop的元老之一。这种就是建立一个Data Center，然后有几个上千Node的Hadoop Cluster一直在运行。比较早期进入Big Data领域的公司一般都在使用或者使用过这种方式。
-另一种是只使用MapReduce类型。毕竟现在是Cloud时代，比如AWS的Elastic MapReduce。这种是把数据存在别的更便宜的地方，比如s3，自己的data center， sql database等等，需要分析数据的时候开启一个Hadoop Cluster，Hive/Pig/Spark/Presto/Java分析完了就关掉。不用自己做Admin的工作，方便简洁。
-所以个人如果要学Hadoop的话我也建议第二种，AWS有免费试用时间（但是EMR并不免费，所以不要建了几千个Node一个月后发现破产了。。），可以在这上面学习。最重要的是你可以尝试各种不同的配置对于任务的影响，比如不同的版本，不同的container size，memory大小等等，这对于学习Spark非常有帮助。
-
-#### Spark Learning Materials
-
-我只推荐两个  
-* Hadoop The Definitive Guide最新版，这也是我当时的入门书，写的非常好。强烈强烈建议看英文版的，否则容易交流障碍。。。这本书的例子都在github上可以下载下来，都跑一跑。另外Hadoop相关职位的面试问题大部分都来自于这本书，这本书看两遍基本上面试没问题。这是唯一一本我觉得从头到尾必看的书。
-* Cloudera的tutorial，user guide，blog和best practice。这个比较官方和实效性。这不是说你要一页一页看完，是你有实际问题自己解决不了了来找参考资料。
-
-* 另外还有一个传说中的Google三篇论文，那是Distributed System 和Big Data的开山始祖。其实我没看懂。。有兴趣也可以翻一翻。
-
-我的日常，感觉每天看log都快要看到眼瞎。
-如果你使用Hadoop，那么看log的时间估计会占了一大半。怎么看log，先从Resource Manager web UI开始入手吧。这是个web UI，可以让你查看每个任务的具体进展，container的运行等等。
-
-关于Hadoop的使用方式：
-感觉现在各个公司使用Hadoop的方式都不一样，主要我觉得有两种吧。
-第一种是long running cluster形式，比如Yahoo，不要小看这个好像已经没什么存在感的公司，Yahoo可是Hadoop的元老之一。这种就是建立一个Data Center，然后有几个上千Node的Hadoop Cluster一直在运行。比较早期进入Big Data领域的公司一般都在使用或者使用过这种方式。
-另一种是只使用MapReduce类型。毕竟现在是Cloud时代，比如AWS的Elastic MapReduce。这种是把数据存在别的更便宜的地方，比如s3，自己的data center， sql database等等，需要分析数据的时候开启一个Hadoop Cluster，Hive/Pig/Spark/Presto/Java分析完了就关掉。不用自己做Admin的工作，方便简洁。
-所以个人如果要学Hadoop的话我也建议第二种，AWS有免费试用时间（但是EMR并不免费，所以不要建了几千个Node一个月后发现破产了。。），可以在这上面学习。最重要的是你可以尝试各种不同的配置对于任务的影响，比如不同的版本，不同的container size，memory大小等等，这对于学习Spark非常有帮助。
-
-https://spark.apache.org/docs/latest/index.html
-https://spark.apache.org/docs/latest/quick-start.html
-https://spark.apache.org/docs/latest/rdd-programming-guide.html
 
 ## Miscellaneous
 
@@ -420,3 +493,4 @@ https://spark.apache.org/docs/latest/rdd-programming-guide.html
 [7-most-common-hadoop-and-spark-projects-1]:https://www.infoworld.com/article/2969911/application-development/the-7-most-common-hadoop-and-spark-projects.html "The 7 most common Hadoop and Spark projects"
 [bigdata-spark-vs-storm-1]:http://blog.csdn.net/yown/article/details/55000097 "spark与storm比对与选型"
 [bigdata-certifications-1]:https://www.cio.com/article/3209911/certifications/big-data-certifications-that-will-pay-off.html "BigData Certification"
+[bitdata-hadoop-compile-1]:http://blog.csdn.net/young_kim1/article/details/50269501 "本地编译Hadoop2.7.1源码总结和问题解决"

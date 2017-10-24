@@ -4,8 +4,10 @@ ___
 * [Miscellaneous](#miscellaneous)
     - [find](#find)
     - [su](#su)
+    - [tar](#tar)
     - [create user](#create-user)
     - [change user's primary group(login group)](#change-users-primary-grouplogin-group)
+    - [find software installation location](#find-software-installation-location)
 
 ___
 
@@ -23,17 +25,35 @@ ___
 
 ```shell
 sudo su -
-
 ```
+
+### tar
+
+```shell
+$ tar -zcf {archive_file} {target files}
+# for example
+$ tar -zcf ~/hadoop.master.tar.gz ./hadoop
+
+$ tar -zxf {archive_file} -C {target_path}
+# for example
+$ tar -zxf ~/hadoop.master.tar.gz -C /usr/local
+```
+-z:     use gzip, gunzip  
+-x:     extract  
+-c:     create achive  
+-f:     use archive file or device ARCHIVE
+-v:     --verbose, verbosely list files processed  
+-C:     --directory=DIR, change to directory DIR
+
 
 ### create user
 ```shell
-> su
-> useradd -m hadoop -g root -s /bin/bash
+$ su
+$ useradd -m hadoop -g root -s /bin/bash
 # setup password
-> passwd hadoop 
+$ passwd hadoop 
 # add user hadoop as administrator
-> visudo            #  equals to "vi /etc/sudoers"
+$ visudo            #  equals to "vi /etc/sudoers"
 root ALL=(ALL) ALL 
 hadoop ALL=(ALL) ALL （use tab as space）
 ```
@@ -47,4 +67,14 @@ When you use the -G option with useradd, you should also use the -a option to ap
 ```shell
 usermod -g {new_group} {user_name}
 ```
+
+### find software installation location
+Suppose to find JDK installation location, 
+```shell
+$ rpm -qa | grep java
+...
+java-1.8.0-openjdk-1.8.0.144-0.b01.el7_4.x86_64
+$ rpm -ql java-1.8.0-openjdk-1.8.0.144-0.b01.el7_4.x86_64
+```
+
 
