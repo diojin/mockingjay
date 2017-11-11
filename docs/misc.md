@@ -240,6 +240,8 @@ git tools
 [for comprehension](#for-comprehension)
 ```
 
+**How to add newline in table**  
+embed entire HTML codes, or simply use <br>  
 
 ---
 
