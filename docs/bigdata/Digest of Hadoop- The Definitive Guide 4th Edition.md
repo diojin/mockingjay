@@ -2662,6 +2662,7 @@ mapreduce.map.output.compress.codec |org.apache.hadoop.io.compress.DefaultCodec 
 mapreduce.shuffle.max.threads   |0       |The number of worker threads per node manager for serving the map outputs to reducers. This is a cluster-wide setting and cannot be set by individual jobs. 0 means use the Netty default of twice the number of available processors.  
 
 **Table 7-2. Reduce-side tuning properties**  
+
 Property name                                   |Default |Description
 ------------------------------------------------|--------|---------------------
 mapreduce.reduce.shuffle.parallelcopies         |5       |The number of threads used to copy map outputs to the reducer.  
