@@ -145,6 +145,12 @@
             * [MapFileOutputFormat](#mapfileoutputformat)
             * [Multiple Outputs](#multiple-outputs)
             * [Lazy Output](#lazy-output)
+* [9. MapReduce Features](#9-mapreduce-features)
+    - [Counters](#counters)
+        + [Built-in Counters](#built-in-counters)
+            * [Task counters](#task-counters)
+            * [Job counters](#job-counters)
+        + [User-Defined Java Counters](#user-defined-java-counters)
 * [Miscellaneous](#miscellaneous)
 
 ## 1. Meet Hadoop
@@ -3092,7 +3098,7 @@ HBase’s **TableInputFormat** is designed to allow a MapReduce program to opera
 ![hadoop_outputformat_class_hierarchy_img_1]  
 
 #### Text Output
-The default output format, TextOutputFormat, writes records as lines of text. Its keys and values may be of any type, since TextOutputFormat turns them to strings by calling toString() on them. Each key-value pair is separated by a tab character, although that may be changed using the mapreduce.output.textoutputformat.separator property.
+The default output format, TextOutputFormat, writes records as lines of text. `Its keys and values may be of any type, since TextOutputFormat turns them to strings by calling toString() on them`. Each key-value pair is separated by a tab character, although that may be changed using the `mapreduce.output.textoutputformat.separator property`.
 
 You can suppress the key or the value from the output (or both, making this output format equivalent to NullOutputFormat, which emits nothing) using a NullWritable type. This also causes no separator to be written
 
@@ -3104,17 +3110,17 @@ As the name indicates, SequenceFileOutputFormat writes sequence files for its ou
 SequenceFileAsBinaryOutputFormat—the counterpart to SequenceFileAsBinaryInputFormat—writes keys and values in raw binary format into a sequence file container.  
 
 ##### MapFileOutputFormat  
-MapFileOutputFormat writes map files as output. The keys in a MapFile must be added in order, so you need to ensure that your reducers emit keys in sorted order.
+MapFileOutputFormat writes map files as output. `The keys in a MapFile must be added in order, so you need to ensure that your reducers emit keys in sorted order`.
 
 ##### Multiple Outputs
 Sometimes there is a need to have more control over the naming of the files or to produce multiple files per reducer. MapReduce comes with the MultipleOutputs class to help you do this.  
 
-It is generally a bad idea to allow the number of partitions to be rigidly fixed by the application, since this can lead to small or unevensized partitions.
+`It is generally a bad idea to allow the number of partitions to be rigidly fixed by the application, since this can lead to small or unevensized partitions.`
 
-It is much better to let the cluster drive the number of partitions for a job, the idea being that the more cluster resources there are available, the faster the job can complete. This is why the default HashPartitioner works so well: it works with any number of partitions and ensures each partition has a good mix of keys, leading to more evenly sized partitions.
+`It is much better to let the cluster drive the number of partitions for a job, the idea being that the more cluster resources there are available, the faster the job can complete.` This is why the default HashPartitioner works so well: it works with any number of partitions and ensures each partition has a good mix of keys, leading to more evenly sized partitions.
 
 ###### MultipleOutputs  
-MultipleOutputs allows you to write data to files whose names are derived from the output keys and values, or in fact from an arbitrary string. This allows each reducer (or mapper in a map-only job) to create more than a single file. Filenames are of the form name-m-nnnnn for map outputs and name-r-nnnnn for reduce outputs, where name is an arbitrary name that is set by the program and nnnnn is an integer designating the part number, starting from 00000.
+MultipleOutputs allows you to write data to files whose names are derived from the output keys and values, or in fact from an arbitrary string. This allows each reducer (or mapper in a map-only job) to create more than a single file. Filenames are of the form `name-m-nnnnn` for map outputs and `name-r-nnnnn` for reduce outputs, where name is an arbitrary name that is set by the program and nnnnn is an integer designating the part number, starting from 00000.
 
 ```java
 @Override
@@ -3142,9 +3148,36 @@ public int run(String[] args) throws Exception {
 MultipleOutputs delegates to the mapper’s OutputFormat.
 
 ##### Lazy Output
-FileOutputFormat subclasses will create output (part-r-nnnnn) files, even if they are empty. Some applications prefer that empty files not be created, which is where Lazy OutputFormat helps. It is a wrapper output format that ensures that the output file is created only when the first record is emitted for a given partition. To use it, call its setOutputFormatClass() method with the JobConf and the underlying output format. 
+FileOutputFormat subclasses will create output (part-r-nnnnn) files, even if they are empty. Some applications prefer that `empty files not be created, which is where LazyOutputFormat helps`. It is a wrapper output format that ensures that the output file is created only when the first record is emitted for a given partition. To use it, call its setOutputFormatClass() method with the JobConf and the underlying output format. 
 
 Streaming supports a -lazyOutput option to enable LazyOutputFormat.
+
+## 9. MapReduce Features
+### Counters
+#### Built-in Counters
+Counters are divided into groups, and there are several groups for the built-in counters.  Each group either contains task counters (which are updated as a task progresses) or job counters (which are updated as a job progresses).  
+* MapReduce task counters  
+org.apache.hadoop.mapreduce.TaskCounter
+* Job counters  
+org.apache.hadoop.mapreduce.JobCounter
+* Filesystem counters  
+org.apache.hadoop.mapreduce.FileSystemCounter
+* FileInputFormat counters  
+org.apache.hadoop.mapreduce.lib.input.FileInputFormatCounter
+* FileOutputFormat counters  
+org.apache.hadoop.mapreduce.lib.output.FileOutputFormatCounter
+
+##### Task counters
+Task counters gather information about tasks over the course of their execution, and `the results are aggregated over all the tasks in a job`.  
+
+Task counters are maintained by each task attempt, and periodically sent to the `application master` so they can be globally aggregated.  `Task counters are sent in full every time`, rather than sending the counts since the last transmission, since this guards against errors due to lost messages.
+
+Counter values are definitive only once a job has successfully completed. However, some counters provide useful diagnostic information as a task is progressing, and it can be useful to monitor them with the web UI. For example, PHYSICAL_MEMORY_BYTES, VIRTUAL_MEMORY_BYTES, and COMMITTED_HEAP_BYTES provide an indication of how memory usage varies over the course of a particular task attempt.
+
+##### Job counters
+Job counters (Table 9-6) are maintained by the application master, so they don’t need to be sent across the network, unlike all other counters, including user-defined ones.  
+
+#### User-Defined Java Counters
 
 ## Miscellaneous
 
