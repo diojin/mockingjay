@@ -2692,7 +2692,7 @@ The MapReduce model is to break jobs into tasks and run the tasks in parallel to
 
 Tasks may be slow for various reasons, including hardware degradation or software misconfiguration, but the causes may be hard to detect because the tasks still complete successfully, albeit after a longer time than expected. Hadoop doesn’t try to diagnose and fix slow-running tasks; instead, it tries to detect when a task is running slower than expected and launches another equivalent task as a backup. This is termed `speculative execution` of tasks.  
 
-It’s important to understand that speculative execution does not work by launching two duplicate tasks at about the same time so they can race each other. This would be wasteful of cluster resources. Rather, the scheduler tracks the progress of all tasks of the same type (map and reduce) in a job, and only launches speculative duplicates for the small proportion that are running significantly slower than the average. When a task completes successfully, any duplicate tasks that are running are killed since they are no longer needed. So, if the original task completes before the speculative task, the speculative task is killed; on the other hand, if the speculative task finishes first, the original is killed.  
+It’s important to understand that speculative execution does not work by launching two duplicate tasks at about the same time so they can race each other. This would be wasteful of cluster resources. Rather, `the scheduler tracks the progress of all tasks of the same type (map and reduce) in a job, and only launches speculative duplicates for the small proportion that are running significantly slower than the average`. When a task completes successfully, any duplicate tasks that are running are killed since they are no longer needed. So, if the original task completes before the speculative task, the speculative task is killed; on the other hand, if the speculative task finishes first, the original is killed.  
 
 Speculative execution is turned on by default. It can be enabled or disabled independently
 for map tasks and reduce tasks, on a cluster-wide basis, or on a per-job basis.
@@ -2705,16 +2705,16 @@ org.apache.hadoop.mapreduce.v2.app.speculate.DefaultSpeculator
 org.apache.hadoop.mapreduce.v2.app.speculate.LegacyTaskRuntimeEstimator
 
 Speculative execution is turned on by default. It can be enabled or disabled independently for map tasks and reduce tasks, on a cluster-wide basis, or on a per-job basis.
-
+ 
 Why would you ever want to turn speculative execution off?  
 * On a busy cluster, speculative execution can reduce overall throughput  
-The goal of speculative execution is to reduce job execution time, but this comes at the cost of cluster efficiency. On a busy cluster, speculative execution can reduce overall throughput, since redundant tasks are being executed in an attempt to bring down the execution time for a single job. For this reason, some cluster administrators prefer to turn it off on the cluster and have users explicitly turn it on for individual jobs. This was especially relevant for older versions of Hadoop, when speculative execution could be overly aggressive in scheduling speculative tasks.  
+The goal of speculative execution is to reduce job execution time, but this comes at the cost of cluster efficiency. On a busy cluster, speculative execution can reduce overall throughput, since redundant tasks are being executed in an attempt to bring down the execution time for a single job. For this reason, `some cluster administrators prefer to turn it off on the cluster and have users explicitly turn it on for individual jobs. This was especially relevant for older versions of Hadoop, when speculative execution could be overly aggressive in scheduling speculative tasks`.  
 * There is a good case for turning off speculative execution for reduce tasks  since any duplicate reduce tasks have to fetch the same map outputs as the original task, and this can significantly increase network traffic on the cluster.  
 * Another reason for turning off speculative execution is for nonidempotent tasks.  
-However, in many cases it is possible to write tasks to be idempotent and use an OutputCommitter to promote the output to its final location when the task succeeds.  
+`However, in many cases it is possible to write tasks to be idempotent and use an OutputCommitter to promote the output to its final location when the task succeeds`.  
 
 #### Output Committers
-Hadoop MapReduce uses a commit protocol to ensure that jobs and tasks either succeed or fail cleanly. The behavior is implemented by the OutputCommitter in use for the job, which is set in the old MapReduce API by calling the setOutputCommitter() on Job Conf or by setting `mapred.output.committer.class` in the configuration. In the new MapReduce API, the OutputCommitter is determined by the OutputFormat, via its getOutputCommitter() method. The default is FileOutputCommitter, which is appropriate for file-based MapReduce.  
+Hadoop MapReduce uses a commit protocol to ensure that jobs and tasks either succeed or fail cleanly. The behavior is implemented by the OutputCommitter in use for the job, which is set in the old MapReduce API by calling the setOutputCommitter() on Job Conf or by setting `mapred.output.committer.class` in the configuration. `In the new MapReduce API, the OutputCommitter is determined by the OutputFormat`, via its getOutputCommitter() method. The default is FileOutputCommitter, which is appropriate for file-based MapReduce.  
 ```java
 public abstract class OutputCommitter {
     public abstract void setupJob(JobContext jobContext) throws IOException;
@@ -2734,7 +2734,7 @@ public abstract class OutputCommitter {
 
 The framework ensures that in the event of multiple task attempts for a particular task, only one will be committed; the others will be aborted.
 
-The setupJob() method is called before the job is run, and is typically used to perform initialization. For FileOutputCommitter, the method creates the final output directory, ${mapreduce.output.fileoutputformat.outputdir}, and a temporary working space for task output, _temporary, as a subdirectory underneath it. 
+The setupJob() method is called before the job is run, and is typically used to perform initialization. For FileOutputCommitter, the method creates the final output directory, `${mapreduce.output.fileoutputformat.outputdir}`, and a temporary working space for task output, _temporary, as a subdirectory underneath it. 
 
 If the job succeeds, the commitJob() method is called, which in the default file-based implementation deletes the temporary working space and` creates a hidden empty marker file in the output directory called _SUCCESS to indicate to filesystem clients that the job completed successfully`. If the job did not succeed, abortJob() is called with a state object indicating whether the job failed or was killed (by a user, for example). In the default implementation, this will delete the job’s temporary working space.
 
@@ -2742,9 +2742,13 @@ The operations are similar at the task level. The setupTask() method is called b
 
 The commit phase for tasks is optional and may be disabled by returning false from needsTaskCommit(). `This saves the framework from having to run the distributed commit protocol for the task`, and neither commitTask() nor abortTask() is called. FileOutputCommitter will skip the commit phase when no output has been written by a task. 
 
-If a task succeeds, commitTask() is called, which in the default implementation moves the temporary task output directory (which has the task attempt ID in its name to avoid conflicts between task attempts) to the final output path, ${mapreduce.output.fileoutputformat.outputdir}. Otherwise, the framework calls abortTask(), which deletes the temporary task output directory.
+If a task succeeds, commitTask() is called, which in the default implementation moves the temporary task output directory (which has the task attempt ID in its name to avoid conflicts between task attempts) to the final output path, `${mapreduce.output.fileoutputformat.outputdir}`. Otherwise, the framework calls abortTask(), which deletes the temporary task output directory.
 
-The usual way of writing output from map and reduce tasks is by using **OutputCollector** to collect key-value pairs. Some applications need more flexibility than a single keyvalue pair model, so these applications write output files directly from the map or reduce task to a distributed filesystem, such as HDFS.
+The usual way of writing output from map and reduce tasks is by using **OutputCollector** to collect key-value pairs. Some applications need more flexibility than a single key-value pair model, so these applications write output files directly from the map or reduce task to a distributed filesystem, such as HDFS.
+
+Care needs to be taken to ensure that multiple instances of the same task don’t try to write to the same file. As we saw in the previous section, the OutputCommitter protocol solves this problem. If applications write side files in their tasks’ working directories, the side files for tasks that successfully complete will be promoted to the output directory automatically, whereas failed tasks will have their side files deleted. 
+
+A task may find its working directory by retrieving the value of the `mapreduce.task.output.dir` property from the job configuration. Alternatively, a MapReduce program using the Java API may call the getWorkOutputPath() static method on FileOutputFor mat to get the Path object representing the working directory. The framework creates the working directory before executing the task, so you don’t need to create it.
 
 ## 8. MapReduce Types and Formats
 ### MapReduce Types
@@ -2896,7 +2900,7 @@ public class HashPartitioner<K, V> extends Partitioner<K, V> {
     }
 }
 ```
-You may have noticed that we didn’t set the number of map tasks. The reason for this is that the number is equal to the number of splits that the input is turned into, which is driven by the size of the input and the file’s block size (if the file is in HDFS).
+`You may have noticed that we didn’t set the number of map tasks`. The reason for this is that the number is equal to the number of splits that the input is turned into, which is driven by the size of the input and the file’s block size (if the file is in HDFS).
 
 The default reducer is Reducer, again a generic type, which simply writes all its input to its output:  
 ```java
@@ -2956,9 +2960,9 @@ public abstract class InputSplit {
 }
 ```
 
-An InputSplit has a length in bytes and a set of storage locations, which are just hostname strings. Notice that a split doesn’t contain the input data; it is just a reference to the data. The storage locations are used by the MapReduce system to place map tasks as close to the split’s data as possible, and the size is used to order the splits so that the largest get processed first, in an attempt to minimize the job runtime (this is an instance of a greedy approximation algorithm).  
+An InputSplit has a length in bytes and a set of storage locations, which are just hostname strings. Notice that a split doesn’t contain the input data; it is just a reference to the data. The storage locations are used by the MapReduce system to place map tasks as close to the split’s data as possible, and `the size is used to order the splits so that the largest get processed first`, in an attempt to minimize the job runtime (this is an instance of a greedy approximation algorithm).  
 
-As a MapReduce application writer, you don’t need to deal with InputSplits directly, as they are created by an InputFormat (an InputFormat is responsible for creating the input splits and dividing them into records).
+`As a MapReduce application writer, you don’t need to deal with InputSplits directly, as they are created by an InputFormat` (an InputFormat is responsible for creating the input splits and dividing them into records).
 ```java
 public abstract class InputFormat<K, V> {
     public abstract List<InputSplit> getSplits(JobContext context)
@@ -2998,13 +3002,14 @@ public class JoinReducer extends Reducer<TextPair, Text, Text, Text> {
 }
 ```
 
-**MultithreadedMapper** is an implementation that runs mappers concurrently in a configurable number of threads (set by mapreduce.mapper.multithreadedmapper.threads). For most data processing tasks, it confers no advantage over the default implementation. However, for mappers that spend a long time processing each record —because they contact external servers, for example—it allows multiple mappers to run in one JVM with little contention.
+**MultithreadedMapper** is an implementation that runs mappers concurrently in a configurable number of threads (set by `mapreduce.mapper.multithreadedmapper.threads`). For most data processing tasks, it confers no advantage over the default implementation. However, for mappers that spend a long time processing each record —because they contact external servers, for example—it allows multiple mappers to run in one JVM with little contention.
 
 **FileInputFormat** is the base class for all implementations of InputFormat that use files as their data source (see Figure 8-2). It provides two things: a place to define which files are included as the input to a job, and an implementation for generating splits for the input files. The job of dividing splits into records is performed by subclasses.    
 
 ![hadoop_inputformat_class_hierarchy_img_1]  
 
-**Given a set of files, how does FileInputFormat turn them into splits?**  FileInputFor mat splits only large files—here, “large” means larger than an HDFS block. The split size is normally the size of an HDFS block, which is appropriate for most applications; however, it is possible to control this value by setting various Hadoop properties,  
+**Given a set of files, how does FileInputFormat turn them into splits?**   
+FileInputFormat splits only large files—here, “large” means larger than an HDFS block. The split size is normally the size of an HDFS block, which is appropriate for most applications; however, it is possible to control this value by setting various Hadoop properties,  
 1. mapreduce.input.fileinputformat.split.minsize
 2. mapreduce.input.fileinputformat.split.maxsize
 3. dfs.blocksize
@@ -3051,7 +3056,7 @@ Another example is using Hadoop to bootstrap data loading from multiple data
 sources, such as databases.
 
 ##### XML
-Hadoop comes with a class for this purpose called **StreamXmlRecordReader** (which is in the org.apache.hadoop.streaming.mapreduce package, although it can be used outside of Streaming). You can use it by setting your input format to StreamInputFor mat and setting the stream.recordreader.class property to org.apache.hadoop.streaming.mapreduce.StreamXmlRecordReader. The reader is configured by setting job configuration properties to tell it the patterns for the start and end tags.  
+Hadoop comes with a class for this purpose called **StreamXmlRecordReader** (which is in the org.apache.hadoop.streaming.mapreduce package, although it can be used outside of Streaming). You can use it by setting your input format to StreamInputFormat and setting the stream.recordreader.class property to org.apache.hadoop.streaming.mapreduce.StreamXmlRecordReader. The reader is configured by setting job configuration properties to tell it `the patterns for the start and end tags`.  
 
 See Mahout’s XmlInputFormat for an improved XML input format.
 
@@ -3063,16 +3068,16 @@ Hadoop’s sequence file format stores sequences of binary key-value pairs. Sequ
 To use data from sequence files as the input to MapReduce, you can use SequenceFi leInputFormat. The keys and values are determined by the sequence file, and you need to make sure that your map input types correspond. SequenceFileInputFormat can read map files as well as sequence files.  
 
 ##### SequenceFileAsTextInputFormat
-SequenceFileAsTextInputFormat is a variant of SequenceFileInputFormat that converts the sequence file’s keys and values to Text objects. The conversion is performed by calling toString() on the keys and values. This format makes sequence files suitable input for Streaming.
+SequenceFileAsTextInputFormat is a variant of SequenceFileInputFormat that `converts the sequence file’s keys and values to Text objects`. The conversion is performed `by calling toString()` on the keys and values. `This format makes sequence files suitable input for Streaming`.
 
 ##### SequenceFileAsBinaryInputFormat
-SequenceFileAsBinaryInputFormat is a variant of SequenceFileInputFormat that retrieves the sequence file’s keys and values as opaque binary objects. They are encapsulated as **BytesWritable** objects, and the application is free to interpret the underlying byte array as it pleases. In combination with a process that creates sequence files with SequenceFile.Writer’s appendRaw() method or SequenceFileAsBinaryOutputFormat, this provides a way to use any binary data types with MapReduce (packaged as a sequence file), although plugging into Hadoop’s serialization mechanism is normally a cleaner alternative.
+SequenceFileAsBinaryInputFormat is a variant of SequenceFileInputFormat that `retrieves the sequence file’s keys and values as opaque binary objects`. They are encapsulated as **BytesWritable** objects, and the application is free to interpret the underlying byte array as it pleases. In combination with a process that creates sequence files with SequenceFile.Writer’s appendRaw() method or SequenceFileAsBinaryOutputFormat, this provides a way to use any binary data types with MapReduce (packaged as a sequence file), although plugging into Hadoop’s serialization mechanism is normally a cleaner alternative.
 
 ##### FixedLengthInputFormat  
-FixedLengthInputFormat is for reading fixed-width binary records from a file, when the records are not separated by delimiters. The record size must be set via fixed lengthinputformat.record.length.
+FixedLengthInputFormat is for reading fixed-width `binary records` from a file, when the records are not separated by delimiters. The record size must be set via `fixedlengthinputformat.record.length`.
 
 #### Multiple Inputs
-What often happens, however, is that the data format evolves over time, so you have to write your mapper to cope with all of your legacy formats. Or you may have data sources that provide the same type of data but in different formats. This arises in the case of performing joins of different datasets; These cases are handled elegantly by using the MultipleInputs class, which allows you to specify which InputFormat and Mapper to use on a per-path basis.
+What often happens, however, is that the data format evolves over time, so you have to write your mapper to cope with all of your legacy formats. Or you may have data sources that provide the same type of data but in different formats. This arises in the case of performing joins of different datasets; These cases are handled elegantly by using the **MultipleInputs** class, which allows you to specify which InputFormat and Mapper to use on a per-path basis.
 
 #### Database Input (and Output)
 DBInputFormat is an input format for reading data from a relational database, using JDBC. Because it doesn’t have any sharding capabilities, you need to be careful not to overwhelm the database from which you are reading by running too many mappers. For this reason, it is best used for loading relatively small datasets, perhaps for joining with larger datasets from HDFS using MultipleInputs.  
@@ -3081,7 +3086,7 @@ The corresponding output format is DBOutputFormat, which is useful for dumping j
 
 For an alternative way of moving data between relational databases and HDFS, consider using **Sqoop**, which is described in Chapter 15. 
 
-HBase’s TableInputFormat is designed to allow a MapReduce program to operate on data stored in an HBase table. TableOutputFormat is for writing MapReduce outputs into an HBase table.
+HBase’s **TableInputFormat** is designed to allow a MapReduce program to operate on data stored in an **HBase** table. TableOutputFormat is for writing MapReduce outputs into an HBase table.
 
 ### Output Formats
 ![hadoop_outputformat_class_hierarchy_img_1]  
