@@ -151,6 +151,21 @@
             * [Task counters](#task-counters)
             * [Job counters](#job-counters)
         + [User-Defined Java Counters](#user-defined-java-counters)
+        + [User-Defined Streaming Counters](#user-defined-streaming-counters)
+    - [Sorting](#sorting)
+        + [Controlling Sort Order](#controlling-sort-order)
+        + [Partial Sort](#partial-sort)
+        + [Total Sort](#total-sort)
+        + [Secondary Sort](#secondary-sort)
+            * [Streaming Secondary Sort](#streaming-secondary-sort)
+    - [Joins](#joins)
+        + [Map-Side Joins](#map-side-joins)
+        + [Reduce-Side Joins](#reduce-side-joins)
+    - [Side Data Distribution](#side-data-distribution)
+        + [Using the Job Configuration](#using-the-job-configuration)
+        + [Distributed Cache](#distributed-cache)
+            * [The distributed cache API](#the-distributed-cache-api)
+    - [MapReduce Library Classes](#mapreduce-library-classes)
 * [Miscellaneous](#miscellaneous)
 
 ## 1. Meet Hadoop
@@ -1148,15 +1163,16 @@ public interface RawComparator<T> extends Comparator<T> {
 ```
 This interface permits implementors to compare records read from a stream without deserializing them into objects, thereby avoiding any overhead of object creation.  
 
-**WritableComparator** is a general-purpose implementation of RawComparator for WritableComparable classes. It provides two main functions. First, it provides a default implementation of the raw compare() method that `deserializes the objects to be compared` from the stream and invokes the object compare() method. Second, it acts as a factory for RawComparator instances (that Writable implementations have registered). For example, to obtain a comparator for IntWritable, we just use:  
+**WritableComparator** is a general-purpose implementation of RawComparator for WritableComparable classes. It provides two main functions. First, it provides a default implementation of the raw compare() method that `deserializes the objects to be compared from the stream and invokes the object compare() method`. Second, it acts as `a factory for RawComparator instances` (that Writable implementations have registered). For example, to obtain a comparator for IntWritable, we just use:  
 ```java
 RawComparator<IntWritable> comparator =
 WritableComparator.get(IntWritable.class);
-
+// first
 IntWritable w1 = new IntWritable(163);
 IntWritable w2 = new IntWritable(67);
 assertThat(comparator.compare(w1, w2), greaterThan(0));
 
+//second
 byte[] b1 = serialize(w1);
 byte[] b2 = serialize(w2);
 assertThat(comparator.compare(b1, 0, b1.length, b2, 0, b2.length),
@@ -3178,6 +3194,651 @@ Counter values are definitive only once a job has successfully completed. Howeve
 Job counters (Table 9-6) are maintained by the application master, so they don’t need to be sent across the network, unlike all other counters, including user-defined ones.  
 
 #### User-Defined Java Counters
+Counters are defined by a Java enum, which serves to group related counters. A job may define an arbitrary number of enums, each with an arbitrary number of fields. The name of the enum is the `group name`, and the enum’s fields are the `counter names`. `Counters are global`: the MapReduce framework aggregates them across all maps and reduces to produce a grand total at the end of the job.
+
+```java
+public class MaxTemperatureWithCounters extends Configured implements Tool {
+    enum Temperature {
+        MISSING,
+        MALFORMED
+    }
+    static class MaxTemperatureMapperWithCounters
+    extends Mapper<LongWritable, Text, Text, IntWritable> {
+        private NcdcRecordParser parser = new NcdcRecordParser();
+        @Override
+        protected void map(LongWritable key, Text value, Context context)
+        throws IOException, InterruptedException {
+            parser.parse(value);
+            if (parser.isValidTemperature()) {
+                int airTemperature = parser.getAirTemperature();
+                context.write(new Text(parser.getYear()),
+                    new IntWritable(airTemperature));
+            } else if (parser.isMalformedTemperature()) {
+                System.err.println("Ignoring possibly corrupt input: " + value);
+                context.getCounter(Temperature.MALFORMED).increment(1);
+            } else if (parser.isMissingTemperature()) {
+                context.getCounter(Temperature.MISSING).increment(1);
+            }
+            // dynamic counter
+            // public Counter getCounter(String groupName, String counterName);
+            context.getCounter("TemperatureQuality", parser.getQuality()).increment(1);
+        }
+    }
+    @Override
+    public int run(String[] args) throws Exception {
+        Job job = JobBuilder.parseInputAndOutput(this, getConf(), args);
+        if (job == null) {
+            return -1;
+        }
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+        job.setMapperClass(MaxTemperatureMapperWithCounters.class);
+        job.setCombinerClass(MaxTemperatureReducer.class);
+        job.setReducerClass(MaxTemperatureReducer.class);
+        return job.waitForCompletion(true) ? 0 : 1;
+    }
+    public static void main(String[] args) throws Exception {
+        int exitCode = ToolRunner.run(new MaxTemperatureWithCounters(), args);
+        System.exit(exitCode);
+    }
+}
+```
+
+```html
+Air Temperature Records
+    Malformed=3
+    Missing=66136856
+TemperatureQuality
+    0=1
+    1=973422173
+    2=1246032
+    4=10764500
+    5=158291879
+    6=40066
+    9=66136858
+```
+Notice that the counters for temperature have been made more readable by using a resource bundle named after the enum (using an underscore as a separator for nested classes)—in this case MaxTemperatureWithCounters_Temperature.properties, which contains the display name mappings.
+
+The two ways of creating and accessing counters—using enums and using strings—are actually equivalent because Hadoop turns enums into strings to send counters over RPC. Enums are slightly easier to work with, provide type safety, and are suitable for most jobs. For the odd occasion when you need to create counters dynamically, you can use the String interface.
+
+In addition to using the web UI and the command line (using mapred job -counter), you can retrieve counter values using the Java API. You can do this while the job is running, although it is more usual to get counters at the end of a job run, when they are stable.
+```java
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.util.*;
+public class MissingTemperatureFields extends Configured implements Tool {
+    @Override
+    public int run(String[] args) throws Exception {
+        if (args.length != 1) {
+            JobBuilder.printUsage(this, "<job ID>");
+            return -1;
+        }
+        String jobID = args[0];
+        Cluster cluster = new Cluster(getConf());
+        Job job = cluster.getJob(JobID.forName(jobID));
+        // either because the ID was incorrectly specified or because the job is no longer in the job history.
+        if (job == null) {
+            System.err.printf("No job with ID %s found.\n", jobID);
+            return -1;
+        }
+        if (!job.isComplete()) {
+            System.err.printf("Job %s is not complete.\n", jobID);
+            return -1;
+        }
+        Counters counters = job.getCounters();
+        long missing = counters.findCounter(
+            MaxTemperatureWithCounters.Temperature.MISSING).getValue();
+        long total = counters.findCounter(TaskCounter.MAP_INPUT_RECORDS).getValue();
+        System.out.printf("Records with missing temperature fields: %.2f%%\n",
+            100.0 * missing / total);
+        return 0;
+    }
+    public static void main(String[] args) throws Exception {
+        int exitCode = ToolRunner.run(new MissingTemperatureFields(), args);
+        System.exit(exitCode);
+    }
+}
+```
+
+#### User-Defined Streaming Counters
+A Streaming MapReduce program can increment counters by `sending a specially formatted line to the standard error stream`, which is co-opted as a control channel in this case. The line must have the following format:   
+```html
+reporter:counter:group,counter,amount 
+```
+This snippet in Python shows how to increment the “Missing” counter in the “Temperature” group by 1:   
+```python
+sys.stderr.write("reporter:counter:Temperature,Missing,1\n")
+```
+In a similar way, a status message may be sent with a line formatted like this:   
+```html
+reporter:status:message
+```
+
+### Sorting
+The ability to sort data is at the heart of MapReduce.  
+
+Storing temperatures as Text objects doesn’t work for sorting purposes, because signed integers don’t sort lexicographically.  One commonly used workaround for this problem—particularly in text-based Streaming applications—is to add an offset to eliminate all negative numbers and to left pad with zeros so all numbers are the same number of characters ???? However, see “Streaming” on page 266 for another approach.
+
+Example 9-3. A MapReduce program for transforming the weather data into SequenceFile format
+```java
+public class SortDataPreprocessor extends Configured implements Tool {
+    static class CleanerMapper
+    extends Mapper<LongWritable, Text, IntWritable, Text> {
+        private NcdcRecordParser parser = new NcdcRecordParser();
+        @Override
+        protected void map(LongWritable key, Text value, Context context)
+        throws IOException, InterruptedException {
+            parser.parse(value);
+            if (parser.isValidTemperature()) {
+                context.write(new IntWritable(parser.getAirTemperature()), value);
+            }
+        }
+    }
+    @Override
+    public int run(String[] args) throws Exception {
+        Job job = JobBuilder.parseInputAndOutput(this, getConf(), args);
+        if (job == null) {
+            return -1;
+        }
+        job.setMapperClass(CleanerMapper.class);
+        job.setOutputKeyClass(IntWritable.class);
+        job.setOutputValueClass(Text.class);
+        job.setNumReduceTasks(0);
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        SequenceFileOutputFormat.setCompressOutput(job, true);
+        SequenceFileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
+        SequenceFileOutputFormat.setOutputCompressionType(job,
+            CompressionType.BLOCK);
+        return job.waitForCompletion(true) ? 0 : 1;
+    }
+    public static void main(String[] args) throws Exception {
+        int exitCode = ToolRunner.run(new SortDataPreprocessor(), args);
+        System.exit(exitCode);
+    }
+}
+```
+
+#### Controlling Sort Order
+The sort order for keys is controlled by a RawComparator, which is found as follows:   
+1. If the property `mapreduce.job.output.key.comparator.class` is set, either explicitly or by calling setSortComparatorClass() on Job, then an instance of that class is used. (In the old API, the equivalent method is setOutputKeyComparator Class() on JobConf.)   
+2. Otherwise, keys must be a subclass of WritableComparable, and the registered comparator for the key class is used.   
+```java
+RawComparator<IntWritable> comparator =
+WritableComparator.get(IntWritable.class);
+```
+3. If there is no registered comparator, then a RawComparator is used. The RawComparator deserializes the byte streams being compared into objects and delegates to the WritableComparable’s compareTo() method.
+
+#### Partial Sort
+```shell
+$ hadoop jar hadoop-examples.jar SortByTemperatureUsingHashPartitioner \ 
+-D mapreduce.job.reduces=30 input/ncdc/all-seq output-hashsort
+```
+This command produces 30 output files, each of which is sorted. However, there is no easy way to combine the files (by concatenation, for example, in the case of plain-text files) to produce a globally sorted file.  
+For many applications, this doesn’t matter. For example, having a partially sorted set of files is fine when you want to do lookups by key.
+
+#### Total Sort
+**How can you produce a globally sorted file using Hadoop?**  
+* The naive answer is to use a single partition.  
+* A better answer is to use Pig (“Sorting Data” on page 465), Hive (“Sorting and Aggregating” on page 503), Crunch, or Spark, all of which can sort with a single command.
+* Instead, it is possible to produce a set of sorted files that, if concatenated, would form a globally sorted file.   
+The secret to doing this is to use a partitioner that respects the total order of the output. (PS: a little bit like bucket sort). Although this approach works, you have to choose your partition sizes carefully to ensure that they are fairly even, so job times aren’t dominated by a single reducer.  
+
+Although we could use this information to construct a very even set of partitions, the fact that we needed to run a job that used the entire dataset to construct them is not ideal. `It’s possible to get a fairly even set of partitions by sampling the key space`. The idea behind sampling is that you look at a small subset of the keys to approximate the key distribution, which is then used to construct partitions. Luckily, we don’t have to write the code to do this ourselves, as `Hadoop comes with a selection of samplers`.
+
+The **InputSampler** class defines a nested Sampler interface whose implementations return a sample of keys given an InputFormat and Job:  
+```java
+public interface Sampler<K, V> {
+    K[] getSample(InputFormat<K, V> inf, Job job)
+    throws IOException, InterruptedException;
+}
+```
+This interface usually is not called directly by clients. Instead, the writePartition File() static method on InputSampler is used, which creates a sequence file to store the keys that define the partitions:  
+```java
+public static <K, V> void writePartitionFile(Job job, Sampler<K, V> sampler)
+    throws IOException, ClassNotFoundException, InterruptedException
+```
+PS: The content of the sequence file is, for example, the sampler chose –5.6°C, 13.9°C, and 22.0°C as partition boundaries (for four partitions).
+
+The sequence file is used by **TotalOrderPartitioner** to create partitions for the sort job (PS: requires storing the sequence file to DistributedCache at first). Example 9-5 puts it all together.   
+
+**Example 9-5. A MapReduce program for sorting a SequenceFile with IntWritable keys using the TotalOrderPartitioner to globally sort the data**  
+```java
+public class SortByTemperatureUsingTotalOrderPartitioner extends Configured
+implements Tool {
+    @Override
+    public int run(String[] args) throws Exception {
+        Job job = JobBuilder.parseInputAndOutput(this, getConf(), args);
+        if (job == null) {
+            return -1;
+        }
+        job.setInputFormatClass(SequenceFileInputFormat.class);
+        job.setOutputKeyClass(IntWritable.class);
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        SequenceFileOutputFormat.setCompressOutput(job, true);
+        SequenceFileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
+        SequenceFileOutputFormat.setOutputCompressionType(job,
+            CompressionType.BLOCK);
+        job.setPartitionerClass(TotalOrderPartitioner.class);
+        // RandomSampler(a uniform probability, maximum number of samples, maximum number of splits to sample)
+        InputSampler.Sampler<IntWritable, Text> sampler =
+        new InputSampler.RandomSampler<IntWritable, Text>(0.1, 10000, 10);
+        InputSampler.writePartitionFile(job, sampler);
+        // Add to DistributedCache
+        Configuration conf = job.getConfiguration();
+        String partitionFile = TotalOrderPartitioner.getPartitionFile(conf);
+        URI partitionUri = new URI(partitionFile);
+        job.addCacheFile(partitionUri);
+        return job.waitForCompletion(true) ? 0 : 1;
+    }
+    public static void main(String[] args) throws Exception {
+        int exitCode = ToolRunner.run(
+            new SortByTemperatureUsingTotalOrderPartitioner(), args);
+        System.exit(exitCode);
+    }
+}
+```
+Samplers run on the client, making it important to limit the number of splits that are downloaded so the sampler runs quickly. In practice, the time taken to run the sampler is a small fraction of the overall job time.   
+The InputSampler writes a partition file that we need to share with the tasks running on the cluster by adding it to the distributed cache.
+```shell
+ $ hadoop jar hadoop-examples.jar SortByTemperatureUsingTotalOrderPartitioner \ 
+ -D mapreduce.job.reduces=30 input/ncdc/all-seq output-totalsort
+```
+The program produces 30 output partitions, each of which is internally sorted; in addition, for these partitions, all the keys in partition i are less than the keys in partition i + 1.
+
+* SplitSampler  
+Your input data determines the best sampler to use. For example, **SplitSampler**, which samples only the first n records in a split, is not so good for sorted data, because it doesn’t select keys from throughout the split.  
+* IntervalSampler  
+On the other hand, **IntervalSampler** chooses keys at regular intervals through the split and makes a better choice for sorted data.  
+* RandomSampler  
+**RandomSampler** is a good general-purpose sampler. 
+* User define sampler  
+If none of these suits your application (and remember that the point of sampling is to produce partitions that are approximately equal in size), you can write your own implementation of the Sampler interface.  
+
+One of the nice properties of InputSampler and TotalOrderPartitioner is that you are free to choose the number of partitions—that is, the number of reducers. However, TotalOrderPartitioner will work only if the partition boundaries are distinct. One problem with choosing a high number is that you may get collisions if you have a small key space.
+
+#### Secondary Sort
+The MapReduce framework sorts the records by key before they reach the reducers. For any particular key, however, the values are not sorted. The order in which the values appear is not even stable from one run to the next.
+However, it is possible to impose an order on the values by sorting and grouping the keys in a particular way.  
+
+To summarize, there is a recipe here to get the effect of sorting by value:  
+* Make the key a composite of the natural key and the natural value. 
+* The sort comparator should order by the composite key (i.e., the natural key and natural value). (PS: the same sort comparator is for both map output and reduce sort phrase)
+* The partitioner and grouping comparator for the composite key should consider only the natural key for partitioning and grouping.  
+PS: grouping comparator should work after reduce sort comparator and generate list(V2) for reducer, it always retrieve the first key.  
+```scala
+map: (K1, V1) → list(K2, V2)
+combiner: (K2, list(V2)) → list(K2, V2)
+reduce: (K2, list(V2)) → list(K3, V3)
+```
+
+To illustrate the idea, consider the MapReduce program for calculating the maximum temperature for each year. If we arranged for the values (temperatures) to be sorted in descending order, we wouldn’t have to iterate through them to find the maximum; instead, we could take the first for each year and ignore the rest. (This approach isn’t the most efficient way to solve this particular problem, but it illustrates how secondary sort works in general.)  
+To achieve this, we change our keys to be composite: a combination of year and temperature. We want the sort order for keys to be by year (ascending) and then by temperature (descending).  
+
+```java
+public class MaxTemperatureUsingSecondarySort
+extends Configured implements Tool {
+    static class MaxTemperatureMapper
+    extends Mapper<LongWritable, Text, IntPair, NullWritable> {
+        private NcdcRecordParser parser = new NcdcRecordParser();
+        @Override
+        protected void map(LongWritable key, Text value,
+            Context context) throws IOException, InterruptedException {
+            parser.parse(value);
+            if (parser.isValidTemperature()) {
+                context.write(new IntPair(parser.getYearInt(),
+                    parser.getAirTemperature()), NullWritable.get());
+            }
+        }
+    }
+    static class MaxTemperatureReducer
+    extends Reducer<IntPair, NullWritable, IntPair, NullWritable> {
+        @Override
+        protected void reduce(IntPair key, Iterable<NullWritable> values,
+            Context context) throws IOException, InterruptedException {
+            context.write(key, NullWritable.get());
+        }
+    }
+    public static class FirstPartitioner
+    extends Partitioner<IntPair, NullWritable> {
+        @Override
+        public int getPartition(IntPair key, NullWritable value, int numPartitions) {
+            // multiply by 127 to perform some mixing
+            return Math.abs(key.getFirst() * 127) % numPartitions;
+        }
+    }
+    public static class KeyComparator extends WritableComparator {
+        protected KeyComparator() {
+            super(IntPair.class, true);
+        }
+        @Override
+        public int compare(WritableComparable w1, WritableComparable w2) {
+            IntPair ip1 = (IntPair) w1;
+            IntPair ip2 = (IntPair) w2;
+            int cmp = IntPair.compare(ip1.getFirst(), ip2.getFirst());
+            if (cmp != 0) {
+                return cmp;
+            }
+            return -IntPair.compare(ip1.getSecond(), ip2.getSecond()); //reverse
+        }
+    }
+    public static class GroupComparator extends WritableComparator {
+        protected GroupComparator() {
+            super(IntPair.class, true);
+        }
+        @Override
+        public int compare(WritableComparable w1, WritableComparable w2) {
+            IntPair ip1 = (IntPair) w1;
+            IntPair ip2 = (IntPair) w2;
+            return IntPair.compare(ip1.getFirst(), ip2.getFirst());
+        }
+    }
+    @Override
+    public int run(String[] args) throws Exception {
+        Job job = JobBuilder.parseInputAndOutput(this, getConf(), args);
+        if (job == null) {
+            return -1;
+        }
+        job.setMapperClass(MaxTemperatureMapper.class);
+        job.setPartitionerClass(FirstPartitioner.class);
+        job.setSortComparatorClass(KeyComparator.class);
+        job.setGroupingComparatorClass(GroupComparator.class);
+        job.setReducerClass(MaxTemperatureReducer.class);
+        job.setOutputKeyClass(IntPair.class);
+        job.setOutputValueClass(NullWritable.class);
+        return job.waitForCompletion(true) ? 0 : 1;
+    }
+    public static void main(String[] args) throws Exception {
+        int exitCode = ToolRunner.run(new MaxTemperatureUsingSecondarySort(), args);
+        System.exit(exitCode);
+    }
+}
+```
+In the mapper, we create a key representing the year and temperature, using an IntPair Writable implementation (user defined). We don’t need to carry any information in the value, because `we can get the first (maximum) temperature in the reducer from the key`, so we use a NullWritable. `The reducer emits the first key`, which, due to the secondary sorting, is an IntPair for the year and its maximum temperature.  
+
+Many applications need to access all the sorted values, not just the first value as we have provided here. To do this, you need to populate the value fields since in the reducer you can retrieve only the first key. This necessitates some unavoidable duplication of information between key and value.  
+
+##### Streaming Secondary Sort
+To do a secondary sort in Streaming, we can take advantage of a couple of library classes that Hadoop provides. Here’s the driver that we can use to do a secondary sort.  
+```shell
+$ hadoop jar $HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-*.jar \
+-D stream.num.map.output.key.fields=2 \
+-D mapreduce.partition.keypartitioner.options=-k1,1 \
+-D mapreduce.job.output.key.comparator.class=\
+        org.apache.hadoop.mapred.lib.KeyFieldBasedComparator \
+-D mapreduce.partition.keycomparator.options="-k1n -k2nr" \
+-files secondary_sort_map.py,secondary_sort_reduce.py \
+-input input/ncdc/all \
+-output output-secondarysort-streaming \
+-mapper ch09-mr-features/src/main/python/secondary_sort_map.py \
+-partitioner org.apache.hadoop.mapred.lib.KeyFieldBasedPartitioner \
+-reducer ch09-mr-features/src/main/python/secondary_sort_reduce.py
+```
+
+**Example 9-7. Map function for secondary sort in Python, secondary_sort_map.py**  
+```python
+#!/usr/bin/env python
+import re
+import sys
+for line in sys.stdin:
+    val = line.strip()
+    (year, temp, q) = (val[15:19], int(val[87:92]), val[92:93])
+    if temp == 9999:
+        sys.stderr.write("reporter:counter:Temperature,Missing,1\n")
+    elif re.match("[01459]", q):
+        print "%s\t%s" % (year, temp)
+```
+Our map function (Example 9-7) emits records with year and temperature fields. We want to treat the combination of both of these fields as the key, so we set stream.num.map.output.key.fields to 2. This means that values will be empty, just like in the Java case.  
+In the Java version, we had to set the grouping comparator; however, in Streaming, groups are not demarcated in any way, so in the reduce function we have to `detect the group boundaries ourselves` by looking for when the year changes (Example 9-8).  
+
+**Example 9-8. Reduce function for secondary sort in Python**  
+```python
+#!/usr/bin/env python
+import sys
+last_group = None
+for line in sys.stdin:
+    val = line.strip()
+    (year, temp) = val.split("\t")
+    group = year
+    if last_group != group:
+        print val
+        last_group = group
+```
+
+Finally, note that **KeyFieldBasedPartitioner** and **KeyFieldBasedComparator** are not confined to use in Streaming programs; they are applicable to Java MapReduce programs, too.  
+
+### Joins
+MapReduce can perform joins between large datasets, but writing the code to do joins from scratch is fairly involved. Rather than writing MapReduce programs, you might consider using a higher-level framework such as Pig, Hive, Cascading, Cruc, or Spark, in which join operations are a core part of the implementation.  
+![hadoop_mr_join_example_img_1]  
+
+If the join is performed by the mapper it is called a map-side join, whereas if it is performed by the reducer it is called a reduce-side join.  
+How we implement the join depends on how large the datasets are and how they are partitioned. If one dataset is large (the weather records) but the other one is small enough to be distributed to each node in the cluster (as the station metadata is, via “Side Data Distribution”), the join can be effected by a MapReduce job that brings the records for each station together (a partial sort on station ID, for example).
+
+If both datasets are too large for either to be copied to each node in the cluster, we can still join them using MapReduce with a map-side or reduce-side join, depending on how the data is structured.  
+
+#### Map-Side Joins
+A map-side join between large inputs works by performing the join `before the data reaches the map function`. For this to work, though, the inputs to each map must be partitioned and sorted in a particular way. Each input dataset must be divided into the same number of partitions, and it must be sorted by the same key (the join key) in each source. All the records for a particular key must reside in the same partition. This may sound like a strict requirement (and it is), but it actually fits the description of the output of a MapReduce job.  
+
+A map-side join can be used to join the outputs of several jobs that had the same number of reducers, the same keys, and output files that are not splittable (by virtue of being smaller than an HDFS block or being gzip compressed, for example)
+
+You use a CompositeInputFormat from the org.apache.hadoop.mapreduce.join package to run a map-side join. The input sources and join type (inner or outer) for CompositeInputFormat are configured through a join expression that is written according to a simple grammar.
+
+#### Reduce-Side Joins
+A reduce-side join is more general than a map-side join, in that the input datasets don’t have to be structured in any particular way, but it is less efficient because both datasets have to go through the MapReduce shuffle. The basic idea is that the `mapper tags each record with its source and uses the join key as the map output key`(PS: for example, label each source as 0, 1, ..., and append the join key with source label),  so that the records with the same key are brought together in the reducer. We use several ingredients to make this work in practice:  
+* Multiple inputs  
+The input sources for the datasets generally have different formats, so it is very convenient to use the **MultipleInputs** class to separate the logic for parsing and tagging each source.  
+* Secondary sort  
+As described, the reducer will see the records from both sources that have the same key, but they are not guaranteed to be in any particular order. However, to perform the join, it is important to have the data from one source before that from the other. For the weather data join, the station record must be the first of the values seen for each key, so the reducer can fill in the weather records with the station name and emit them straightaway. Of course, it would be possible to receive the records in any order if we buffered them in memory, but this should be avoided because the number of records in any group may be very large and exceed the amount of memory available to the reducer.  
+
+**Example 9-9. Mapper for tagging station records for a reduce-side join**  
+```java
+public class JoinStationMapper
+extends Mapper<LongWritable, Text, TextPair, Text> {
+    private NcdcStationMetadataParser parser = new NcdcStationMetadataParser();
+    @Override
+    protected void map(LongWritable key, Text value, Context context)
+    throws IOException, InterruptedException {
+        if (parser.parse(value)) {
+            context.write(new TextPair(parser.getStationId(), "0"),
+                new Text(parser.getStationName()));
+        }
+    }
+}
+```
+**Example 9-10. Mapper for tagging weather records for a reduce-side join** 
+```java
+public class JoinRecordMapper
+extends Mapper<LongWritable, Text, TextPair, Text> {
+    private NcdcRecordParser parser = new NcdcRecordParser();
+    @Override
+    protected void map(LongWritable key, Text value, Context context)
+    throws IOException, InterruptedException {
+        parser.parse(value);
+        context.write(new TextPair(parser.getStationId(), "1"), value);
+    }
+}
+```
+The reducer knows that it will receive the station record first, so it extracts its name from the value and writes it out as a part of every output record (Example 9-11).   
+**Example 9-11. Reducer for joining tagged station records with tagged weather records**  
+```java
+public class JoinReducer extends Reducer<TextPair, Text, Text, Text> {
+    @Override
+    protected void reduce(TextPair key, Iterable<Text> values, Context context)
+    throws IOException, InterruptedException {
+        Iterator<Text> iter = values.iterator();
+        Text stationName = new Text(iter.next());
+        while (iter.hasNext()) {
+            Text record = iter.next();
+            Text outValue = new Text(stationName.toString() + "\t" + record.toString());
+            context.write(key.getFirst(), outValue);
+        }
+    }
+}
+```
+
+The code assumes that every station ID in the weather records has exactly one matching record in the station dataset. If this were not the case, we would need to generalize the code to put the tag into the value objects, by using another TextPair. The reduce() method would then be able to tell which entries were station names and detect (and handle) missing or duplicate entries before processing the weather records.  
+
+Tying the job together is the driver class, shown in Example 9-12. The essential point here is that we partition and group on the first part of the key, the station ID, which we do with a custom Partitioner (KeyPartitioner) and a custom group comparator, FirstComparator (from TextPair).  
+
+**Example 9-12. Application to join weather records with station names**  
+```java
+public class JoinRecordWithStationName extends Configured implements Tool {
+    public static class KeyPartitioner extends Partitioner<TextPair, Text> {
+        @Override
+        public int getPartition(TextPair key, Text value, int numPartitions) {
+            return (key.getFirst().hashCode() & Integer.MAX_VALUE) % numPartitions;
+        }
+    }
+    @Override
+    public int run(String[] args) throws Exception {
+        if (args.length != 3) {
+            JobBuilder.printUsage(this, "<ncdc input> <station input> <output>");
+            return -1;
+        }
+        Job job = new Job(getConf(), "Join weather records with station names");
+        job.setJarByClass(getClass());
+        Path ncdcInputPath = new Path(args[0]);
+        Path stationInputPath = new Path(args[1]);
+        Path outputPath = new Path(args[2]);
+        MultipleInputs.addInputPath(job, ncdcInputPath,
+            TextInputFormat.class, JoinRecordMapper.class);
+        MultipleInputs.addInputPath(job, stationInputPath,
+            TextInputFormat.class, JoinStationMapper.class);
+        FileOutputFormat.setOutputPath(job, outputPath);
+        job.setPartitionerClass(KeyPartitioner.class);
+        job.setGroupingComparatorClass(TextPair.FirstComparator.class);
+        job.setMapOutputKeyClass(TextPair.class);
+        job.setReducerClass(JoinReducer.class);
+        job.setOutputKeyClass(Text.class);
+        return job.waitForCompletion(true) ? 0 : 1;
+    }
+    public static void main(String[] args) throws Exception {
+        int exitCode = ToolRunner.run(new JoinRecordWithStationName(), args);
+        System.exit(exitCode);
+    }
+}
+```
+
+### Side Data Distribution
+Side data can be defined as extra read-only data needed by a job to process the main dataset. The challenge is to make side data available to all the map or reduce tasks (which are spread across the cluster) in a convenient and efficient fashion.  
+
+#### Using the Job Configuration
+You can set arbitrary key-value pairs in the job configuration using the various setter methods on Configuration (or JobConf in the old MapReduce API). This is very useful when you need to pass a small piece of metadata to your tasks.  
+
+In the task, you can retrieve the data from the configuration returned by Context’s getConfiguration() method. (In the old API, it’s a little more involved: override the configure() method in the Mapper or Reducer and use a getter method on the JobConf object passed in to retrieve the data. It’s very common to store the data in an instance field so it can be used in the map() or reduce() method???)  
+
+Usually a primitive type is sufficient to encode your metadata, but for arbitrary objects you can either handle the serialization yourself (if you have an existing mechanism for turning objects to strings and back) or use Hadoop’s **Stringifier** class. The DefaultStringifier uses Hadoop’s serialization framework to serialize objects.  
+
+You shouldn’t use this mechanism for transferring more than `a few kilobytes of data`, because it can put pressure on the memory usage in MapReduce components. The job configuration is always read by the client, the application master, and the task JVM, and each time the configuration is read, `all of its entries are read into memory`, even if they are not used.  
+
+#### Distributed Cache
+Rather than serializing side data in the job configuration, `it is preferable to distribute datasets using Hadoop’s distributed cache mechanism`. This provides a service for copying files and archives to the task nodes in time for the tasks to use them when they run. To save network bandwidth, files are normally copied to any particular node once per job.  
+
+For tools that use GenericOptionsParser (this includes many of the programs in this book; see “GenericOptionsParser, Tool, and ToolRunner” on page 148), you can specify the files to be distributed as a comma-separated list of URIs as the argument to the `-files` option. Files can be on the local filesystem, on HDFS, or on another Hadoopreadable filesystem (such as S3). If no scheme is supplied, then the files are assumed to be local. (This is true even when the default filesystem is not the local filesystem.)  
+You can also copy archive files (JAR files, ZIP files, tar files, and gzipped tar files) to your tasks using the `-archives` option; these are unarchived on the task node.  
+The `-libjars` option will add JAR files to the classpath of the mapper and reducer tasks. This is useful if you haven’t bundled library JAR files in your job JAR file.
+
+Let’s see how to use the distributed cache to share a metadata file for station names. The command we will run is:  
+```Shell
+$ hadoop jar hadoop-examples.jar \
+MaxTemperatureByStationNameUsingDistributedCacheFile \
+-files input/ncdc/metadata/stations-fixed-width.txt input/ncdc/all output
+```
+
+**Example 9-13. Application to find the maximum temperature by station, showing station names from a lookup table passed as a distributed cache file**  
+```java
+public class MaxTemperatureByStationNameUsingDistributedCacheFile
+extends Configured implements Tool {
+    static class StationTemperatureMapper
+    extends Mapper<LongWritable, Text, Text, IntWritable> {
+        private NcdcRecordParser parser = new NcdcRecordParser();
+        @Override
+        protected void map(LongWritable key, Text value, Context context)
+        throws IOException, InterruptedException {
+            parser.parse(value);
+            if (parser.isValidTemperature()) {
+                context.write(new Text(parser.getStationId()),
+                    new IntWritable(parser.getAirTemperature()));
+            }
+        }
+    }
+    static class MaxTemperatureReducerWithStationLookup
+    extends Reducer<Text, IntWritable, Text, IntWritable> {
+        private NcdcStationMetadata metadata;
+        @Override
+        protected void setup(Context context)
+        throws IOException, InterruptedException {
+            metadata = new NcdcStationMetadata();
+            metadata.initialize(new File("stations-fixed-width.txt"));
+        }
+        @Override
+        protected void reduce(Text key, Iterable<IntWritable> values,
+            Context context) throws IOException, InterruptedException {
+            String stationName = metadata.getStationName(key.toString());
+            int maxValue = Integer.MIN_VALUE;
+            for (IntWritable value : values) {
+                maxValue = Math.max(maxValue, value.get());
+            }
+            context.write(new Text(stationName), new IntWritable(maxValue));
+        }
+    }
+    @Override
+    public int run(String[] args) throws Exception {
+        Job job = JobBuilder.parseInputAndOutput(this, getConf(), args);
+        if (job == null) {
+            return -1;
+        }
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+        job.setMapperClass(StationTemperatureMapper.class);
+        job.setCombinerClass(MaxTemperatureReducer.class);
+        job.setReducerClass(MaxTemperatureReducerWithStationLookup.class);
+        return job.waitForCompletion(true) ? 0 : 1;
+    }
+    public static void main(String[] args) throws Exception {
+        int exitCode = ToolRunner.run(
+            new MaxTemperatureByStationNameUsingDistributedCacheFile(), args);
+        System.exit(exitCode);
+    }
+}
+```
+We use the reducer’s setup() method to retrieve the cache file using its original name, relative to the working directory of the task.
+
+You can use the distributed cache for `copying files that do not fit in memory`. Hadoop map files are very useful in this regard, since they serve as an on-disk lookup format (see “MapFile” on page 135). Because map files are collections of files with a defined directory structure, you should put them into an archive format (JAR, ZIP, tar, or gzipped tar) and add them to the cache using the -archives option.
+
+**How it works**  
+`When you launch a job`(loaded once per job, not per task), Hadoop copies the files specified by the -files, -archives, and -libjars options to the distributed filesystem (normally HDFS). Then, before a task is run, the `node manager` copies the files from the distributed filesystem to `a local disk—the cache—`so the task can access the files. The files are said to be localized at this point. From the task’s point of view, the files are just there, symbolically linked from the task’s working directory. In addition, files specified by -libjars are added to the task’s classpath before it is launched.  
+
+The node manager also maintains a reference count for the number of tasks using each file in the cache. Before the task has run, the file’s reference count is incremented by 1; then, after the task has run, the count is decreased by 1. Only when the file is not being used (when the count reaches zero) is it eligible for deletion. Files are deleted to make room for a new file when the node’s cache exceeds a certain size—10 GB by default— using a least-recently used policy. The cache size may be changed by setting the configuration property `yarn.nodemanager.localizer.cache.target-size-mb`.  
+
+Although this design doesn’t guarantee that subsequent tasks from the same job running on the same node will find the file they need in the cache, it is very likely that they will: tasks from a job are usually scheduled to run at around the same time, so there isn’t the opportunity for enough other jobs to run to cause the original task’s file to be deleted from the cache.
+
+##### The distributed cache API
+Here are the pertinent methods in Job:  
+```java
+public void addCacheFile(URI uri)
+public void addCacheArchive(URI uri)
+public void setCacheFiles(URI[] files)
+public void setCacheArchives(URI[] archives)
+public void addFileToClassPath(Path file)
+public void addArchiveToClassPath(Path archive)
+```
+
+The URIs referenced in the add or set methods must be files in a shared filesystem that exist when the job is run. On the other hand, the filenames specified as a GenericOptionsParser option (e.g., - files) may refer to local files, in which case they get copied to the default shared filesystem (normally HDFS) on your behalf.  
+This is the key difference between using the Java API directly and using GenericOptionsParser: `the Java API does not copy the file specified in the add or set method to the shared filesystem`, whereas the GenericOptionsParser does.
+
+### MapReduce Library Classes
+classes                                                                                     |Description
+---------------------------------------------------------------------|-------------------------------------------------------------------------------
+ChainMapper, ChainReducer                                                     |Run a chain of mappers in a single mapper and a reducer followed by a chain of mappers in a single reducer, respectively. (Symbolically, M+RM*, where M is a mapper and R is a reducer.) `This can substantially reduce the amount of disk I/O incurred compared to running multiple MapReduce jobs`.
+FieldSelectionMapReduce (old API)                                         |as below
+FieldSelectionMapper and FieldSelectionReducer (new API)   |A mapper and reducer that can select fields (like the Unix cut command) from the input keys and values and emit them as output keys and values.
+IntSumReducer, LongSumReducer                                           |Reducers that sum integer values to produce a total for every key.
+InverseMapper                                                                        |`A mapper that swaps keys and values.`
+MultithreadedMapRunner (old API)                                         |as below
+MultithreadedMapper (new API)                                             |A mapper (or map runner in the old API) that runs mappers concurrently in separate threads. Useful for mappers that are `not CPU-bound`.
+TokenCounterMapper                                                              |A mapper that tokenizes the input value into words (using Java’s StringTokenizer) and emits each word along with a count of 1.
+RegexMapper                                                                          |A mapper that finds matches of a regular expression in the input value and emits the matches along with a count of 1.
+
 
 ## Miscellaneous
 
@@ -3201,4 +3862,4 @@ Job counters (Table 9-6) are maintained by the application master, so they don�
 [hadoop_stream_mr_data_flow_img_1]:/resources/img/java/hadoop_stream_mr_data_flow_1.png "Figure 8-1. Where separators are used in a Streaming MapReduce job"
 [hadoop_inputformat_class_hierarchy_img_1]:/resources/img/java/hadoop_inputformat_class_hierarchy_1.png "Figure 8-2. InputFormat class hierarchy"
 [hadoop_outputformat_class_hierarchy_img_1]:/resources/img/java/hadoop_outputformat_class_hierarchy_1.png "Figure 8-4. OutputFormat class hierarchy"
-
+[hadoop_mr_join_example_img_1]:/resources/img/java/hadoop_mr_join_example_1.png "Figure 9-2. Inner join of two datasets"
