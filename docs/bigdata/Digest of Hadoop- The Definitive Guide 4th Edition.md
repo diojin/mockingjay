@@ -166,6 +166,25 @@
         + [Distributed Cache](#distributed-cache)
             * [The distributed cache API](#the-distributed-cache-api)
     - [MapReduce Library Classes](#mapreduce-library-classes)
+* [10. Setting Up a Hadoop Cluster](#10-setting-up-a-hadoop-cluster)
+    - [Cluster Sizing](#cluster-sizing)
+    - [Network Topology](#network-topology)
+        + [Rack awareness](#rack-awareness)
+    - [Cluster Setup and Installation](#cluster-setup-and-installation)
+    - [Hadoop Configuration](#hadoop-configuration)
+        + [Configuration Management](#configuration-management)
+        + [Environment Settings](#environment-settings)
+        + [Important Hadoop Daemon Properties](#important-hadoop-daemon-properties)
+            * [Memory settings in YARN and MapReduce](#memory-settings-in-yarn-and-mapreduce)
+            * [CPU settings in YARN and MapReduce](#cpu-settings-in-yarn-and-mapreduce)
+        + [Hadoop Daemon Addresses and Ports](#hadoop-daemon-addresses-and-ports)
+        + [Other Hadoop Properties](#other-hadoop-properties)
+    - [Security](#security)
+        + [Kerberos and Hadoop](#kerberos-and-hadoop)
+        + [Delegation Tokens](#delegation-tokens)
+        + [Other Security Enhancements](#other-security-enhancements)
+    - [Hadoop Benchmarks](#hadoop-benchmarks)
+        + [Benchmarking MapReduce with TeraSort](#benchmarking-mapreduce-with-terasort)
 * [Miscellaneous](#miscellaneous)
 
 ## 1. Meet Hadoop
@@ -3839,6 +3858,406 @@ MultithreadedMapper (new API)                                             |A map
 TokenCounterMapper                                                              |A mapper that tokenizes the input value into words (using Java’s StringTokenizer) and emits each word along with a count of 1.
 RegexMapper                                                                          |A mapper that finds matches of a regular expression in the input value and emits the matches along with a count of 1.
 
+## 10. Setting Up a Hadoop Cluster
+There are a few options when it comes to getting a Hadoop cluster, from building your own, to running on rented hardware or using an offering that provides Hadoop as a hosted service in the cloud. The number of hosted options is too large to list here, but even if you choose to build a Hadoop cluster yourself, there are still a number of installation options:  
+1. Apache tarballs  
+2. Packages  
+RPM and Debian packages are available from the **Apache Bigtop project** [hadoop_apache_bigtop_1] , as well as from all the Hadoop vendors. work well with configuration management tools like **Puppet**.
+3. Hadoop cluster management tools  
+**Cloudera Manager** and **Apache Ambari** are examples of dedicated tools for installing and managing a Hadoop cluster over its whole lifecycle. They provide a simple web UI, and are the recommended way to set up a Hadoop cluster for most users and operators. These tools encode a lot of operator knowledge about running Hadoop. For example, they use heuristics based on the hardware profile (among other factors) to choose good defaults for Hadoop configuration settings. For more complex setups, like HA, or secure Hadoop, the management tools provide welltested wizards for getting a working cluster in a short amount of time. Finally, they add extra features that the other installation options don’t offer, such as `unified monitoring and log search`, and `rolling upgrades (so you can upgrade the cluster without experiencing downtime)`.
+
+These chapters still offer valuable information about how Hadoop works from an operations point of view For more in-depth information, I highly recommend [Hadoop Operations] by Eric Sammer (O’Reilly, 2012).
+
+**Why Not Use RAID?**  
+HDFS clusters do not benefit from using RAID (redundant array of independent disks) for datanode storage (although RAID is recommended for the namenode’s disks, to protect against corruption of its metadata). The redundancy that RAID provides is not needed, since HDFS handles it by replication between nodes.  
+Furthermore, RAID striping (RAID 0), which is commonly used to increase performance, turns out to be `slower than the JBOD (just a bunch of disks) configuration used by HDFS`, which round-robins HDFS blocks between all disks. This is because `RAID 0 read and write operations are limited by the speed of the slowest-responding disk in the RAID array`. In JBOD, disk operations are independent, so the average speed of operations is greater than that of the slowest disk. Disk performance often shows considerable variation in practice, even for disks of the same model. In some benchmarking carried out on a Yahoo! cluster, JBOD performed 10% faster than RAID 0 in one test (Gridmix) and 30% better in another (HDFS write throughput).  
+Finally, `if a disk fails in a JBOD configuration, HDFS can continue to operate without the failed disk`, whereas with RAID, failure of a single disk causes the whole array (and hence the node) to become unavailable.
+
+### Cluster Sizing
+How large should your cluster be? You can get a good feel for this by `considering storage capacity`.  
+For example, if your data grows by 1 TB a day and you have three-way HDFS replication, you need an additional 3 TB of raw storage per day. `Allow some room for intermediate files and logfiles (around 30%, say)`, and this is in the range of one (2014-vintage) machine per week. In practice, you wouldn’t buy a new machine each week and add it to the cluster. The value of doing a back-of-the-envelope calculation like this is that it gives you a feel for how big your cluster should be. In this example, a cluster that holds two years’ worth of data needs 100 machines.  
+
+For a small cluster (on the order of 10 nodes), it is usually acceptable to run the namenode and the resource manager on a single master machine (as long as at least one copy of the namenode’s metadata is stored on a remote filesystem). However, as the cluster gets larger, there are good reasons to separate them.  
+
+The namenode has high memory requirements, as it holds file and block metadata for the entire namespace in memory. The secondary namenode, although idle most of the time, has a comparable memory footprint to the primary when it creates a checkpoint.
+
+Aside from simple resource requirements, the main reason to run masters on separate machines is for high availability. Both HDFS and YARN support configurations where they can run masters in active-standby pairs. If the active master fails, then the standby, running on separate hardware, takes over with little or no interruption to the service. In the case of HDFS, the standby performs the checkpointing function of the secondary namenode (so you don’t need to run both of a standby and a secondary namenode).
+
+### Network Topology
+A common Hadoop cluster architecture consists of a two-level network topology, as illustrated in Figure 10-1. Typically there are 30 to 40 servers per rack (only 3 are shown in the diagram), with a 10 Gb switch for the rack and an uplink to a core switch or router (at least 10 Gb or better). The salient point is that the aggregate bandwidth between nodes on the same rack is much greater than that between nodes on different racks.  
+
+![hadoop_network_topology_img_1]  
+**Figure 10-1. Typical two-level network architecture for a Hadoop cluster**  
+
+#### Rack awareness
+To get maximum performance out of Hadoop, it is important to configure Hadoop so that it knows the topology of your network. If your cluster runs on a single rack, then there is nothing more to do, since this is the default. However, for multirack clusters, you need to map nodes to racks. This allows Hadoop to prefer within-rack transfers (where there is more bandwidth available) to off-rack transfers when placing MapReduce tasks on nodes. HDFS will also be able to place replicas more intelligently to trade off performance and resilience.  
+
+`Network locations such as nodes and racks are represented in a tree`, which reflects the network “distance” between locations. The namenode uses the network location when determining where to place block replicas (see “Network Topology and Hadoop” on page 70); the MapReduce scheduler uses network location to determine where the closest replica is for input to a map task.  
+
+For the network in Figure 10-1, the rack topology is described by two network locations —say, /switch1/rack1 and /switch1/rack2. Because there is only one top-level switch in this cluster, the locations can be simplified to /rack1 and /rack2.
+
+The Hadoop configuration must specify a map between node addresses and network locations. The map is described by a Java interface, **DNSToSwitchMapping**, whose signature is:  
+```java
+public interface DNSToSwitchMapping {
+    public List<String> resolve(List<String> names);
+}
+```
+The names parameter is a list of IP addresses, and the return value is a list of corresponding network location strings. `net.topology.node.switch.mapping.impl`, the default implementation is **ScriptBasedMapping**, which runs a user-defined script to determine the mapping. The script’s location is controlled by the property `net.topology.script.file.name`.  The Hadoop wiki has an example [hadoop_topology_script_1]. 
+
+If no script location is specified, the default behavior is to map all nodes to a single network location, called /default-rack.
+
+For the network in our example, we would map node1, node2, and node3 to /rack1, and node4, node5, and node6 to /rack2.
+
+### Cluster Setup and Installation
+1. Installing Java
+2. Creating Unix User Accounts
+The HDFS, MapReduce, and YARN services are usually run as separate users, named hdfs, mapred, and yarn, respectively. They all belong to the same hadoop group.
+3. Installing Hadoop
+4. Configuring SSH
+5. Configuring Hadoop  
+6. Formatting the HDFS Filesystem  
+The formatting process creates an empty filesystem by creating the storage directories and the initial versions of the namenode’s persistent data structures. Datanodes are not involved in the initial formatting process.
+7. Starting and Stopping the Daemons  
+The file `slaves`, which contains a list of the machine hostnames or IP addresses, tells Hadoop which machines are in the cluster.   
+It resides in Hadoop’s configuration directory, or by HADOOP_SLAVES setting in hadoop-env.sh  
+Also, this file does not need to be distributed to worker nodes.  
+    1. start-dfs.sh  
+    The HDFS daemons are started by running the following command as the hdfs user:  start-dfs.sh  
+    By default, this finds the namenode’s hostname from `fs.defaultFS`. In slightly more detail, the start-dfs.sh script does the following:  
+        * Starts a namenode on each machine returned by executing `hdfs getconf -namenodes`
+        * Starts a datanode on each machine listed in the slaves file
+        * Starts a secondary namenode on each machine returned by executing `hdfs get conf -secondarynamenodes`
+    2. start-yarn.sh  
+    the resource manager is always run on the machine from which the start-yarn.sh script was run. More specifically, the script:  
+        * Starts a resource manager on the local machine
+        * Starts a node manager on each machine listed in the slaves file
+    Also provided are stop-dfs.sh and stop-yarn.sh scripts to stop the daemons started by the corresponding start scripts.  
+    These scripts start and stop Hadoop daemons using the `hadoop-daemon.sh` script (or the `yarn-daemon.sh` script, in the case of YARN). If you use the aforementioned scripts, you shouldn’t call hadoop-daemon.sh directly. But if you need to control Hadoop daemons from another system or from your own scripts, the hadoop-daemon.sh script is a good integration point. Likewise, hadoop-daemons.sh (with an “s”) is handy for starting the same daemon on a set of hosts.  
+    3. mr-jobhistory-daemon.sh  
+    Finally, there is only one MapReduce daemon—the job history server, which is started as follows, as the mapred user:
+    ```shell
+    $ mr-jobhistory-daemon.sh start historyserver
+    ```
+8. Creating User Directories  
+```shell
+$ hadoop fs -mkdir /user/username
+$ hadoop fs -chown username:username /user/username
+# sets a 1 TB limit
+$ hdfs dfsadmin -setSpaceQuota 1t /user/username
+```
+
+### Hadoop Configuration
+
+Filename                                |Description
+---------------------------------|-------------------------------------------------------------------------------------------------------------------
+hadoop-metrics2 .properties |Properties for controlling how metrics are published in Hadoop (see “Metrics and JMX” on page 331)
+log4j.properties                    |Properties for system logfiles, the namenode audit log, and the task log for the task JVM process (“Hadoop Logs” on page 172)
+hadoop-policy.xml                  |Configuration settings for access control lists when running Hadoop in secure mode
+hadoop-env.sh                       |Environment variables that are used in the scripts to run Hadoop
+mapred-env.sh                       |Environment variables that are used in the scripts to run MapReduce (overrides variables set in hadoop-env.sh)
+yarn-env.sh                           |Environment variables that are used in the scripts to run YARN (but not for HDFS,overrides variables set in hadoop-env.sh)
+core-site.xml                        |Configuration settings for Hadoop Core, such as I/O settings that are common to HDFS, MapReduce, and YARN
+hdfs-site.xml                        |Configuration settings for HDFS daemons: the namenode, the secondary namenode, and the datanodes
+mapred-site.xml                   |Configuration settings for MapReduce daemons: the job history server
+yarn-site.xml                        |Configuration settings for YARN daemons: the resource manager, the web app proxy server, and the node managers
+slaves                                   |A list of machines (one per line) that each run a datanode and a node manager  
+
+These files are all found in the `etc/hadoop` directory of the Hadoop distribution. The configuration directory can be relocated to another part of the filesystem (outside the Hadoop installation, which makes upgrades marginally easier) as long as daemons are started with the `--config` option (or, equivalently, with the `HADOOP_CONF_DIR` environment variable set) specifying the location of this directory on the local filesystem.
+
+#### Configuration Management
+Hadoop does not have a single, global location for configuration information. Instead, each Hadoop node in the cluster has its own set of configuration files, and it is up to administrators to ensure that they are kept in sync across the system. There are parallel shell tools that can help do this, such as dsh or pdsh. This is an area where Hadoop cluster management tools like `Cloudera Manager` and `Apache Ambari` really shine, since they take care of propagating changes across the cluster.
+
+Hadoop is designed so that it is possible to have a single set of configuration files that are used for all master and worker machines.  
+To have the concept of a `class` of machine and maintain a separate configuration for each class. Hadoop doesn’t provide tools to do this, but there are several excellent tools for doing precisely this type of configuration management, such as Chef, Puppet, CFEngine, and Bcfg2.
+
+#### Environment Settings
+
+* hadoop-env.sh   
+    1. JAVA_HOME  
+    if not set, JAVA_HOME shell environment variable
+    2. HADOOP_HEAPSIZE  
+    for each daemon, 1000MB by default  
+    Surprisingly, there are no corresponding environment variables for HDFS daemons, despite it being very common to give the namenode more heap space.  
+    3. HADOOP_NAMENODE_OPTS, HADOOP_SECONDARYNAMENODE_OPTS  
+    (secondary) namenode’s memory,  to include a JVM option for setting the memory size, for example, -Xmx2000m  
+    For name node memory allocation, as a rule of thumb for sizing purposes, you can conservatively allow 1,000 MB per 1 million blocks of storage.  
+    Secondary namenode's memory requirements are comparable to the primary namenode’s.   
+    4. HADOOP_LOG_DIR  
+    System logfiles(System daemons logs) produced by Hadoop are stored in $HADOOP_HOME/logs by default. A common choice is /var/log/hadoop.  
+    5. HADOOP_IDENT_STRING
+    The username in the system daemon's logfile name.  
+    6. SSH settings  
+        1. ConnectTimeout  
+        2. StrictHostKeyChecking  
+        3. HADOOP_SSH_OPTS  
+        To pass extra options to SSH, see the ssh and ssh_config manual pages for more SSH settings.
+* yarn-env.sh
+    1. YARN_RESOURCEMANAGER_HEAPSIZE
+
+#### Important Hadoop Daemon Properties
+To find the actual configuration of a running daemon, visit the /conf page on its web server. For example, http://resource-manager-host:8088/conf shows the configuration that the resource manager is running with.
+
+**Example 10-1. A typical core-site.xml configuration file**  
+```xml
+<?xml version="1.0"?>
+<!-- core-site.xml -->
+<configuration>
+    <property>
+        <name>fs.defaultFS</name>
+        <value>hdfs://namenode/</value>
+    </property>
+</configuration>
+```
+**Example 10-2. A typical hdfs-site.xml configuration file**  
+```xml
+<?xml version="1.0"?>
+<!-- hdfs-site.xml -->
+<configuration>
+    <property>
+        <name>dfs.namenode.name.dir</name>
+        <value>/disk1/hdfs/name,/remote/hdfs/name</value>
+    </property>
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <value>/disk1/hdfs/data,/disk2/hdfs/data</value>
+    </property>
+    <property>
+        <name>dfs.namenode.checkpoint.dir</name>
+        <value>/disk1/hdfs/namesecondary,/disk2/hdfs/namesecondary</value>
+    </property>
+</configuration>
+```
+**Example 10-3. A typical yarn-site.xml configuration file**
+```xml
+<?xml version="1.0"?>
+<!-- yarn-site.xml -->
+<configuration>
+    <property>
+        <name>yarn.resourcemanager.hostname</name>
+        <value>resourcemanager</value>
+    </property>
+    <property>
+        <name>yarn.nodemanager.local-dirs</name>
+        <value>/disk1/nm-local-dir,/disk2/nm-local-dir</value>
+    </property>
+    <property>
+        <name>yarn.nodemanager.aux-services</name>
+        <value>mapreduce.shuffle</value>
+    </property>
+    <property>
+        <name>yarn.nodemanager.resource.memory-mb</name>
+        <value>16384</value>
+    </property>
+    <property>
+        <name>yarn.nodemanager.resource.cpu-vcores</name>
+        <value>16</value>
+    </property>
+</configuration>
+```
+
+##### HDFS
+1. fs.defaultFS  
+The URI defines the hostname and port that the namenode’s RPC server runs on. The default port is 8020.  
+default:  `file:///`  
+`fs.defaultFS` is used to specify both the HDFS namenode and the default filesystem, it means HDFS has to be the default filesystem in the server configuration. Bear in mind, however, that it is possible to specify a different filesystem as the default in the client configuration, for convenience.  
+For example, if you use both HDFS and S3 filesystems, then you have a choice of specifying either (of HDFS or S3) as the default in the client configuration, which allows you to refer to the default with a relative URI and the other with an absolute URI.  
+In Example 10-1, the relative URI /a/b is resolved to hdfs://namenode/a/b.  
+The property dfs.name node.name.dir specifies a list of directories where the namenode stores persistent filesystem metadata (the edit log and the filesystem image). A copy of each metadata file is stored in each directory for redundancy.   
+2. dfs.namenode.name.dir  
+The property dfs.namenode.name.dir specifies a list of directories where the namenode stores persistent filesystem metadata (the edit log and the filesystem image). A copy of each metadata file is stored in each directory for redundancy.   
+default: `file://${hadoop.tmp.dir}/dfs/name`   
+3. dfs.datanode.data.dir  
+It specifies a list of directories for a datanode to store its blocks in. Unlike the namenode, which uses multiple directories for redundancy, a datanode `round-robins writes between its storage directories`, so `for performance you should specify a storage directory for each local disk`. `Read performance also benefits from having multiple disks for storage`, because blocks will be spread across them and concurrent reads for distinct blocks will be correspondingly spread across disks.  
+For maximum performance, you should mount storage disks with the **noatime** option. This setting means that last accessed time information is not written on file reads, which gives `significant performance gains`.   
+default: `file://${hadoop.tmp.dir}/dfs/data`  
+4. dfs.namenode.checkpoint.dir  
+To configure where the secondary namenode stores its checkpoints of the filesystem. The checkpointed filesystem image is stored in each checkpoint directory for redundancy.  
+default: `file://${hadoop.tmp.dir}/dfs/namesecondary`
+
+Note that the storage directories for HDFS are under Hadoop’s temporary directory by default (this is configured via the `hadoop.tmp.dir` property, whose default is /tmp/hadoop-$ {user.name}). Therefore, it is critical that these properties are set so that data is not lost by the system when it clears out temporary directories.
+
+##### YARN
+1. yarn.resourcemanager.hostname  
+the hostname or IP address of the machine running the resource manager. Many of the resource manager’s server addresses are derived from this property.    
+2. yarn.resourcemanager.address  
+The hostname and port(8032 by default) that the resource manager’s RPC server runs on.  
+The hostname defaults to yarn.resourcemanager.hostname.   
+3. yarn.nodemanager.local-dirs  
+It controls the location of local temporary storage for YARN containers,  which holds intermediate data and working files of  MapReduce jobs.   
+default: `${hadoop.tmp.dir}/nm-local-dir`  
+The directories are used in round-robin fashion.  
+Typically, you will use the same disks and partitions (but different directories) for YARN local storage as you use for datanode block storage.  
+4. yarn.nodemanager.aux-services  
+Unlike MapReduce 1, YARN doesn’t have tasktrackers to serve map outputs to reduce tasks, so for this function it relies on `shuffle handlers`, which are long-running auxiliary services running in node managers. Because YARN is a general-purpose service, the MapReduce shuffle handlers need to be enabled explicitly in yarn-site.xml by setting the yarn.nodemanager.aux-services property to mapreduce_shuffle.  
+A service is implemented by the class defined by the property `yarn.nodemanager.auxservices.servicename.class`  
+
+Property name                                       |Default value  |Description
+--------------------------------------------|-----------------|--------------------------------------------------------------------------------------
+yarn.nodemanager.resource.cpuvcores   |8                     |The number of CPU cores that may be allocated to `containers` being run by the nodemanager.  
+yarn.nodemanager.resource.memorymb |8192                |The amount of physical memory (in MB) that may be allocated to `containers` being run by the node manager.
+yarn.nodemanager.vmem-pmem-ratio    |2.1                    |The ratio of virtual to physical memory for containers. Virtual memory usage may exceed the allocation by this amount.
+
+##### Memory settings in YARN and MapReduce
+YARN treats memory in a more fine-grained manner than the slot-based model used in MapReduce 1.  
+In the YARN model, node managers allocate memory from a pool, so the number of tasks that are running on a particular node depends on the sum of their memory requirements.  
+
+* yarn.nodemanager.resource.memory-mb  
+Set aside enough memory for a datanode daemon(1000MB by default) and a node manager daemon(1000MB by default), as well as other processes that are running on the machine, and the remainder can be dedicated to `the node manager’s containers` by setting the configuration property `yarn.nodemanager.resource.memory-mb` to the total allocation in MB. (The default is 8,192 MB, which is normally too low for most setups.)  
+
+The next step is to determine how to set memory options for individual jobs. There are two main controls: one for the size of the container allocated by YARN, and another for the heap size of the Java process run in the container.  
+The memory controls for MapReduce are all set by the client in the job configuration. The YARN settings are cluster settings and cannot be modified by the client.  
+
+`Container sizes` are determined by `mapreduce.map.memory.mb` and `mapreduce.reduce.memory.mb`; both default to 1,024 MB. These settings are used by the application master when negotiating for resources in the cluster, and also by the node manager, which runs and monitors the task containers. `The heap size of the Java process` is set by `mapred.child.java.opts`, and defaults to 200 MB. You can also set the Java options separately for map and reduce tasks (see Table 10-4).
+
+**Table 10-4. MapReduce job memory properties (set by the client)**  
+
+Property name                           |Default value      |Description
+-----------------------------------|--------------------|--------------------------------------------------------------------------------------------
+mapreduce.map.memory.mb       |1024                    |The amount of memory for map containers.
+mapreduce.reduce.memory.mb  |1024                    |The amount of memory for reduce containers.
+mapred.child.java.opts              |-Xmx200m           |The JVM options used to launch the container process that runs map and reduce tasks. In addition to memory settings, this property can include JVM properties for debugging, for example.
+mapreduce.map.java.opts          |-Xmx200m           |The JVM options used for the child process that runs map tasks.
+mapreduce.reduce.java.opts     |-Xmx200m           |The JVM options used for the child process that runs reduce tasks.
+
+For example, suppose mapred.child.java.opts is set to -Xmx800m and mapre duce.map.memory.mb is left at its default value of 1,024 MB. When a map task is run, the node manager will allocate a 1,024 MB container (decreasing the size of its pool by that amount for the duration of the task) and will launch the task JVM configured with an 800 MB maximum heap size???? Note that the JVM process will have a larger memory footprint than the heap size, and the overhead will depend on such things as the native libraries that are in use, the size of the permanent generation space, and so on. The important thing is that the physical memory used by the JVM process, including any processes that it spawns, such as Streaming processes, does not exceed its allocation (1,024 MB). If a container uses more memory than it has been allocated, then it may be terminated by the node manager and marked as failed.
+
+YARN schedulers impose a minimum or maximum on memory allocations. The default minimum is 1,024 MB (set by `yarn.scheduler.minimum-allocation-mb`), and the default maximum is 8,192 MB (set by `yarn.scheduler.maximum-allocation-mb`).
+
+The multiple is expressed by the `yarn.nodemanager.vmem-pmem-ratio property`, which defaults to 2.1. In the example used earlier, the virtual memory threshold above which the task may be terminated is 2,150 MB, which is 2.1 × 1,024 MB.  
+
+##### CPU settings in YARN and MapReduce
+The number of cores that a node manager can allocate to containers is controlled by the yarn.nodemanager.resource.cpu-vcores property. It should be set to the total number of cores on the machine, minus a core for each daemon process running on the machine (datanode, node manager, and any other long-running processes).
+
+MapReduce jobs can control the number of cores allocated to map and reduce containers by setting `mapreduce.map.cpu.vcores` and `mapreduce.reduce.cpu.vcores`. Both default to 1, an appropriate setting for normal single-threaded MapReduce tasks, which can only saturate a single core.  
+
+While the number of cores is tracked during scheduling (so a container won’t be allocated on a machine where there are no spare cores, for example), `the node manager will not, by default, limit actual CPU usage of running containers`. This means that a container can abuse its allocation by using more CPU than it was given, possibly starving other containers running on the same host. `YARN has support for enforcing CPU limits using Linux cgroups`. The node manager’s container executor class (`yarn.nodemanager.container-executor. class`) must be set to use the **LinuxContainerExecutor** class, which in turn must be configured to use cgroups (see the properties under `yarn.nodemanager.linux-container-executor`).  
+
+#### Hadoop Daemon Addresses and Ports
+Hadoop daemons generally run both an RPC server for communication between daemons (Table 10-5) and an HTTP server to provide web pages for human consumption (Table 10-6). Each server is configured by setting the network address and port number to listen on.
+
+It is often desirable for servers to bind to multiple network interfaces. By setting `yarn.resourcemanager.hostname` to the (externally resolvable) hostname or IP address and `yarn.resourcemanager.bind-host` to 0.0.0.0, you ensure that the resource manager will bind to all addresses on the machine, while at the same time providing a resolvable address for node managers and clients.  
+
+In addition to an RPC server, `datanodes run a TCP/IP server for block transfers`. The server address and port are set by the dfs.datanode.address property , which has a default value of 0.0.0.0:50010
+
+There is also a setting for controlling which network interfaces the datanodes use as their IP addresses (for HTTP and RPC servers). The relevant property is dfs.data node.dns.interface, which is set to default to use the default network interface. You can set this explicitly to report the address of a particular interface (eth0, for example).  
+
+#### Other Hadoop Properties
+* Cluster membership  
+To aid in the addition and removal of nodes in the future, you can specify a file containing `a list of authorized machines` that may join the cluster `as datanodes or node managers`. The file is specified using the `dfs.hosts` and `yarn.resourcemanager.nodes.include-path` properties (for datanodes and node managers, respectively), and the corresponding `dfs.hosts.exclude `and `yarn.resourcemanager.nodes.exclude-path` properties specify the files used for decommissioning.  
+* Buffer size  
+Hadoop uses a buffer size of 4 KB (4,096 bytes) for its I/O operations. This is a conservative setting, and with modern hardware and operating systems, you will likely see performance benefits by increasing it; 128 KB (131,072 bytes) is a common choice. Set the value in bytes using the `io.file.buffer.size` property in core-site.xml.  
+* HDFS block size  
+The HDFS block size is 128 MB by default, but many clusters use more (e.g., 256 MB) to ease memory pressure on the namenode and to give mappers more data to work on. Use the `dfs.blocksize` property in hdfs-site.xml to specify the size in bytes.
+* Reserved storage space  
+By default, datanodes will try to use all of the space available in their storage directories. If you want to reserve some space on the storage volumes for non-HDFS use, you can set `dfs.datanode.du.reserved` to the amount, in bytes, of space to reserve.
+* Trash  
+Hadoop filesystems have a trash facility, in which deleted files are not actually deleted but rather are moved to a trash folder, where they remain for a minimum period before being permanently deleted by the system. The minimum period in minutes that a file will remain in the trash is set using the `fs.trash.interval` configuration property in core-site.xml. By default, the trash interval is zero, which disables trash.  
+When trash is enabled, users each have their own trash directories called .Trash in their home directories.  
+API:  Trash.moveToTrash(),  Trash.expunge()  
+HDFS will automatically delete files in trash folders, but other filesystems will not, so you have to arrange for this to be done periodically.  
+```shell
+$ hadoop fs -expunge
+```
+* Reduce slow start  
+By default, schedulers wait until 5% of the map tasks in a job have completed before scheduling reduce tasks for the same job. For large jobs, this can cause problems with cluster utilization, since they take up reduce containers while waiting for the map tasks to complete. Setting `mapreduce.job.reduce.slowstart.completedmaps` to a higher value, such as 0.80 (80%), can help improve throughput.  
+* Short-circuit local reads  
+When reading a file from HDFS, the client contacts the datanode and the data is sent to the client via a TCP connection. `If the block being read is on the same node as the client, then it is more efficient for the client to bypass the network and read the block data directly from the disk`. This is termed a short-circuit local read, and can `make applications like HBase perform better`.  
+You can enable short-circuit local reads by setting `dfs.client.read.shortcircuit` to true. Short-circuit local reads are implemented using `Unix domain sockets`, which use a local path for client-datanode communication. The path is set using the property `dfs.domain.socket.path`, and must be a path that only the datanode user (typically hdfs) or root can create, such as /var/run/hadoop-hdfs/dn_socket.  
+
+### Security
+There’s a lot to security in Hadoop, and this section only covers the highlights. For more, readers are referred to [Hadoop Security] by Ben Spivey and Joey Echeverria (O’Reilly, 2014).  
+
+Early versions of Hadoop assumed that HDFS and MapReduce clusters would be used by a group of cooperating users within a secure environment. The measures for restricting access were designed to prevent accidental data loss, rather than to prevent unauthorized access to data.
+
+Hadoop itself does not manage user credentials; instead, it relies on Kerberos, however, Kerberos doesn’t manage permissions. Kerberos says that a user is who she says she is (Authentication); it’s Hadoop’s job to determine whether that user has permission to perform a given action (Authorization).  
+
+#### Kerberos and Hadoop
+At a high level, there are three steps that a client must take to access a service when using Kerberos, each of which involves a message exchange with a server:  
+1. Authentication.  
+The client authenticates itself to the `Authentication Server` and receives a timestamped `Ticket-Granting Ticket (TGT)`.  
+2. Authorization.  
+The client uses the TGT to request a service ticket from the `Ticket- Granting Server`.  
+3. Service request.  
+The client uses the service ticket to authenticate itself to the server that is providing the service the client is using. In the case of Hadoop, this might be the namenode or the resource manager.  
+
+Together, the Authentication Server and the Ticket Granting Server form the `Key Distribution Center (KDC)`. The process is shown graphically in Figure 10-2.  
+![hadoop_kerberos_img_1]  
+**Figure 10-2. The three-step Kerberos ticket exchange protocol**  
+
+The authorization and service request steps are not user-level actions; the client performs these steps on the user’s behalf. The authentication step, however, is normally carried out explicitly by the user using the `kinit` command, which will prompt for a password. However, this doesn’t mean you need to enter your password every time you run a job or access HDFS, `since TGTs last for 10 hours by default` (and can be renewed for up to a week). It’s common to automate authentication at operating system login time, thereby providing single sign-on to Hadoop.  
+In cases where you don’t want to be prompted for a password (for running an unattended MapReduce job, for example), you can create a Kerberos `keytab` file using the `ktutil` command. A keytab is a file that stores passwords and may be supplied to kinit with the -t option.  
+
+To use Kerberos authentication with Hadoop, you need to install, configure, and run a KDC (Hadoop does not come with one). Your organization may already have a KDC you can use (an Active Directory installation, for example); if not, you can set up an `MIT Kerberos 5 KDC`.  
+1. The first step is to enable Kerberos authentication by setting the `hadoop.security.authentication` property in cores-ite.xml to `kerberos`.
+2. We also need to enable service-level authorization by setting `hadoop.security.authorization` to true in the cores-ite.xml
+3. You may configure access control lists (ACLs) in the `hadoop-policy.xml` configuration file to control which users and groups have permission to connect to each Hadoop service. Services are defined at the protocol level, so there are ones for MapReduce job submission, namenode communication, and so on.
+
+#### Delegation Tokens
+In a distributed system such as HDFS or MapReduce, there are many client-server interactions, each of which must be authenticated. For example, an HDFS read operation will involve multiple calls to the namenode and calls to one or more datanodes. `Instead of using the three-step Kerberos ticket exchange protocol to authenticate each call, which would present a high load on the KDC on a busy cluster`, Hadoop uses delegation tokens to allow later authenticated access without having to contact the KDC again.
+
+A delegation token is generated by the server (the namenode, in this case) and can be thought of as a shared secret between the client and the server. On the first RPC call to the namenode, the client has no delegation token, so it uses Kerberos to authenticate. As a part of the response, it gets a delegation token from the namenode. In subsequent calls it presents the delegation token, which the namenode can verify (since it generated it using a secret key), and hence the client is authenticated to the server. (PS: isn't this done by kerberos? why kerberos needs authentication for each subsequent calls?)
+
+When it wants to perform operations on HDFS blocks, the client uses a special kind of delegation token, called a `block access token`, that the namenode passes to the client in response to a metadata request. The client uses the block access token to authenticate itself to datanodes. This property is enabled by setting `dfs.block.access.token.enable` to true.
+
+Delegation tokens are automatically obtained for the default HDFS instance, but if your job needs to access other HDFS clusters, you can load the delegation tokens for these by setting the mapreduce.job.hdfs-servers job property to a comma-separated list of HDFS URIs.
+
+#### Other Security Enhancements
+* Tasks can be run using the operating system account for the user who submitted the job, rather than the user running the node manager.  
+This feature is enabled by setting `yarn.nodemanager.container-executor.class` to `org.apache.hadoop.yarn.server.nodemanager.LinuxContainerExecutor`. In addition, administrators need to ensure that each user is given an account on every node in the cluster (typically using LDAP).
+* When tasks are run as the user who submitted the job, the distributed cache (see “Distributed Cache” on page 274) is secure.  Files go in a private cache, readable only by the owner. Files that are world-readable are put in a shared cache (the insecure default);
+* Users can view and modify only their own jobs, not others. This is enabled by setting `mapreduce.cluster.acls.enabled` to true. There are two job configuration properties, `mapreduce.job.acl-view-job` and `mapreduce.job.acl-modify-job`, which may be set to a comma-separated list of users to control who may view or modify a particular job. 
+* The shuffle is secure, preventing a malicious user from requesting another user’s map outputs.
+* When appropriately configured, `it’s no longer possible for a malicious user to run a rogue secondary namenode, datanode, or node manager that can join the cluster and potentially compromise data stored in the cluster`.  
+This is enforced by requiring daemons to authenticate with the master node they are connecting to. To enable this feature, you first need to configure Hadoop to use a keytab previously generated with the ktutil command. For a datanode, for example, you would set the dfs.datanode.keytab.file property to the keytab filename and dfs.data node.kerberos.principal to the username to use for the datanode. Finally, the ACL for the DataNodeProtocol (which is used by datanodes to communicate with the namenode) must be set in hadoop-policy.xml, by restricting `security.datanode.protocol.acl` to the datanode’s username.  
+* A datanode may be run on a privileged port (one lower than 1024), so a client may be reasonably sure that it was started securely. * A task may communicate only with its parent application master, thus preventing an attacker from obtaining MapReduce data from another user’s job. 
+* Various parts of Hadoop can be configured `to encrypt network data`, including RPC (hadoop.rpc.protection), HDFS block transfers (dfs.encrypt.data.transfer), the MapReduce shuffle (mapreduce.shuffle.ssl.enabled), and the web UIs (hadokop.ssl.enabled). Work is ongoing to encrypt data “at rest,” too, so that HDFS blocks can be stored in encrypted form, for example.
+
+### Hadoop Benchmarks
+Hadoop comes with several benchmarks that you can run very easily with minimal setup cost. Benchmarks are packaged in the tests JAR file, and you can get a list of them, with descriptions, by invoking the JAR file with no arguments:
+```shell
+$ hadoop jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-*-tests.jar
+```
+Most of the benchmarks show usage instructions when invoked with no arguments:  
+```shell
+$ hadoop jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-*-tests.jar TestDFSIO
+TestDFSIO.1.7
+Missing arguments.
+Usage: TestDFSIO [genericOptions] -read [-random | -backward |
+-skip [-skipSize Size]] | -write | -append | -clean [-compression codecClassName]
+[-nrFiles N] [-size Size[B|KB|MB|GB|TB]] [-resFile resultFileName]
+[-bufferSize Bytes] [-rootDir]
+```
+#### Benchmarking MapReduce with TeraSort
+Hadoop comes with a MapReduce program called **TeraSort** that does a total sort of its input (In 2008, TeraSort was used to break the world record for sorting 1 TB of data). It is very useful for benchmarking HDFS and MapReduce together, as the full input dataset is transferred through the shuffle. 
+1. generate some random data  
+```shell
+# 10t is 10 trillion
+$ hadoop jar \
+$HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar \
+teragen -Dmapreduce.job.maps=1000 10t random-data
+```
+2. perform the sort  
+```shell
+$ hadoop jar \
+$HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar \
+terasort random-data sorted-data
+```
+3. validate the results  
+```shell
+$ hadoop jar \
+$HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar \
+teravalidate sorted-data report
+```
+
+**There are many more Hadoop benchmarks, but the following are widely used**:  
+* TestDFSIO tests the I/O performance of HDFS. It does this by using a MapReduce job as a convenient way to read or write files in parallel. 
+* MRBench (invoked with mrbench) runs a small job a number of times. It acts as a good counterpoint to TeraSort, as it checks whether small job runs are responsive. 
+* NNBench (invoked with nnbench) is useful for load-testing namenode hardware. 
+* Gridmix is a suite of benchmarks designed to model a realistic cluster workload by mimicking a variety of data-access patterns seen in practice. See the documentation in the distribution for how to run Gridmix. 
+* SWIM, or the Statistical Workload Injector for MapReduce, is a repository of real-life MapReduce workloads that you can use to generate representative test workloads for your system. 
+* TPCx-HS is a standardized benchmark based on TeraSort from the Transaction Processing Performance Council.
+
+For tuning, it is best to include a few jobs that are representative of the jobs that your users run, so your cluster is tuned for these and not just for the standard benchmarks. If this is your first Hadoop cluster and you don’t have any user jobs yet, then either Gridmix or SWIM is a good substitute.
 
 ## Miscellaneous
 
@@ -3863,3 +4282,9 @@ RegexMapper                                                                     
 [hadoop_inputformat_class_hierarchy_img_1]:/resources/img/java/hadoop_inputformat_class_hierarchy_1.png "Figure 8-2. InputFormat class hierarchy"
 [hadoop_outputformat_class_hierarchy_img_1]:/resources/img/java/hadoop_outputformat_class_hierarchy_1.png "Figure 8-4. OutputFormat class hierarchy"
 [hadoop_mr_join_example_img_1]:/resources/img/java/hadoop_mr_join_example_1.png "Figure 9-2. Inner join of two datasets"
+[hadoop_apache_bigtop_1]:http://bigtop.apache.org/ "Apache Bigtop project"
+[Hadoop Operations]:http://shop.oreilly.com/product/0636920025085.do "Hadoop Operations A Guide for Developers and Administrators"
+[hadoop_network_topology_img_1]:/resources/img/java/hadoop_network_topology_1.png "Figure 10-1. Typical two-level network architecture for a Hadoop cluster"
+[hadoop_topology_script_1]:https://wiki.apache.org/hadoop/topology_rack_awareness_scripts "Topology Scripts"
+[Hadoop Security]:http://shop.oreilly.com/product/0636920033332.do "Hadoop Security Protecting Your Big Data Platform"
+[hadoop_kerberos_img_1]:/resources/img/java/hadoop_kerberos_1.png "Figure 10-2. The three-step Kerberos ticket exchange protocol"
