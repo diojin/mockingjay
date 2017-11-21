@@ -7,6 +7,7 @@
 * [Spark](#spark)  
     - [Installation issues](#spark-installation-issues)
         + [sbt installation issues](#sbt-installation-issues)
+* [Sqoop](#sqoop)
 * [Virtual Box](#virtual-box)
     - [How to clone a virtual machine](#how-to-clone-a-virtual-machine)
     - [Shared Folder with Host Machine](#shared-folder-with-host-machine)
@@ -15,6 +16,7 @@
     - [Misc](#virtualbox-misc)
 * [Miscellaneous](#miscellaneous)
     - [virtualenv](#virtualenv)
+    - 
 
 [hadoop-multi-node-setup-1]  
 [hadoop-multi-node-setup-2]  
@@ -665,6 +667,13 @@ http://pan.baidu.com/s/1eRO8pP4
 extract code: jryh
 
 另外有时候输入sbt的时候会提示一个lock文件，这个是在~/.sbt目录下面的boot文件夹下，删除即可。另外查看下载信息可查看boot文件夹下的update.log  
+
+## Sqoop
+Unzip binary installation file (sqoop-x.y.z.bin_*) from [hadoop_sqoop_homepage_1] and set environment variable: SQOOP_HOME.  
+```shell
+export SQOOP_HOME=/usr/local/
+export PATH=$PATH:$SQOOP_HOME/bin
+```
 
 ## Virtual Box        
 ### How to clone a virtual machine

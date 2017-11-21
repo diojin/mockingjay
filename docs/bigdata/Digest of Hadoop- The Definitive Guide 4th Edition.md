@@ -185,6 +185,36 @@
         + [Other Security Enhancements](#other-security-enhancements)
     - [Hadoop Benchmarks](#hadoop-benchmarks)
         + [Benchmarking MapReduce with TeraSort](#benchmarking-mapreduce-with-terasort)
+* [11. Administering Hadoop](#11-administering-hadoop)
+    - [HDFS Persistent Data Structures](#hdfs-persistent-data-structures)
+        + [Namenode directory structure](#namenode-directory-structure)
+        + [Datanode directory structure](#datanode-directory-structure)
+    - [HDFS Safe Mode](#hdfs-safe-mode)
+    - [HDFS Audit Logging](#hdfs-audit-logging)
+    - [HDFS Tools](#hdfs-tools)
+    - [Monitoring](#monitoring)
+        + [Logging](#logging)
+            * [Setting log levels](#setting-log-levels)
+            * [Getting stack traces](#getting-stack-traces)
+        + [Metrics and JMX](#metrics-and-jmx)
+    - [Maintenance](#maintenance)
+        + [Routine Administration Procedures](#routine-administration-procedures)
+            * [Metadata backups](#metadata-backups)
+            * [Data backups](#data-backups)
+    - [Commissioning and Decommissioning Nodes](#commissioning-and-decommissioning-nodes)
+    - [Upgrades](#upgrades)
+        + [HDFS data and metadata upgrades](#hdfs-data-and-metadata-upgrades)
+        + [Compatibility](#compatibility)
+* [15. Sqoop](#15-sqoop)
+    - [Sqoop Connectors](#sqoop-connectors)
+    - [Imports: A Deeper Look](#imports-a-deeper-look)
+        + [Incremental Imports](#incremental-imports)
+        + [Direct-Mode Imports](#direct-mode-imports)
+    - [Working with Imported Data](#working-with-imported-data)
+    - [Performing an Export](#performing-an-export)
+    - [Exports: A Deeper Look](#exports-a-deeper-look)
+        + [Exports and Transactionality](#exports-and-transactionality)
+        + [Exports and SequenceFiles](#exports-and-sequencefiles)
 * [Miscellaneous](#miscellaneous)
 
 ## 1. Meet Hadoop
@@ -4259,8 +4289,670 @@ teravalidate sorted-data report
 
 For tuning, it is best to include a few jobs that are representative of the jobs that your users run, so your cluster is tuned for these and not just for the standard benchmarks. If this is your first Hadoop cluster and you don’t have any user jobs yet, then either Gridmix or SWIM is a good substitute.
 
-## Miscellaneous
+## 11. Administering Hadoop
 
+### HDFS Persistent Data Structures
+
+#### Namenode directory structure
+A running namenode has a directory structure like this:  
+```html
+${dfs.namenode.name.dir}/
+├── current
+│ ├── VERSION
+│ ├── edits_0000000000000000001-0000000000000000019
+│ ├── edits_inprogress_0000000000000000020
+│ ├── fsimage_0000000000000000000
+│ ├── fsimage_0000000000000000000.md5
+│ ├── fsimage_0000000000000000019
+│ ├── fsimage_0000000000000000019.md5
+│ └── seen_txid
+└── in_use.lock
+```
+The **VERSION** file is a Java properties file that contains information about the version of HDFS that is running. Here are the contents of a typical file:  
+```json
+#Mon Sep 29 09:54:36 BST 2014
+namespaceID=1342387246
+clusterID=CID-01b5c398-959c-4ea8-aae6-1e0d9bd8b142
+cTime=0
+storageType=NAME_NODE
+blockpoolID=BP-526805057-127.0.0.1-1411980876842
+layoutVersion=-57
+```
+* layoutVersion   
+The layoutVersion is a negative integer that defines the version of HDFS’s persistent data structures. Whenever the layout changes, the version number is decremented. When this happens, HDFS needs to be upgraded, since a newer namenode (or datanode) will not operate if its storage layout is an older version. Upgrading HDFS is covered in “Upgrades” on page 337.  
+* namespaceID  
+The namespaceID is a unique identifier for the filesystem namespace, which is created when the namenode is first formatted. 
+* clusterID  
+The clusterID is a unique identifier for the HDFS cluster as a whole; this is important for HDFS federation, where a cluster is made up of multiple namespaces and each namespace is managed by one namenode. 
+* blockpoolID  
+The blockpoolID is a unique identifier for the block pool containing all the files in the namespace managed by this namenode.
+* cTime  
+The cTime property marks the creation time of the namenode’s storage. For newly formatted storage, the value is always zero, but it is updated to a timestamp whenever the filesystem is upgraded.   
+* in_use.lock  
+The in_use.lock file is a lock file that the namenode uses to lock the storage directory. This prevents another namenode instance from running at the same time with (and possibly corrupting) the same storage directory.
+
+#### The filesystem image and edit log
+
+When a filesystem client performs a write operation (such as creating or moving a file), the transaction is first recorded in the edit log. The namenode also has an in-memory representation of the filesystem metadata, which it(is?) updates after the edit log has been modified. The in-memory metadata is used to serve read requests.
+
+Conceptually the edit log is a single entity, but it is represented as a number of files on disk. Each file is called a segment, and has the prefix edits and a suffix that indicates the transaction IDs contained in it. Only one file is open for writes at any one time (edits_inprogress_0000000000000000020 in the preceding example), and it is flushed and synced after every transaction, before a success code is returned to the client. For namenodes that write to multiple directories, the write must be flushed and synced to every copy before returning successfully. This ensures that no transaction is lost due to machine failure.
+
+Each fsimage file is a complete persistent checkpoint of the filesystem metadata. (The suffix indicates the last transaction in the image.) However, it is not updated for every filesystem write operation, because writing out the fsimage file, which can grow to be gigabytes in size, would be very slow. This does not compromise resilience because if the namenode fails, then the latest state of its metadata can be reconstructed by loading the latest fsimage from disk into memory, and then applying each of the transactions from the relevant point onward in the edit log. In fact, this is precisely what the namenode does when it starts up (see “Safe Mode” on page 322).
+
+Each fsimage file contains a serialized form of all the directory and file inodes in the filesystem. Each inode is an internal representation of a file or directory’s metadata and contains such information as the file’s replication level, modification and access times, access permissions, `block size, and the blocks the file is made up of`. For directories, the modification time, permissions, and quota metadata are stored.  
+`An fsimage file does not record the datanodes on which the blocks are stored`. Instead, the namenode `keeps this mapping in memory`, which it constructs by asking the datanodes for their block lists when they join the cluster and periodically afterward to ensure the namenode’s block mapping is up to date.
+
+![hadoop_secondary_namenode_checkpoint_img_1]  
+**Figure 11-1. The checkpointing process**  
+
+The solution is to run the secondary namenode, whose purpose is to produce checkpoints of the primary’s in-memory filesystem metadata. The checkpointing process proceeds as follows:  
+1. The secondary asks the primary to roll its in-progress edits file, so new edits go to a new file. The primary also updates the seen_txid file in all its storage directories.  
+2. The secondary retrieves the latest fsimage and edits files from the primary (using HTTP GET).  
+3. The secondary loads fsimage into memory, applies each transaction from edits, then creates a new merged fsimage file.  
+4. The secondary sends the new fsimage back to the primary (using HTTP PUT), and the primary saves it as a temporary .ckpt file. 5. The primary renames the temporary fsimage file to make it available.
+
+At the end of the process, the primary has an up-to-date fsimage file and a short inprogress edits file (it is not necessarily empty, as it may have received some edits while the checkpoint was being taken). It is possible for an administrator to run this process manually while the namenode is in safe mode, using the `hdfs dfsadmin -saveNamespace` command.
+
+This procedure makes it clear why the secondary has similar memory requirements to the primary (since it loads the fsimage into memory), which is the reason that the secondary needs a dedicated machine on large clusters. 
+
+The schedule for checkpointing is controlled by two configuration parameters. The secondary namenode checkpoints every hour (`dfs.namenode.checkpoint.period` in seconds), or sooner if the edit log has reached one million transactions since the last checkpoint (`dfs.namenode.checkpoint.txns`), which it checks every minute (`dfs.namenode.checkpoint.check.period` in seconds).
+
+The layout of the secondary’s checkpoint directory (`dfs.namenode.checkpoint.dir`) is identical to the namenode’s. This is by design, since in the event of total namenode failure, it allows recovery from a secondary namenode. This can be achieved either by copying the relevant storage directory to a new namenode or, if the secondary is taking over as the new primary namenode, by using the -importCheckpoint option when starting the namenode daemon.  
+The -importCheckpoint option will load the namenode metadata from the latest checkpoint in the directory defined by the dfs.namenode.checkpoint.dir property, but only if there is no metadata in the dfs.namenode.name.dir directory, to ensure that there is no risk of overwriting precious metadata.
+
+#### Datanode directory structure
+Unlike namenodes, datanodes do not need to be explicitly formatted, because they create
+their storage directories automatically on startup. Here are the key files and directories:
+```html
+${dfs.datanode.data.dir}/
+├── current
+│ ├── BP-526805057-127.0.0.1-1411980876842
+│ │ └── current
+│ │ ├── VERSION
+│ │ ├── finalized
+│ │ │ ├── blk_1073741825
+│ │ │ ├── blk_1073741825_1001.meta
+│ │ │ ├── blk_1073741826
+│ │ │ └── blk_1073741826_1002.meta
+│ │ └── rbw
+│ └── VERSION
+└── in_use.lock
+```
+
+HDFS blocks are stored in files with a blk_ prefix; they consist of the raw bytes of a portion of the file being stored(PS: a file containing multiple blocks). Each block has an associated metadata file with a .meta suffix. It is made up of a header with version and type information, followed by a series of checksums for sections of the block.  
+Each block belongs to a block pool, and each block pool has its own storage directory that is formed from its ID (it’s the same block pool ID from the namenode’s VERSION file, BP-526805057-127.0.0.1-1411980876842 in this case). 
+When the number of blocks in a directory grows to a certain size, the datanode creates a new subdirectory in which to place new blocks and their accompanying metadata. It creates a new subdirectory every time the number of blocks in a directory reaches 64 (set by the `dfs.datanode.numblocks` configuration property). The effect is to have a tree with high fan-out, so even for systems with a very large number of blocks, the directories will be only a few levels deep, and avoids the problems that most operating systems encounter when there are a large number of files (tens or hundreds of thousands) in a single directory.
+
+### HDFS Safe Mode
+When the namenode starts, the first thing it does is load its image file (fsimage) into memory and apply the edits from the edit log. Once it has reconstructed a consistent in-memory image of the filesystem metadata, it creates a new fsimage file (effectively doing the checkpoint itself, without recourse to the secondary namenode) and an empty edit log. `During this process, the namenode is running in safe mode, which means that it offers only a read-only view of the filesystem to clients.`   
+Strictly speaking, in safe mode, only filesystem operations that access the filesystem metadata (such as producing a directory listing) are guaranteed to work. Reading a file will work only when the blocks are available on the current set of datanodes in the cluster, and file modifications (writes, deletes, or renames) will always fail.
+
+Safe mode is needed to give the datanodes time to check in to the namenode with their block lists, so the namenode can be informed of enough block locations to run the filesystem effectively. If the namenode didn’t wait for enough datanodes to check in, it would start the process of replicating blocks to new datanodes, which would be unnecessary in most cases. Indeed, while in safe mode, the namenode does not issue any block-replication or deletion instructions to datanodes.
+
+Safe mode is exited when the minimal replication condition is reached, plus an extension time of 30 seconds. The minimal replication condition is when 99.9% of the blocks in the whole filesystem meet their minimum replication level (which defaults to 1 and is set by `dfs.namenode.replication.min`; see Table 11-1). `dfs.namenode.safemode.threshold-pct` and `dfs.namenode.safemode.extension`  
+
+When you are starting a newly formatted HDFS cluster, the namenode does not go into safe mode, since there are no blocks in the system.
+
+To see whether the namenode is in safe mode, you can use the dfsadmin command:  
+```shell
+$ hdfs dfsadmin -safemode get
+Safe mode is ON
+```
+The front page of the HDFS web UI provides another indication of whether the namenode is in safe mode.  
+Sometimes you want to wait for the namenode to exit safe mode before carrying out a command, particularly in scripts. The wait option achieves this:  
+```shell
+$ hdfs dfsadmin -safemode wait
+# command to read or write a file
+```
+An administrator has the ability to make the namenode enter or leave safe mode at anytime. It is sometimes necessary to do this when carrying out maintenance on the cluster or after upgrading a cluster, to confirm that data is still readable. To enter safe mode, use the following command:  
+```shell
+$ hdfs dfsadmin -safemode enter
+Safe mode is ON
+```
+You can use this command when the namenode is still in safe mode while starting up to ensure that it never leaves safe mode.   Another way of making sure that the namenode stays in safe mode indefinitely is to set the property `dfs.namenode.safemode.threshold-pct` to a value over 1.  
+You can make the namenode leave safe mode by using the following:  
+```shell
+$ hdfs dfsadmin -safemode leave
+Safe mode is OFF
+```
+
+### HDFS Audit Logging
+HDFS can log all filesystem access requests, a feature that some organizations require for auditing purposes. Audit logging is implemented using log4j logging at the INFO level. In the default configuration it is disabled, but it’s easy to enable by adding the following line to hadoop-env.sh:  
+```shell
+export HDFS_AUDIT_LOGGER="INFO,RFAAUDIT" 
+```
+A log line is written to the audit log (`hdfs-audit.log`) for every HDFS event. Here’s an example for a list status request on /user/tom:  
+```html
+2014-09-30 21:35:30,484 INFO FSNamesystem.audit: allowed=true ugi=tom
+(auth:SIMPLE) ip=/127.0.0.1 cmd=listStatus src=/user/tom dst=null
+perm=null proto=rpc
+```
+
+### HDFS Tools
+* dfsadmin  
+The dfsadmin tool is a multipurpose tool for finding information about the state of HDFS, as well as for performing administration operations on HDFS. It is invoked as hdfs dfsadmin and requires superuser privileges.
+* Filesystem check (fsck)  
+Hadoop provides an fsck utility for checking the health of files in HDFS. The tool looks for blocks that are missing from all datanodes, as well as under- or over-replicated blocks, and etc. Here is an example of checking the whole filesystem for a small cluster:  
+```shell
+$ hdfs fsck /
+```
+```html
+......................Status: HEALTHY
+Total size: 511799225 B
+Total dirs: 10
+Total files: 22
+Total blocks (validated): 22 (avg. block size 23263601 B)
+Minimally replicated blocks: 22 (100.0 %)
+Over-replicated blocks: 0 (0.0 %)
+Under-replicated blocks: 0 (0.0 %)
+Mis-replicated blocks: 0 (0.0 %)
+Default replication factor: 3
+Average block replication: 3.0
+Corrupt blocks: 0
+Missing replicas: 0 (0.0 %)
+Number of data-nodes: 4
+Number of racks: 1
+The filesystem under path '/' is HEALTHY
+```
+Note that fsck retrieves all of its information from the namenode; it does not communicate with any datanodes to actually retrieve any block data.  
+    1. Not problem cases
+        1. Over-replicated blocks  
+        HDFS will automatically delete excess replicas
+        2. Under-replicated blocks  
+        HDFS will automatically create new replicas.   
+        You can get information about the blocks being replicated (or waiting to be replicated) using `hdfs dfsadmin -metasave`.
+        3. Misreplicated blocks  
+        These are blocks that do not satisfy the block replica placement policy, HDFS will automatically re-replicate misreplicated blocks so that they satisfy the rack placement policy.  
+    2. Problems  
+        1. Corrupt blocks   
+        These are blocks whose replicas are all corrupt. Blocks with at least one noncorrupt replica are not reported as corrupt; the namenode will replicate the noncorrupt replica until the target replication is met.  
+        2. Missing replicas  
+        These are blocks with no replicas anywhere in the cluster  
+    Corrupt or missing blocks are the biggest cause for concern, as they mean data has been lost. By default, fsck leaves files with corrupt or missing blocks, but you can tell it to perform one of the following actions on them:  
+    * Move the affected files to the /lost+found directory in HDFS, using the -move option.  
+    Files are broken into chains of contiguous blocks to aid any salvaging efforts you may attempt.   
+    * Delete the affected files, using the -delete option. Files cannot be recovered after being deleted.  
+The fsck tool provides an easy way to find out which blocks are in any particular file. For example:  
+```shell
+$ hdfs fsck /user/tom/part-00007 -files -blocks -racks
+```
+* Datanode block scanner  
+Every datanode runs a block scanner, which periodically verifies all the blocks stored on the datanode.  
+It employs a throttling mechanism to preserve disk bandwidth on the datanode.  
+Blocks are verified every three weeks to guard against disk errors over time (this period is controlled by the `dfs.datanode.scan.period.hours` property, which defaults to 504 hours). Corrupt blocks are reported to the namenode to be fixed.  
+http://datanode:50075/blockScannerReport   
+http://datanode:50075/blockScannerReport?listblocks  
+* Balancer  
+Over time, the distribution of blocks across datanodes can become unbalanced.  An unbalanced cluster can affect locality for MapReduce, and it puts a greater strain on the highly utilized datanodes, so it’s best avoided.  
+The `balancer` program is a Hadoop daemon that redistributes blocks by moving them from overutilized datanodes to underutilized datanodes.  
+It moves blocks until the cluster is deemed to be balanced, which means that the utilization of every datanode (ratio of used space on the node to total capacity of the node) differs from the utilization of the cluster (ratio of used space on the cluster to total capacity of the cluster) by no more than a given threshold percentage(-threshold argument, 10% by default). You can start the balancer with:  
+```shell
+$ start-balancer.sh
+```
+At any one time, only one balancer may be running on the cluster.  
+The balancer is designed to run in the background without unduly taxing the cluster or interfering with other clients using the cluster. It limits the bandwidth that it uses to copy a block from one node to another. The default is a modest 1 MB/s, but this can be changed by setting the `dfs.datanode.balance.bandwidthPerSec` property in hdfs-site. xml, specified in bytes.  
+
+### Monitoring
+In addition to the facilities described next, some administrators run test jobs on a periodic basis as a test of the cluster’s health.
+#### Logging
+##### Setting log levels
+Hadoop daemons have a web page for changing the log level for any log4j log name, which can be found at /logLevel in the daemon’s web UI.  For example,  visit http://resource-manager-host:8088/logLevel and set the log name org.apache.hadoop.yarn.server.resourcemanager to level DEBUG.  
+
+The same thing can be achieved from the command line as follows:  
+```shell
+$ hadoop daemonlog -setlevel resource-manager-host:8088 \
+org.apache.hadoop.yarn.server.resourcemanager DEBUG
+```
+
+Or change the log4j.properties file in the configuration directory.
+
+Log levels changed in this way are reset when the daemon restarts.  
+
+##### Getting stack traces
+Hadoop daemons expose a web page (/stacks in the web UI) that produces a thread dump for all running threads in the `daemon’s JVM`. For example, you can get a thread dump for a resource manager from http://resource-manager-host:8088/stacks
+
+#### Metrics and JMX
+Metrics belong to a context; “dfs,” “mapred,” “yarn,” and “rpc” are examples of different contexts. Hadoop daemons usually collect metrics under several contexts. For example, datanodes collect metrics for the “dfs” and “rpc” contexts.  
+
+**How Do Metrics Differ from Counters?**  
+The main difference is their scope: metrics are collected by Hadoop daemons, whereas counters (see “Counters” on page 247) are collected for MapReduce tasks and aggregated for the whole job. They have different audiences, too: broadly speaking, metrics are for administrators, and counters are for MapReduce users.
+
+The way they are collected and aggregated is also different. Counters are a MapReduce feature, and the MapReduce system ensures that counter values are propagated from the task JVMs where they are produced back to the application master, and finally back to the client running the MapReduce job. (`Counters are propagated via RPC heartbeats`; see “Progress and Status Updates” on page 190.) `Both the task process and the application master perform aggregation.`  
+The collection mechanism for metrics is decoupled from the component that receives the updates, and there are various pluggable outputs, including local files, Ganglia, and JMX. `The daemon collecting the metrics performs aggregation on them` before they are sent to the output.
+
+`All Hadoop metrics are published to JMX` (Java Management Extensions), so you can use standard JMX tools like JConsole (which comes with the JDK) to view them. For remote monitoring, you must set the JMX system property `com.sun.management.jmxremote.port` (and others for security) to allow access. To do this for the namenode, say, you would set the following in hadoop-env.sh: 
+```shell
+HADOOP_NAMENODE_OPTS="-Dcom.sun.management.jmxremote.port=8004"
+```
+You can also view JMX metrics (in JSON format) gathered by a particular Hadoop daemon by connecting to its /jmx web page. This is handy for debugging. For example, you can view namenode metrics at http://namenode-host:50070/jmx.  
+
+Hadoop comes with a number of metrics sinks for publishing metrics to external systems, such as local files or the Ganglia monitoring system. Sinks are configured in the `hadoop-metrics2.properties` file; see that file for sample configuration settings.
+
+### Maintenance
+#### Routine Administration Procedures
+##### Metadata backups
+To backup namenode’s persistent metadata.  
+A straightforward way to make backups is to use the dfsadmin command to download a copy of the namenode’s most recent fsimage:  
+```shell
+$ hdfs dfsadmin -fetchImage fsimage.backup
+```
+
+You can write a script to run this command from an offsite location to store archive copies of the fsimage. The script should additionally test the integrity of the copy. This can be done by starting a local namenode daemon and verifying that it has successfully read the fsimage and edits files into memory (by scanning the namenode log for the appropriate success message, for example). Or else, Hadoop comes with an Offline Image Viewer and an Offline Edits Viewer, which can be used to check the integrity of the fsimage and edits files, Type hdfs oiv and hdfs oev to invoke these tools.
+
+##### Data backups
+Do not make the mistake of thinking that HDFS replication is a substitute for making backups. Bugs in HDFS can cause replicas to be lost, and so can hardware failures. Although Hadoop is expressly designed so that hardware failure is very unlikely to result in data loss, the possibility can never be completely ruled out, particularly when combined with software bugs or human error.  
+
+The distcp tool is ideal for making backups to other HDFS clusters or other Hadoop filesystems (such as S3) because it can copy files in parallel. 
+
+HDFS allows administrators and users to take **snapshots** of the filesystem. A snapshot is a read-only copy of a filesystem subtree at a given point in time. `Snapshots are very efficient since they do not copy data`; they simply record each file’s metadata and block list, which is sufficient to reconstruct the filesystem contents at the time the snapshot was taken.  
+Snapshots are not a replacement for data backups, but they are a useful tool for point-in-time data recovery for files that were mistakenly deleted by users.  
+
+#### Commissioning and Decommissioning Nodes
+Datanodes that are permitted to connect to the namenode are specified in a file whose name is specified by the `dfs.hosts` property. The file resides on the namenode’s local filesystem.  
+Similarly, node managers that may connect to the resource manager are specified in a file whose name is specified by the `yarn.resourcemanager.nodes.include-path` property.  
+In most cases, there is one shared file, referred to as the `include` file, that both dfs.hosts and yarn.resourcemanager.nodes.include-path refer to, since nodes in the cluster run both datanode and node manager daemons.
+
+The file (or files) specified by the `dfs.hosts` and `yarn.resourcemanager.nodes.include-path` properties is different from the `slaves` file. The former is used by the namenode and resource manager to determine which worker nodes may connect. The slaves file is used by the Hadoop control scripts to perform clusterwide operations, such as cluster restarts. It is never used by the Hadoop daemons.
+
+**To add new nodes to the cluster**:  
+1. Add the network addresses of the new nodes to the include file.  
+2. Update the namenode with the new set of permitted datanodes using this command:  
+```shell
+$ hdfs dfsadmin -refreshNodes
+```
+3. Update the resource manager with the new set of permitted node managers using:  
+```shell
+$ yarn rmadmin -refreshNodes 
+```
+4. Update the slaves file with the new nodes, so that they are included in future operations performed by the Hadoop control scripts. 
+5. Start the new datanodes and node managers. 
+6. Check that the new datanodes and node managers appear in the web UI.  
+
+`HDFS will not move blocks from old datanodes to new datanodes to balance the cluster. To do this, you should run the balancer` described in “Balancer” on page 329.
+
+The way to decommission datanodes is to inform the namenode of the nodes that you wish to take out of circulation, so that it can replicate the blocks to other datanodes before the datanodes are shut down.  
+
+The decommissioning process is controlled by an exclude file, which is set for HDFS by the `dfs.hosts.exclude` property and for YARN by the `yarn.resourcemanager.nodes.exclude-path` property. It is often the case that these properties refer to the same file. The exclude file lists the nodes that are not permitted to connect to the cluster.
+
+The rules for whether a node manager may connect to the resource manager are simple: a node manager may connect only if it appears in the include file and does not appear in the exclude file.  
+For HDFS, the rules are slightly different. If a datanode appears in both the include and the exclude file, then it may connect, but only to be decommissioned.  
+
+**To remove nodes from the cluster:**  
+1. Add the network addresses of the nodes to be decommissioned to the exclude file. `Do not update the include file at this point`.  
+2. Update the namenode with the new set of permitted datanodes, using this command:  
+```shell
+$ hdfs dfsadmin -refreshNodes 
+```
+3. Update the resource manager with the new set of permitted node managers using:  
+```shell
+$ yarn rmadmin -refreshNodes
+```
+4. Go to the web UI and check whether the admin state has changed to “Decommission In Progress” for the datanodes being decommissioned. They will start copying their blocks to other datanodes in the cluster.  
+5. When all the datanodes report their state as “Decommissioned,” all the blocks have been replicated. Shut down the decommissioned nodes.  
+6. Remove the nodes from the include file, and run:   
+```shell
+$ hdfs dfsadmin -refreshNodes 
+$ yarn rmadmin -refreshNodes
+```
+7. Remove the nodes from the slaves file.
+
+#### Upgrades
+The most important consideration is the HDFS upgrade. If the layout version of the filesystem has changed, then `the upgrade will automatically migrate` the filesystem data and metadata to a format that is compatible with the new version. As with any procedure that involves data migration, there is a risk of data loss, so you should be sure that `both your data and the metadata are backed up` (see “Routine Administration Procedures” on page 332).  
+
+Upgrading a cluster when the filesystem layout has not changed is fairly straightforward: install the new version of Hadoop on the cluster (and on clients at the same time), shut down the old daemons, update the configuration files, and then start up the new daemons and switch clients to use the new libraries. This process is reversible, so rolling back an upgrade is also straightforward. After every successful upgrade, you should perform a couple of final cleanup steps:  
+1. Remove the old installation and configuration files from the cluster. 
+2. Fix any deprecation warnings in your code and configuration.
+
+Upgrades are where Hadoop cluster management tools like Cloudera Manager and Apache Ambari come into their own. They simplify the upgrade process and also make it easy to do `rolling upgrades`, where nodes are upgraded in batches (or one at a time for master nodes), so that clients don’t experience service interruptions.
+
+Part of the planning process should include `a trial run on a small test cluster` with a copy of data that you can afford to lose. A trial run will allow you to familiarize yourself with the process, customize it to your particular cluster configuration and toolset, and iron out any snags before running the upgrade procedure on a production cluster. A test cluster also has the benefit of being available to test client upgrades on. You can read about general compatibility concerns for clients in the following sidebar.
+
+##### HDFS data and metadata upgrades
+If you use the procedure just described to upgrade to a new version of HDFS and it expects a different layout version, following procedures are required.
+
+The most reliable way of finding out whether you need to upgrade the filesystem is by `performing a trial on a test cluster`.
+
+With these preliminaries out of the way, here is the high-level procedure for upgrading a cluster when the filesystem layout needs to be migrated:  
+1. Ensure that any previous upgrade is finalized before proceeding with another upgrade.  
+```shell
+$ $NEW_HADOOP_HOME/bin/hdfs dfsadmin -finalizeUpgrade
+$ $NEW_HADOOP_HOME/bin/hdfs dfsadmin -upgradeProgress status
+There are no upgrades in progress.
+```
+2. Shut down the YARN and MapReduce daemons.
+3. Shut down HDFS, and back up the namenode directories.
+4. Install the new version of Hadoop on the cluster and on clients.
+5. Start HDFS with the -upgrade option.  
+```shell
+$ $NEW_HADOOP_HOME/bin/start-dfs.sh -upgrade
+```
+This causes the namenode to upgrade its metadata, placing the previous version in a new directory called previous under dfs.namenode.name.dir. Similarly, datanodes upgrade their storage directories, preserving the old copy in a directory called previous.  
+6. Wait until the upgrade is complete.
+```shell
+$ $NEW_HADOOP_HOME/bin/hdfs dfsadmin -upgradeProgress status
+```
+7. Perform some sanity checks on HDFS.  
+(e.g., check files and blocks using fsck, test basic file operations). You might choose to put HDFS into safe mode while you are running some of these checks (the ones that are read-only) to prevent others from making changes.  
+8. Start the YARN and MapReduce daemons.
+9. Roll back or finalize the upgrade (optional).  
+    1. Roll back  
+    First, shut down the new daemons:  
+    ```shell
+    $ $NEW_HADOOP_HOME/bin/stop-dfs.sh
+    ```
+    Then start up the old version of HDFS with the -rollback option:  
+    ```shell
+    $ $OLD_HADOOP_HOME/bin/start-dfs.sh -rollback
+    ```
+
+An upgrade of HDFS makes a copy of the previous version’s metadata and data. `Doing an upgrade does not double the storage requirements of the cluster, as the datanodes use hard links to keep two references (for the current and previous version) to the same block of data`. This design makes it straightforward to roll back to the previous version of the filesystem, if you need to. You should understand that any changes made to the data on the upgraded system will be lost after the rollback completes, however.   
+
+You can keep only the previous version of the filesystem, which means you can’t roll back several versions. Therefore, to carry out another upgrade to HDFS data and metadata, you will need to delete the previous version, a process called finalizing the upgrade. Once an upgrade is finalized, there is no procedure for rolling back to a previous version.
+
+##### Compatibility
+There are several aspects to consider: API compatibility, data compatibility, and wire compatibility.  
+
+API compatibility concerns the contract between user code and the published Hadoop APIs, such as the Java MapReduce APIs. Major releases (e.g., from 1.x.y to 2.0.0) are allowed to break API compatibility, so user programs may need to be modified and recompiled. Minor releases (e.g., from 1.0.x to 1.1.0) and point releases (e.g., from 1.0.1 to 1.0.2) should not break compatibility.  
+Hadoop uses a classification scheme for API elements to denote their stability. The preceding rules for API compatibility cover those elements that are marked InterfaceStability.Stable. Some elements of the public Hadoop APIs, however, are marked with the InterfaceStability.Evolving or InterfaceStability.Unstable annotations, which mean they are allowed to break compatibility on minor and point releases, respectively.
+
+Data compatibility concerns persistent data and metadata formats, such as the format in which the HDFS namenode stores its persistent data. The formats can change across minor or major releases, but `the change is transparent to users because the upgrade will automatically migrate the data`. There may be some restrictions about upgrade paths, and these are covered in the release notes.
+
+Wire compatibility concerns the interoperability between clients and servers via wire protocols such as RPC and HTTP. The rule for wire compatibility is that the `client must have the same major release number as the server, but may differ in its minor or point release number`.  The fact that internal client and server versions can be mixed allows Hadoop 2 to support `rolling upgrades`.
+
+## 15. Sqoop
+For more information on using Sqoop, consult the [Apache Sqoop Cookbook] by Kathleen Ting and Jarek Jarcec Cecho (O’Reilly, 2013).   
+
+Often, valuable data in an organization is stored in structured data stores such as relational database management systems (RDBMSs). Apache Sqoop is an open source tool that allows users to extract data `from a structured data store` into Hadoop for further processing. `This processing can be done with MapReduce programs or other higher-level tools such as Hive.` (It’s even possible to use Sqoop to move data `from a database into HBase`.) When the final results of an analytic pipeline are available, Sqoop can export these results back to the data store for consumption by other clients.
+
+>Latest stable release is 1.4.6 (download, documentation). Latest cut of Sqoop2 is 1.99.7 (download, documentation). Note that 1.99.7 is not compatible with 1.4.6 and not feature complete, it is not intended for production deployment.
+Last Published: 2017-03-16
+
+Installation:  
+Unzip binary installation file (sqoop-x.y.z.bin_*) from [hadoop_sqoop_homepage_1] and set environment variable: SQOOP_HOME.    
+```shell
+export SQOOP_HOME=/usr/local/sqoop
+export PATH=$PATH:$SQOOP_HOME/bin
+```
+
+```shell
+$  sqoop help
+usage: sqoop COMMAND [ARGS]
+```
+```html
+Available commands:
+  codegen            Generate code to interact with database records
+  create-hive-table  Import a table definition into Hive
+  eval               Evaluate a SQL statement and display the results
+  export             Export an HDFS directory to a database table
+  help               List available commands
+  import             Import a table from a database to HDFS
+  import-all-tables  Import tables from a database to HDFS
+  import-mainframe   Import datasets from a mainframe server to HDFS
+  job                Work with saved jobs
+  list-databases     List available databases on a server
+  list-tables        List available tables in a database
+  merge              Merge results of incremental imports
+  metastore          Run a standalone Sqoop metastore
+  version            Display version information
+
+See 'sqoop help COMMAND' for information on a specific command.
+```
+An alternate way of running a Sqoop tool is to use a tool-specific script. This script will be named sqoop-toolname (e.g., sqoop-help, sqoop-import, etc.). Running these scripts from the command line is identical to running sqoop help or sqoop import.
+
+`Sqoop 2` is a rewrite of Sqoop that addresses the architectural limitations of Sqoop 1. For example, Sqoop 1 is a command-line tool and does not provide a Java API, so it’s difficult to embed it in other programs. Also, `in Sqoop 1 every connector has to know about every output format, so it is a lot of work to write new connectors`. Sqoop 2 has a server component that runs jobs, as well as a range of clients: a command-line interface (CLI), `a web UI, a REST API, and a Java API`. Sqoop 2 also will be able to use alternative execution engines, such as Spark. Note that Sqoop 2’s CLI is not compatible with Sqoop 1’s CLI.   
+Sqoop 2 is under active development but does not yet have feature parity with Sqoop 1, whose latest release 1.99.7 (by 2017-03-16) is not compatible with 1.4.6 and not feature complete, it is not intended for production deployment.  
+
+### Sqoop Connectors
+Sqoop has an extension framework that makes it possible to import data from—and export data to—any external storage system that has `bulk data transfer capabilities`. A Sqoop connector is a modular component that uses this framework to enable Sqoop imports and exports. Sqoop ships with connectors for working with a range of popular databases, including MySQL, PostgreSQL, Oracle, SQL Server, DB2, and Netezza. There is also a generic JDBC connector for connecting to any database that supports Java’s JDBC protocol. Sqoop provides `optimized MySQL, PostgreSQL, Oracle, and Netezza connectors` that use database-specific APIs to perform bulk transfers more efficiently (this is discussed more in “Direct-Mode Imports” on page 411).   
+As well as the built-in Sqoop connectors, various third-party connectors are available for data stores, ranging from enterprise data warehouses (such as Teradata) to NoSQL stores (such as Couchbase). These connectors must be downloaded separately and can be added to an existing Sqoop installation by following the instructions that come with the connector.  
+
+### A Sample Import from Mysql
+Sample source table:
+```sql
+CREATE TABLE widgets(id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+widget_name VARCHAR(64) NOT NULL,
+price DECIMAL(10,2),
+design_date DATE,
+version INT,
+design_comment VARCHAR(100));
+
+INSERT INTO widgets VALUES (NULL, 'sprocket', 0.25, '2010-02-10', 1, 'Connects two gizmos');
+INSERT INTO widgets VALUES (NULL, 'gizmo', 4.00, '2009-11-30', 4, NULL);
+INSERT INTO widgets VALUES (NULL, 'gadget', 99.99, '1983-08-13', 13, 'Our flagship product');
+```
+
+1. install mysql
+Users of Debian-based Linux systems (e.g., Ubuntu) can type `sudo apt-get install mysql-client mysqlserver`.  
+Red Hat users can type `sudo yum install mysql mysql-server`.  
+2. Before going any further, you need to download the JDBC driver JAR file for MySQL (Connector/J) and add it to Sqoop’s classpath, which is simply achieved by placing it in Sqoop’s lib directory.  
+3. import  
+```shell
+## specify only 1 map task
+$ sqoop import --connect jdbc:mysql://hostname/hadoopguide \
+> --table widgets -m 1
+```
+Logs as below:  
+```html
+...
+14/10/28 21:36:23 INFO tool.CodeGenTool: Beginning code generation
+...
+14/10/28 21:36:28 INFO mapreduce.Job: Running job: job_1413746845532_0008
+14/10/28 21:36:35 INFO mapreduce.Job: Job job_1413746845532_0008 running in
+uber mode : false
+14/10/28 21:36:35 INFO mapreduce.Job: map 0% reduce 0%
+14/10/28 21:36:41 INFO mapreduce.Job: map 100% reduce 0%
+14/10/28 21:36:41 INFO mapreduce.Job: Job job_1413746845532_0008 completed
+successfully
+...
+14/10/28 21:36:41 INFO mapreduce.ImportJobBase: Retrieved 3 records.
+```
+Sqoop’s import tool will run a MapReduce job that connects to the MySQL database and reads the table. By default, this will use 4 map tasks in parallel to speed up the import process. Each task will write its imported results to a different file, but all in a common directory.  
+```shell
+$ hadoop fs -cat widgets/part-m-00000
+1,sprocket,0.25,2010-02-10,1,Connects two gizmos
+2,gizmo,4.00,2009-11-30,4,null
+3,gadget,99.99,1983-08-13,13,Our flagship product
+```
+
+#### Text and Binary File Formats
+Sqoop is capable of importing into a few different file formats. Text files (the default) offer a human-readable representation of data, platform independence, and the simplest structure. However, they cannot hold binary fields (such as database columns of type VARBINARY), and distinguishing between null values and String-based fields containing the value "null" can be problematic (although using the --null-string import option allows you to control the representation of null values).  
+To handle these conditions, `Sqoop also supports SequenceFiles, Avro datafiles, and Parquet files`. `These binary formats provide the most precise representation possible of the imported data`. They also allow data to be compressed while retaining MapReduce’s ability to process different sections of the same file in parallel. However, `current versions of Sqoop cannot load Avro datafiles or SequenceFiles into Hive` (`although you can load Avro into Hive manually, and Parquet can be loaded directly into Hive by Sqoop`). Another disadvantage of SequenceFiles is that they are Java specific, whereas Avro and Parquet files can be processed by a wide range of languages.  
+
+### Generated Code
+In addition to writing the contents of the database table to HDFS, Sqoop also provides you with a generated Java source file (widgets.java) written to the current local directory. 
+Sqoop can use generated code to handle the deserialization of table-specific data from the database source before writing it to HDFS.  
+
+The generated class (widgets) is capable of holding a single record retrieved from the imported table(each instance of the class refers to only a single record).   It can manipulate such a record in MapReduce or store it in a SequenceFile in HDFS. (SequenceFiles written by Sqoop during the import process will store each imported row in the “value” element of the SequenceFile’s key-value pair format, using the generated class.)
+
+We can use a different Sqoop tool to generate source code without performing an import; this generated code will still examine the database table to determine the appropriate data types for each field:  
+```shell
+$ sqoop codegen --connect jdbc:mysql://localhost/hadoopguide \
+ --table widgets --class-name Widget
+```
+
+If you’re working with records imported to SequenceFiles, it is inevitable that you’ll need to use the generated classes (to deserialize data from the SequenceFile storage). You can work with text-file-based records without using generated code, but as we’ll see in “Working with Imported Data” on page 412, Sqoop’s generated code can handle some tedious aspects of data processing for you.
+
+PS: In short, generated codes are used to read and write the imported data files, such as SequenceFile. 
+
+Recent versions of Sqoop support Avro-based serialization and schema generation as well (see Chapter 12)
+
+### Imports: A Deeper Look
+
+You still need to download the JDBC driver itself and install it on your Sqoop client. For cases where Sqoop does not know which JDBC driver is appropriate, users can specify the JDBC driver explicitly with the `--driver` argument.
+
+Before the import can start, Sqoop uses JDBC to examine the table it is to import. It retrieves a list of all the columns and their SQL data types. These SQL types (VARCHAR, INTEGER, etc.) can then be mapped to Java data types (String, Integer, etc.), which will hold the field values in MapReduce applications. Sqoop’s code generator will use this information to create a table-specific class to hold a record extracted from the table.
+```java
+public Integer get_id();
+public String get_widget_name();
+public java.math.BigDecimal get_price();
+...
+```
+The generated class also implements DBWritable interface  
+```java
+public void readFields(ResultSet __dbResults) throws SQLException;
+public void write(PreparedStatement __dbStmt) throws SQLException;
+```
+The write() method shown here allows Sqoop to insert new Widget rows into a table, a process called exporting. Exports are discussed in “Performing an Export” on page 417.  
+
+The MapReduce job launched by Sqoop uses an InputFormat that can read sections of a table from a database via JDBC. The **DataDrivenDBInputFormat** provided with Hadoop partitions a query’s results over several map tasks.   
+Reading a table is typically done with a simple query such as:  
+```sql
+SELECT col1,col2,col3,... FROM tableName WHERE...
+```
+Using metadata about the table, Sqoop will guess a good column to use for splitting the table (typically the primary key for the table, if one exists), this is splitting column. DataDrivenDBInputFormat at first queries the range of splitting column, by `select min(splitting_column), max(splitting_column) from source_table`, then split evenly the range of table rows to several sections, the number of which equals to the number of map tasks.  
+The primary key column may not be uniformly distributed, so users can specify a particular splitting column when running an import job (via the `--split-by` argument), to tune the job to the data’s actual distribution.
+
+After generating the deserialization code(the genearted class) and configuring the InputFormat(DataDrivenDBInputFormat), Sqoop sends the job to the MapReduce cluster. Map tasks execute the queries and deserialize rows from the ResultSet into instances of the generated class, which are either stored directly in SequenceFiles or transformed into delimited text before being written to HDFS.  
+
+Users can also specify a WHERE clause to include in queries via the `--where` argument, which bounds the rows of the table to import. User-supplied WHERE clauses are applied before task splitting is performed, and are pushed down into the queries executed by each task.
+
+For more control—to perform column transformations, for example—users can specify a `--query` argument.
+
+When importing data to HDFS, it is important that you ensure access to a consistent snapshot of the source data. (`Map tasks` reading from a database in parallel are running in separate processes. Thus, `they cannot share a single database transaction.`) `The best way to do this is to ensure that any processes that update existing rows of a table are disabled during the import`.
+
+#### Incremental Imports
+Sqoop will import rows that have a column value (for the column specified with --check-column) that is greater than some specified value (set via --last-value).  
+* --incremental append  
+The value specified as --last-value can be a row ID that is strictly increasing, such as an AUTO_INCREMENT primary key in MySQL. This is suitable for the case where new rows are added to the database table, but existing rows are not updated. This mode is called append mode, and is activated via `--incremental append`. 
+* --incremental lastmodified  
+Another option is timebased incremental imports (specified by `--incremental lastmodified`), which is appropriate when existing rows may be updated, and there is a column (the check column) that records the last modified time of the update.  
+
+At the end of an incremental import, Sqoop will print out the value to be specified as --last-value on the next import. This is useful when running incremental imports manually, but for running periodic imports it is better to use `Sqoop’s saved job facility, which automatically stores the last value and uses it on the next job run`. Type `sqoop job --help` for usage instructions for saved jobs.
+
+#### Direct-Mode Imports
+Some databases, however, offer specific tools designed to extract data quickly. For example, MySQL’s mysqldump application can read from a table with `greater throughput than a JDBC channel`. The use of these external tools is referred to as direct mode in Sqoop’s documentation. Direct mode must be specifically enabled by the user (via the `--direct` argument), as it is not as general purpose as the JDBC approach. (For example, MySQL’s direct mode cannot handle large objects, such as CLOB or BLOB columns, and that’s why Sqoop needs to use a JDBC-specific API to load these columns into HDFS.)  
+
+For databases that provide such tools, Sqoop can use these to great effect. A direct-mode import from MySQL is usually much more efficient (in terms of map tasks and time required) than a comparable JDBC-based import. Sqoop will still launch multiple map tasks in parallel. These tasks will then spawn instances of the mysqldump program and read its output. `Sqoop can also perform direct-mode imports from PostgreSQL, Oracle, and Netezza`. 
+
+Even when direct mode is used to access the contents of a database, `the metadata is still queried through JDBC`.
+
+### Working with Imported Data
+Each autogenerated class has several overloaded methods named parse() that operate on the data represented as Text, CharSequence, char[], or other common types.  
+
+Package the generated class with other classes(for example, sqoop-examples.jar, main class is MaxWidgetId), run command like below  
+```shell
+$ HADOOP_CLASSPATH=$SQOOP_HOME/sqoop-version.jar hadoop jar \
+sqoop-examples.jar MaxWidgetId -libjars $SQOOP_HOME/sqoop-version.jar
+```
+This command line ensures that Sqoop is on the classpath locally (via $HADOOP_CLASSPATH) when running the MaxWidgetId.run() method, as well as when map tasks are running on the cluster (via the -libjars argument).
+
+The autogenerated class implements the Writable(DBWritable) interface provided by Hadoop, which allows the object to be sent via Hadoop’s serialization mechanism, as well as written to and read from SequenceFiles.  
+
+Avro-based imports can be processed using the APIs described in “Avro MapReduce” on page 359. With the Generic Avro mapping, the MapReduce program does not need to use schema-specific generated code (although this is an option too, by using Avro’s Specific compiler; Sqoop does not do the code generation in this case).
+
+#### Imported Data and Hive
+3 steps to import data to Hive with sqoop.  
+1. importing data to HDFS by sqoop as previous chapter shows
+2. create Hive table  
+Sqoop can generate a Hive table based on a table from an existing relational data source.  
+```shell
+$ sqoop create-hive-table --connect jdbc:mysql://localhost/hadoopguide \
+--table widgets --fields-terminated-by ','
+```
+3. loading the HDFS-resident data into Hive 
+
+To import to Hive in 1 step:  
+```shell
+$ sqoop import --connect jdbc:mysql://localhost/hadoopguide \
+--table widgets -m 1 --hive-import
+```
+
+Hive’s type system is less rich than that of most SQL systems. Many SQL types do not have direct analogues in Hive. When Sqoop generates a Hive table definition for an import, it uses the best Hive type available to hold a column’s values. This may result in a decrease in precision. When this occurs, Sqoop will provide you with a warning message.
+
+### Importing Large Objects
+Most databases provide the capability to store large amounts of data in a single field. Depending on whether this data is textual or binary in nature, it is usually represented as a CLOB or BLOB column in the table.  
+
+In particular, most tables are physically laid out on disk as in Figure 15-2. When scanning through rows to determine which rows match the criteria for a particular query, this typically involves reading all columns of each row from disk. If large objects were stored “inline” in this fashion, they would adversely affect the performance of such scans. Therefore, large objects are often stored externally from their rows, as in Figure 15-3. Accessing a large object often requires “opening” it through the reference contained in the row.  
+![hadoop_clob_blob_storage_img_1]  
+**Figure 15-3. Large objects are usually held in a separate area of storage; the main row storage contains indirect references to the large objects**  
+
+The difficulty of working with large objects in a database suggests that a system such as `Hadoop`, which is much better suited to storing and processing large, complex data objects, is `an ideal repository for such information.` Sqoop can extract large objects from tables and store them in HDFS for further processing.
+
+As in a database, MapReduce typically materializes every record before passing it along to the mapper. If individual records are truly large, this can be very inefficient. If the contents of a large object field are relevant only for a small subset of the total number of records used as input to a MapReduce program, it would be inefficient to fully materialize all these records. Furthermore, depending on the size of the large object, full materialization in memory may be impossible.  
+
+To overcome these difficulties, Sqoop will store imported large objects in a separate file called a **LobFile**, if they are larger than a threshold size of 16 MB (configurable via the `sqoop.inline.lob.length.max setting`, in bytes). Each record in a LobFile holds a single large object. The LobFile format allows clients to hold a reference to a record without accessing the record contents. When records are accessed, this is done through a java.io.InputStream (for binary objects) or java.io.Reader (for character-based objects).  
+
+When a record is imported, the “normal” fields will be materialized together in a text file, along with a reference to the LobFile where a CLOB or BLOB column is stored.  
+```html
+2,gizmo,4.00,2009-11-30,4,null,externalLob(lf,lobfile0,100,5011714)
+```
+
+The generated class uses BlobRef/ClobRef referencing these columns, but not actually containing its contents. the BlobRef.getDataStream() method actually opens the LobFile and returns an InputStream.
+
+The BlobRef and ClobRef classes cache references to underlying LobFiles within a map task. If you do access the clob/blob fields of several sequentially ordered records, they will take advantage of the existing file pointer’s alignment on the next record body.
+
+### Performing an Export
+By contrast, an export uses HDFS as the source of data and a remote database as the destination.
+
+Before exporting a table from HDFS to a database, we must prepare the database to receive the data by creating the target table. Although Sqoop can infer which Java types are appropriate to hold SQL data types, this translation does not work in both directions (for example, there are several possible SQL column definitions that can hold data in a Java String; this could be CHAR(64), VARCHAR(200), or something else entirely). Consequently, you must determine which types are most appropriate.
+
+We are going to export the zip_profits table from Hive.  
+```shell
+% sqoop export --connect jdbc:mysql://localhost/hadoopguide -m 1 \
+--table sales_by_zip --export-dir /user/hive/warehouse/zip_profits \
+--input-fields-terminated-by '\0001'
+```
+
+```html
+...
+14/10/29 12:05:08 INFO mapreduce.ExportJobBase: Transferred 176 bytes in 13.5373
+seconds (13.0011 bytes/sec)
+14/10/29 12:05:08 INFO mapreduce.ExportJobBase: Exported 3 records.
+```
+Hive used its default delimiters: a Ctrl-A character (Unicode 0x0001) between fields and a newline at the end of each record.  
+In the example syntax, the escape sequence is enclosed in single quotes to ensure that the shell processes it literally. Without the quotes, the leading backslash itself may need to be escaped (e.g., --input-fields-terminated-by \\0001).
+
+### Exports: A Deeper Look
+`The Sqoop performs exports is very similar in nature to how Sqoop performs imports` (see Figure 15-4). Before performing the export, `Sqoop picks a strategy based on the database connect string`. For most systems, Sqoop uses JDBC. Sqoop then generates a Java class based on the target table definition. This generated class has the ability to parse records from text files and insert values of the appropriate types into a table (in addition to the ability to read the columns from a ResultSet). A MapReduce job is then launched that reads the source datafiles from HDFS, parses the records using the generated class, and executes the chosen export strategy.  
+
+The JDBC-based export strategy builds up `batch INSERT` statements that will each add multiple records to the target table.  
+
+`For MySQL, Sqoop can employ a direct-mode strategy using mysqlimport`. Each map task spawns a mysqlimport process that it communicates with via a named FIFO file on the local filesystem. Data is then streamed into mysqlimport via the FIFO channel, and from there into the database.
+
+Sqoop uses the CombineFileInputFormat class to group the input files into a smaller number of map tasks.
+
+#### Exports and Transactionality
+Due to the parallel nature of the process, often an export is not an atomic operation.  
+
+To solve this problem, Sqoop can export to a temporary staging table and then, at the end of the job—if the export has succeeded—move the staged data into the destination table in a single transaction. You can specify a staging table with the `--staging-table` option. The staging table must already exist and have the same schema as the destination. It must also be empty, unless the `--clear-staging-table` option is also supplied.  
+Using a staging table is slower, since the data must be written twice: first to the staging table, then to the destination table. The export process also uses more space while it is running, since there are two copies of the data while the staged data is being copied to the destination.  
+
+#### Exports and SequenceFiles
+Sqoop can also export delimited text files that were not Hive tables.  
+
+Sqoop can export records stored in SequenceFiles to an output table too, although some restrictions apply. A SequenceFile cannot contain arbitrary record types. Sqoop’s export tool will read objects from SequenceFiles and send them directly to the OutputCollector, which passes the objects to the database export OutputFormat. To work with Sqoop, `the record must be stored in the “value” portion of the SequenceFile’s key-value pair format` and must subclass the `org.apache.sqoop.lib.SqoopRecord` abstract class (as is done by all classes generated by Sqoop).
+
+If you use the codegen tool (sqoop-codegen) to generate a SqoopRecord implementation for a record based on your export target table, you can write a MapReduce program that populates instances of this class and writes them to SequenceFiles. sqoop-export can then export these SequenceFiles to the table.  
+
+You can suppress code generation and instead use an existing record class and JAR by providing the `--class-name` and `--jar-file` arguments to Sqoop. Sqoop will use the specified class, loaded from the specified JAR, when exporting records.
+
+In the following example, we reimport the widgets table as SequenceFiles, and then export it back to the database in a different table:  
+```shell
+## During the import, we specified the SequenceFile format and indicated that we wanted
+## the JAR file to be placed in the current directory (with --bindir) so we can reuse it.
+$ sqoop import --connect jdbc:mysql://localhost/hadoopguide \
+--table widgets -m 1 --class-name WidgetHolder --as-sequencefile \
+--target-dir widget_sequence_files --bindir .
+
+## prompt: 
+...
+14/10/29 12:25:03 INFO mapreduce.ImportJobBase: Retrieved 3 records.
+
+$ mysql hadoopguide
+mysql> CREATE TABLE widgets2(id INT, widget_name VARCHAR(100),
+price DOUBLE, designed DATE, version INT, notes VARCHAR(200));
+
+## suppress code generation and instead use an existing record class
+$ sqoop export --connect jdbc:mysql://localhost/hadoopguide \
+--table widgets2 -m 1 --class-name WidgetHolder \
+--jar-file WidgetHolder.jar --export-dir widget_sequence_files
+
+## prompt: 
+...
+14/10/29 12:28:17 INFO mapreduce.ExportJobBase: Exported 3 records.
+```
+
+## Miscellaneous
 
 ---
 [hadoop_data_locality_img_1]:/resources/img/java/hadoop_data_locality_1.png "Figure 2-2. Data-local (a), rack-local (b), and off-rack (c) map tasks"
@@ -4288,3 +4980,7 @@ For tuning, it is best to include a few jobs that are representative of the jobs
 [hadoop_topology_script_1]:https://wiki.apache.org/hadoop/topology_rack_awareness_scripts "Topology Scripts"
 [Hadoop Security]:http://shop.oreilly.com/product/0636920033332.do "Hadoop Security Protecting Your Big Data Platform"
 [hadoop_kerberos_img_1]:/resources/img/java/hadoop_kerberos_1.png "Figure 10-2. The three-step Kerberos ticket exchange protocol"
+[hadoop_secondary_namenode_checkpoint_img_1]:/resources/img/java/hadoop_secondary_namenode_checkpoint_1.png "Figure 11-1. The checkpointing process"
+[hadoop_sqoop_homepage_1]:http://sqoop.apache.org/ "Apache Sqoop"
+[hadoop_clob_blob_storage_img_1]:/resources/img/java/hadoop_clob_blob_storage_1.png "Figure 15-3. Large objects are usually held in a separate area of storage; the main row storage contains indirect references to the large objects"
+[Apache Sqoop Cookbook]:http://shop.oreilly.com/product/0636920029519.do "Apache Sqoop Cookbook Unlocking Hadoop for Your Relational Database"
