@@ -675,6 +675,14 @@ export SQOOP_HOME=/usr/local/
 export PATH=$PATH:$SQOOP_HOME/bin
 ```
 
+## Flume
+Download a stable release of the Flume binary distribution from the [Flume Download Page], and unpack the tarball in a suitable location:  
+```shell
+$ export FLUME_HOME=~/sw/apache-flume-x.y.z-bin
+$ export PATH=$PATH:$FLUME_HOME/bin
+```
+A Flume agent can then be started with the `flume-ng` command.
+
 ## Virtual Box        
 ### How to clone a virtual machine
 1. VirtualBox下通过复制已存在的vdi文件可以快速创建新的虚拟机
