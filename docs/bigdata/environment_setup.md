@@ -3,11 +3,15 @@
 ## Indexes
 * [Virtual Box with CentOS](#virtual-box-with-centos)
 * [Hadoop](#hadoop)
+    - [Pseudo Distrubuted Mode](#pseudo-distrubuted-mode)
+    - [Distrubuted Mode and Pseudo Distrubuted Mode together](#distrubuted-mode-and-pseudo-distrubuted-mode-together)
     - [Reset Hadoop](#reset-hadoop)
 * [Spark](#spark)  
     - [Installation issues](#spark-installation-issues)
         + [sbt installation issues](#sbt-installation-issues)
 * [Sqoop](#sqoop)
+* [Flume](#flume)
+* [Hive](#hive)
 * [Virtual Box](#virtual-box)
     - [How to clone a virtual machine](#how-to-clone-a-virtual-machine)
     - [Shared Folder with Host Machine](#shared-folder-with-host-machine)
@@ -16,7 +20,6 @@
     - [Misc](#virtualbox-misc)
 * [Miscellaneous](#miscellaneous)
     - [virtualenv](#virtualenv)
-    - 
 
 [hadoop-multi-node-setup-1]  
 [hadoop-multi-node-setup-2]  
@@ -174,7 +177,7 @@ In general, it is recommended that HDFS and YARN run as separate users. In the m
         </property>
         <property>
             <name>hadoop.tmp.dir</name>
-            <value>file:/usr/local/hadoop/tmp</value>
+            <value>file:/var/tmp/hadoop/distributed</value>
             <description>A base for other temporary directories.</description>
         </property>
         ```
@@ -190,11 +193,11 @@ In general, it is recommended that HDFS and YARN run as separate users. In the m
         </property>
         <property>
             <name>dfs.namenode.name.dir</name>
-            <value>file:/usr/local/hadoop/tmp/dfs/name</value>
+            <value>file:/usr/local/data/hadoop/distributed/dfs/name</value>
         </property>
         <property>
             <name>dfs.datanode.data.dir</name>
-            <value>file:/usr/local/hadoop/tmp/dfs/data</value>
+            <value>file:/usr/local/data/hadoop/distributed/dfs/data</value>
         </property>
         ```
         3. Edit mapred-site.xml  
@@ -421,6 +424,101 @@ Running on Master server Matthew
 stop-yarn.sh
 stop-dfs.sh
 mr-jobhistory-daemon.sh stop historyserver
+```
+
+### Pseudo Distrubuted Mode
+Differences of configuration files between Distributed Mode(as shown previously):  
+```xml
+<?xml version="1.0"?>
+<!-- core-site.xml -->
+    <!-- mandatory -->
+    <property>
+        <name>fs.defaultFS</name>
+        <value>hdfs://localhost/</value>
+    </property>
+
+    <!-- not mandatory -->
+    <property>
+        <name>hadoop.tmp.dir</name>
+        <value>file:/var/tmp/hadoop/pseudo_distributed</value>
+        <description>A base for other temporary directories.</description>
+    </property>
+
+
+<?xml version="1.0"?>
+<!-- hdfs-site.xml -->
+    <!-- mandatory -->
+    <property>
+        <name>dfs.replication</name>
+        <value>1</value>
+    </property>
+
+    <!-- not mandatory -->
+    <property>
+        <name>dfs.namenode.name.dir</name>
+        <value>file:/usr/local/data/hadoop/pseudo_distributed/dfs/name</value>
+    </property>
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <value>file:/usr/local/data/hadoop/pseudo_distributed/dfs/data</value>
+    </property>
+
+<!-- yarn-site.xml -->
+    <!-- mandatory -->
+    <property>
+        <name>yarn.resourcemanager.hostname</name>
+        <value>localhost</value>
+    </property>
+
+    <!-- not mandatory -->
+    <property>
+        <name>yarn.nodemanager.resource.cpu-vcores</name>
+        <value>1</value>
+        <description>Number of CPU cores that can be allocated for containers.</description>
+    </property>
+
+<!-- slaves -->
+localhost
+```
+Environment variables settings:  
+```shell
+export HADOOP_CONF_DIR=/home/hadoop/conf/hadoop/pseudo_distributed
+export HADOOP_LOG_DIR=/var/log/hadoop/pseudo_distributed
+```
+
+### Distrubuted Mode and Pseudo Distrubuted Mode together
+How to set up both distributed mode and pseudo distributed mode on same master server?  
+1. store all configuration or executable files under $HADOOP_HOME/etc/hadoop to separate directories, with proper settings respectively shown above   
+2. use separate directories for datadir, namedir, and tmpdir    
+```xml
+<!-- core-site.xml -->
+    <!-- not mandatory -->
+    <property>
+        <name>hadoop.tmp.dir</name>
+        <value>file:/var/tmp/hadoop/pseudo_distributed</value>
+        <description>A base for other temporary directories.</description>
+    </property>
+
+<!-- hdfs-site.xml -->
+    <!-- not mandatory -->
+    <property>
+        <name>dfs.namenode.name.dir</name>
+        <value>file:/usr/local/data/hadoop/pseudo_distributed/dfs/name</value>
+    </property>
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <value>file:/usr/local/data/hadoop/pseudo_distributed/dfs/data</value>
+    </property>
+```
+3. use separate directories for logs
+4. set up environment variables to designated configuration or log directories  
+```shell
+export HADOOP_CONF_DIR=/home/hadoop/conf/hadoop/pseudo_distributed
+export HADOOP_LOG_DIR=/var/log/hadoop/pseudo_distributed
+```
+5. format namenode at the first time    
+```shell
+    hdfs namenode -format
 ```
 
 ### Reset Hadoop
@@ -683,6 +781,48 @@ $ export PATH=$PATH:$FLUME_HOME/bin
 ```
 A Flume agent can then be started with the `flume-ng` command.
 
+## Hive
+**Prerequisite**:   
+1. version compatible as per release notes  
+2. making sure that the hadoop executable is on the path or setting the HADOOP_HOME environment variable.
+
+**Installation**:  
+1. Download a release ([Apache Hive Download]), and unpack the tarball in a suitable place on your workstation:   
+```shell
+$ tar xzf apache-hive-x.y.z-bin.tar.gz 
+```
+2. It’s handy to put Hive on your path to make it easy to launch:   
+```shell
+$ export HIVE_HOME=~/sw/apache-hive-x.y.z-bin % export PATH=$PATH:$HIVE_HOME/bin
+```
+3. initiate metastore per Hive2  
+Running hive, even though it fails, creates a metastore_db directory `in the directory from which you ran hive`:  
+    1. Before you run hive for the first time, run  
+    ```shell
+    $ schematool -initSchema -dbType derby 
+    ```
+    2. If you already ran hive and then tried to initSchema and it failed:  
+    ```shell
+    ## run this command under the directory where the initSchema was previously ran
+    $ mv metastore_db metastore_db.tmp
+    ```
+    3. Re run  
+    ```shell
+    $ schematool -initSchema -dbType derby 
+    ```
+4. Now type hive to launch the Hive shell:  
+```shell
+$ hive
+hive>
+```
+
+3 types of Hive metastore:  
+1. Embeded Derby, by default
+2. Local
+for example, use a local Mysql Server
+3. Remote  
+for example, use a remote DB Server  
+
 ## Virtual Box        
 ### How to clone a virtual machine
 1. VirtualBox下通过复制已存在的vdi文件可以快速创建新的虚拟机
@@ -906,3 +1046,4 @@ and some others
 [sbt-download-url-1]:https://github.com/sbt/sbt/releases/download/v1.0.2/sbt-1.0.2.tgz "sbt download url"
 [scala-download-url-1]:http://www.scala-lang.org/download/ "scala download url"
 [virtualbox-extend-vdi-capacity-url-1]:http://blog.csdn.net/onlysingleboy/article/details/38562283 "VirtualBox虚拟机linux(CentOS)扩容 (不破坏已有文件 增加原先设置的大小  扩容至根目录)"
+[Apache Hive Download]:http://hive.apache.org/downloads.html "Apache Hive Download"
