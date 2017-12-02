@@ -261,6 +261,22 @@
     - [Hive User-Defined Functions](#hive-user-defined-functions)
         + [Writing a UDF](#writing-a-udf)
         + [Writing a UDAF](#writing-a-udaf)
+* [20. HBase](#20-hbase)
+    - [Whirlwind Tour of the Data Model](#whirlwind-tour-of-the-data-model)
+        + [Regions](#hbase-regions)
+        + [Locking](#hbase-locking)
+    - [HBase Implementation](#hbase-implementation)
+    - [HBase Installation](#hbase-installation)
+    - [HBase Clients](#hbase-clients)
+        + [HBase Clients: Java](#hbase-clients-java)
+        + [HBase Clients: MapReduce](#hbase-clients-mapreduce)
+        + [HBase Clients: REST and Thrift](#hbase-clients-rest-and-thrift)
+    - [Building an Online Query Application](#building-an-online-query-application)
+        + [Load distribution](#load-distribution)
+        + [Bulk load](#hbase-bulk-load)
+        + [Online Queries](#hbase-online-queries)
+    - [HBase Versus RDBMS](#hbase-versus-rdbms)
+    - [HBase Praxis](#hbase-praxis)
 * [Miscellaneous](#miscellaneous)
 
 ## 1. Meet Hadoop
@@ -6350,6 +6366,591 @@ public class Mean extends UDAF {
 }
 ```
 
+## 20. HBase  
+In this chapter, we only scratched the surface of what’s possible with HBase. For more in-depth information, consult the project’s Reference Guide([Apache HBase ™ Reference Guide]), [HBase: The Definitive Guide] by Lars George (O’Reilly, 2011, new edition forthcoming), or [HBase in Action] by Nick Dimiduk and Amandeep Khurana (Manning, 2012).
+
+HBase is a `distributed column-oriented` database built on top of HDFS. HBase is the Hadoop application to use when you require `real-time read/write random access to very large datasets`.
+
+Although there are countless strategies and implementations for database storage and retrieval, most solutions—especially those of the relational variety—are not built with very large scale and distribution in mind. Many vendors offer replication and partitioning solutions to grow the database beyond the confines of a single node, but these add-ons are generally an afterthought and are complicated to install and maintain. They also severely compromise the RDBMS feature set. Joins, complex queries, triggers, views, and foreign-key constraints become prohibitively expensive to run on a scaled RDBMS, or do not work at all.
+
+HBase approaches the scaling problem from the opposite direction. It is built from the ground up to scale linearly just by adding nodes. `HBase is not relational and does not support SQL`, but given the proper problem space, it is able to do what an RDBMS cannot: `host very large, sparsely populated tables on clusters made from commodity hardware`.
+
+But see the `Apache Phoenix` project, mentioned in “SQL-on-Hadoop Alternatives” on page 484, and `Trafodion`, a transactional SQL database built on HBase.
+
+The HBase project was started toward the end of 2006 by Chad Walters and Jim Kellerman at Powerset. It was modeled after Google’s Bigtable, which had just been published. Fay Chang et al., “Bigtable: A Distributed Storage System for Structured Data,” November 2006. [Bigtable: A Distributed Storage System for Structured Data,]  
+
+### Whirlwind Tour of the Data Model
+
+Applications store data in labeled tables. Tables are made of rows and columns. `Table cells`—the intersection of row and column coordinates—are `versioned`. By default, their version is a timestamp auto-assigned by HBase at the time of cell insertion. `A cell’s content is an uninterpreted array of bytes.`
+
+![hadoop_hbase_data_model_img_1]  
+**Figure 20-1. The HBase data model, illustrated for a table storing photos**  
+
+`Table row keys are also byte arrays`, `so theoretically anything can serve as a row key`, from strings to binary representations of long or even serialized data structures. Table rows are sorted by row key, aka the `table’s primary key`. `The sort is byte-ordered`. All table accesses are via the primary key.
+
+`HBase doesn’t support indexing of other columns in the table (also known as secondary indexes). However, there are several strategies for supporting the types of query that secondary indexes provide`, each with different trade-offs between storage space, processing load, and query execution time; see the [HBase Reference Guide] for a discussion.  
+
+Row columns are grouped into column families. All column family members have a common prefix, and the column family qualifier. The column family and the qualifier are always separated by a colon character (:).  For examlpe,  the columns info:format and info:geo are both members of the info column family. 
+
+A table’s column families must be specified up front as part of the table schema definition, but `new column family members can be added on demand`. For example, a new column info:camera can be offered by a client as part of an update, and its value persisted, as long as the column family info already exists on the table.  
+
+`Physically, all column family members are stored together on the filesystem.` So although earlier we described HBase as a column-oriented store, it would be more accurate if it were described as a `column-family-oriented store`. `Because tuning and storage specifications are done at the column family level`, `it is advised that all column family members have the same general access pattern and size characteristics`. For the photos table, the image data, which is large (megabytes), is stored in a separate column family from the metadata, which is much smaller in size (kilobytes).
+
+In synopsis, HBase tables are like those in an RDBMS, only cells are versioned, rows are sorted, and columns can be added on the fly by the client as long as the column family they belong to preexists.
+
+#### HBase Regions
+Tables are automatically partitioned horizontally by HBase into regions. Each region comprises a subset of a table’s rows. `A region is denoted by the table it belongs to, its first row (inclusive), and its last row (exclusive)`. Initially, a table comprises a single region, but as the region grows it eventually crosses a configurable size threshold, at which point it splits at a row boundary into two new regions of approximately equal size. Until this first split happens, all loading will be against the single server hosting the original region. As the table grows, the number of its regions grows. `Regions are the units that get distributed over an` **HBase cluster**. In this way, a table that is too big for any one server can be carried by a cluster of servers, with each node hosting a subset of the table’s total regions. This is also the means by which the loading on a table gets distributed. The online set of sorted regions comprises the table’s total content.
+
+#### HBase Locking  
+`Row updates are atomic, no matter how many row columns constitute the row-level transaction`. This keeps the locking model simple.
+
+### HBase Implementation
+
+![hadoop_hbase_implementation_img_1]  
+Figure 20-2. HBase cluster members
+
+HBase is made up of `an HBase master node` orchestrating a cluster of one or more `regionserver workers` (see Figure 20-2). 
+
+The HBase master is responsible for bootstrapping a virgin install, for assigning regions to registered regionservers, and for recovering regionserver failures. `The master node is lightly loaded.` 
+
+The regionservers carry zero or more regions and field client read/write requests. They also `manage region splits`, informing the HBase master about the new daughter regions so it can manage the offlining of parent regions and assignment of the replacement daughters.
+
+`HBase depends on ZooKeeper` (Chapter 21), and `by default it manages a ZooKeeper instance as the authority on cluster state`, `although it can be configured to use an existing ZooKeeper cluster instead`.  
+
+The ZooKeeper ensemble `hosts vitals such as the location of the hbase:meta catalog table and the address of the current cluster master`. `Assignment of regions is mediated via ZooKeeper` in case participating servers crash mid-assignment. `Hosting the assignment transaction state in ZooKeeper` makes it so recovery can pick up on the assignment where the crashed server left off. At a minimum, when bootstrapping a client connection to an HBase cluster, the client must be passed the location of the ZooKeeper ensemble. Thereafter,` the client navigates the ZooKeeper hierarchy to learn cluster attributes such as server locations.`  
+
+Regionserver worker nodes are listed in the HBase `conf/regionservers` file, as you would list datanodes and node managers in the Hadoop etc/hadoop/slaves file. Start and stop scripts are like those in Hadoop and use the same SSH-based mechanism for running remote commands. A cluster’s site-specific configuration is done in the HBase conf/ hbase-site.xml and conf/hbase-env.sh files, which have the same format as their equivalents in the Hadoop parent project (see Chapter 10).
+
+Where there is commonality to be found, whether in a service or type, `HBase typically directly uses or subclasses the parent Hadoop implementation`. When this is not possible, HBase will follow the Hadoop model where it can.  What this means for you, the user, is that you can leverage any Hadoop familiarity in your exploration of HBase. HBase deviates from this rule only when adding its specializations.
+
+`HBase persists data via the Hadoop filesystem API. Most people using HBase run it on HDFS for storage`, though by default, and unless told otherwise, HBase writes to the local filesystem. The local filesystem is fine for experimenting with your initial HBase install, but thereafter, the first configuration made in an HBase cluster usually involves pointing HBase at the HDFS cluster it should use.
+
+Internally, HBase keeps a special catalog table named `hbase:meta`, within which it maintains the current list, state, and locations of all user-space regions afloat on the cluster. Entries in hbase:meta are `keyed by region name`, where a region name is made up of the name of the table the region belongs to, the region’s start row, its time of creation, and finally, an MD5 hash of all of these (i.e., a hash of table name, start row, and creation timestamp). Here is an example region name for a region in the table TestTable whose start row is xyz:  
+TestTable,xyz,1279729913622.1b6e176fb8d8aa88fd4ab6bc80247ece.  
+
+As noted previously, row keys are sorted, so finding the region that hosts a particular row is a matter of a lookup to find the largest entry whose key is less than or equal to that of the requested row key. As regions transition—are split, disabled, enabled, deleted, or redeployed by the region load balancer, or redeployed due to a regionserver crash— the catalog table is updated so the state of all regions on the cluster is kept current.
+
+Fresh clients connect to the ZooKeeper cluster first to learn the location of hbase:meta. The client then does a lookup against the appropriate hbase:meta region to figure out the hosting user-space region and its location. Thereafter, the client interacts directly with the hosting regionserver.
+
+To save on having to make three round-trips per row operation, `clients cache all they learn while doing lookups for hbase:meta.` They cache locations as well as user-space region start and stop rows, so they can figure out hosting regions themselves without having to go back to the hbase:meta table. `Clients continue to use the cached entries as they work, until there is a fault`. When this happens—i.e., when the region has moved— the client consults the hbase:meta table again to learn the new location. If the consulted hbase:meta region has moved, then ZooKeeper is reconsulted.
+
+Writes arriving at a regionserver are first appended to a `commit log` and then added to an `in-memory memstore`. When a memstore fills, its content is flushed to the filesystem.
+
+`The commit log is hosted on HDFS`, so it remains available through a regionserver crash. When the master notices that a regionserver is no longer reachable, usually because the server’s znode has expired in ZooKeeper, it splits the dead regionserver’s commit log by region. On reassignment and before they reopen for business, regions that were on the dead regionserver will pick up their just-split files of not-yet-persisted edits and replay them to bring themselves up to date with the state they had just before the failure.
+
+When reading, the region’s memstore is consulted first. If `sufficient versions` are found reading memstore alone, the query completes there. Otherwise, flush files are consulted in order, from newest to oldest, either until versions sufficient to satisfy the query are found or until we run out of flush files.
+
+`A background process compacts flush files` once their number has exceeded a threshold, rewriting many files as one, because the fewer files a read consults, the more performant it will be. On compaction, the process cleans out versions beyond the schemaconfigured maximum and removes deleted and expired cells. `A separate process running in the regionserver monitors flush file sizes, splitting the region` when they grow in excess of the configured maximum.
+
+### HBase Installation
+
+1. Download a stable release from [Apache HBase Download] and unpack it on your local filesystem
+2. JAVA_HOME environment variable is set properly.
+3. hbase environment variables
+```shell
+$ export HBASE_HOME=/usr/local/hbase
+$ export PATH=$PATH:$HBASE_HOME/bin
+```
+4. change setting to prevent zookeeper error  
+```html
+2017-12-02 14:44:32,056 ERROR [main] zookeeper.RecoverableZooKeeper: ZooKeeper exists failed after 4 attempts
+2017-12-02 14:44:32,059 WARN  [main] zookeeper.ZKUtil: hconnection-0x544e81490x0, quorum=localhost:2181, baseZNode=/hbase Unable to set watcher on znode (/hbase/hbaseid)
+org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase/hbaseid
+```
+```xml
+<configuration>
+  <property>
+    <name>hbase.rootdir</name>
+    <value>file:///usr/local/hbase</value>
+  </property>
+  <property>
+    <name>hbase.zookeeper.property.clientPort</name>
+    <value>2182</value>
+  </property>
+  <property>
+    <name>hbase.zookeeper.property.dataDir</name>
+    <value>/usr/local/hbase/zookeeper</value>
+  </property>
+  <property>
+    <name>hbase.master</name>
+    <value>localhost:60000</value>
+    <description>The host and port that the HBase master runs at.</description>
+  </property>
+</configuration>
+```
+
+To start a standalone instance of HBase that uses a temporary directory on the local filesystem for persistence, use this:  
+```shell
+$ start-hbase.sh
+```
+By default, HBase writes to `/${java.io.tmpdir}/hbase-${user.name}`.  `hbase.tmp.dir` in hbase-site.xml. 
+
+In standalone mode, the HBase master, the regionserver, and a ZooKeeper instance are all run in the same JVM.  
+
+To administer your HBase instance, launch the HBase shell as follows:
+```html
+$ hbase shell
+HBase Shell; enter 'help<RETURN>' for list of supported commands.
+Type "exit<RETURN>" to leave the HBase Shell
+Version 0.98.7-hadoop2, r800c23e2207aa3f9bddb7e9514d8340bcfb89277, Wed Oct 8
+15:58:11 PDT 2014
+hbase(main):001:0>
+```
+This will bring up a JRuby IRB interpreter that has had some HBase-specific commands added to it.  
+
+To create a table, you must name your table and define its schema. `A table’s schema comprises table attributes and the list of table column families`. Column families themselves have attributes that you in turn set at schema definition time. Examples of column family attributes include whether the family content should be compressed on the filesystem and how many versions of a cell to keep. Schemas can be edited later by offlining the table using the shell disable command, making the necessary alterations using alter, then putting the table back online with enable.
+
+To create a table named test with a single column family named data using defaults for table and column family attributes, enter:  
+```sql
+hbase(main):001:0> create 'test', 'data'
+0 row(s) in 0.9810 seconds
+
+hbase(main):002:0> list
+TABLE
+test
+1 row(s) in 0.0260 seconds
+```
+
+See the `help` output for examples of adding table and column family attributes when specifying a schema.
+
+To insert data into three different rows and columns in the data column family, get the first row, and then list the table content, do the following:
+```shell
+hbase(main):001:0> put 'test', 'row1', 'data:1', 'value1'
+0 row(s) in 1.1020 seconds
+
+hbase(main):002:0> put 'test', 'row2', 'data:2', 'value2'
+0 row(s) in 0.1030 seconds
+
+hbase(main):003:0> put 'test', 'row3', 'data:3', 'value3'
+0 row(s) in 0.0460 seconds
+
+hbase(main):004:0> get 'test', 'row1'
+COLUMN                               CELL                                                                                                    
+ data:1                              timestamp=1512201377001, value=value1                                                                   
+1 row(s) in 0.1900 seconds
+
+hbase(main):005:0> scan 'test'
+ROW                                  COLUMN+CELL                                                                                             
+ row1                                column=data:1, timestamp=1512201377001, value=value1                                                    
+ row2                                column=data:2, timestamp=1512201402962, value=value2                                                    
+ row3                                column=data:3, timestamp=1512201414233, value=value3                                                    
+3 row(s) in 0.1780 seconds
+```
+Notice how we added three new columns without changing the schema.  
+To remove the table, you must first disable it before dropping it:  
+```shell
+hbase(main):006:0> disable 'test'
+0 row(s) in 2.7610 seconds
+
+hbase(main):007:0> drop 'test'
+0 row(s) in 1.3920 seconds
+
+hbase(main):008:0> list
+TABLE                                                                                                                                        
+0 row(s) in 0.0360 seconds
+
+=> []
+```
+
+Shut down your HBase instance by running:
+```shell
+$ stop-hbase.sh
+```
+
+### HBase Clients
+
+#### HBase Clients: Java
+HBase, like Hadoop, is written in Java. Example 20-1 shows the Java version of how you
+would do the shell operations listed in the previous section.
+```java
+public class ExampleClient {
+    public static void main(String[] args) throws IOException {
+        Configuration config = HBaseConfiguration.create();
+        // Create table
+        HBaseAdmin admin = new HBaseAdmin(config);
+        try {
+            TableName tableName = TableName.valueOf("test");
+            HTableDescriptor htd = new HTableDescriptor(tableName);
+            HColumnDescriptor hcd = new HColumnDescriptor("data");
+            htd.addFamily(hcd);
+            admin.createTable(htd);
+            HTableDescriptor[] tables = admin.listTables();
+            if (tables.length != 1 &&
+                Bytes.equals(tableName.getName(), tables[0].getTableName().getName())) {
+                throw new IOException("Failed create of table");
+            }
+            // Run some operations -- three puts, a get, and a scan -- against the table.
+            HTable table = new HTable(config, tableName);
+            try {
+                for (int i = 1; i <= 3; i++) {
+                    byte[] row = Bytes.toBytes("row" + i);
+                    Put put = new Put(row);
+                    byte[] columnFamily = Bytes.toBytes("data");
+                    byte[] qualifier = Bytes.toBytes(String.valueOf(i));
+                    byte[] value = Bytes.toBytes("value" + i);
+                    put.add(columnFamily, qualifier, value);
+                    table.put(put);
+                }
+                Get get = new Get(Bytes.toBytes("row1"));
+                Result result = table.get(get);
+                System.out.println("Get: " + result);
+                Scan scan = new Scan();
+                ResultScanner scanner = table.getScanner(scan);
+                try {
+                    for (Result scannerResult : scanner) {
+                        System.out.println("Scan: " + scannerResult);
+                    }
+                } finally {
+                    scanner.close();
+                }
+                // Disable then drop the table
+                admin.disableTable(tableName);
+                admin.deleteTable(tableName);
+            } finally {
+                table.close();
+            }
+        } finally {
+            admin.close();
+        }
+    }
+}
+```
+Most of the HBase classes are found in the `org.apache.hadoop.hbase` and `org.apache.hadoop.hbase.client` packages.  
+
+From HBase 1.0, there is a new client API. In their place, clients should use the new ConnectionFactory class to create a Connection object, then call getAdmin() or getTable() to retrieve an Admin or Table instance, as appropriate.  
+
+HBase scanners are like cursors in a traditional database or Java iterators, except—unlike the latter—they have to be closed after use.  
+In the Scan instance, you can pass the row at which to start and stop the scan, which columns in a row to return in the row result, and a filter to run on the server side.  
+Scanners will, under the covers, fetch batches of 100 rows at a time, bringing them client-side and returning to the server to fetch the next batch only after the current batch has been exhausted. `hbase.client.scanner.caching`
+Alternatively, you can set how many rows to cache on the Scan instance itself via the setCaching() method.   
+Higher caching values will enable faster scanning but will eat up more memory in the client. `Also, avoid setting the caching so high that the time spent processing the batch client-side exceeds the scanner timeout period`. `If a client fails to check back with the server before the scanner timeout expires, the server will go ahead and garbage collect resources consumed by the scanner server-side.` The default scanner timeout is 60 seconds, and can be changed by setting hbase.client.scanner.timeout.period. Clients will see an UnknownScannerException if the scanner timeout has expired.
+
+```shell
+$ mvn package
+$ export HBASE_CLASSPATH=hbase-examples.jar
+$ hbase ExampleClient
+Get: keyvalues={row1/data:1/1414932826551/Put/vlen=6/mvcc=0}
+Scan: keyvalues={row1/data:1/1414932826551/Put/vlen=6/mvcc=0}
+Scan: keyvalues={row2/data:2/1414932826564/Put/vlen=6/mvcc=0}
+Scan: keyvalues={row3/data:3/1414932826566/Put/vlen=6/mvcc=0}
+```
+
+#### HBase Clients: MapReduce
+HBase classes and utilities in the org.apache.hadoop.hbase.mapreduce package facilitate using HBase as a source and/or sink in MapReduce jobs. The **TableInputFormat** class makes splits on region boundaries so maps are handed a single region to work on. The **TableOutputFormat** will write the result of the reduce into HBase.  
+
+```java
+public class SimpleRowCounter extends Configured implements Tool {
+    static class RowCounterMapper extends TableMapper<ImmutableBytesWritable, Result> {
+        public static enum Counters { ROWS }
+        @Override
+        public void map(ImmutableBytesWritable row, Result value, Context context) {
+            context.getCounter(Counters.ROWS).increment(1);
+        }
+    }
+    @Override
+    public int run(String[] args) throws Exception {
+        if (args.length != 1) {
+            System.err.println("Usage: SimpleRowCounter <tablename>");
+            return -1;
+        }
+        String tableName = args[0];
+        Scan scan = new Scan();
+        scan.setFilter(new FirstKeyOnlyFilter());
+        Job job = new Job(getConf(), getClass().getSimpleName());
+        job.setJarByClass(getClass());
+        TableMapReduceUtil.initTableMapperJob(tableName, scan,
+            RowCounterMapper.class, ImmutableBytesWritable.class, Result.class, job);
+        job.setNumReduceTasks(0);
+        job.setOutputFormatClass(NullOutputFormat.class);
+        return job.waitForCompletion(true) ? 0 : 1;
+    }
+    public static void main(String[] args) throws Exception {
+        int exitCode = ToolRunner.run(HBaseConfiguration.create(),
+            new SimpleRowCounter(), args);
+        System.exit(exitCode);
+    }
+}
+```
+
+The RowCounterMapper nested class is a subclass of the HBase TableMapper abstract class, a specialization of org.apache.hadoop.mapreduce.Mapper that sets the map input types passed by `TableInputFormat`. Input keys are ImmutableBytesWritable objects (row keys), and values are Result objects (row results from a scan).   
+
+For large tables the MapReduce program is preferable.  
+
+#### HBase Clients: REST and Thrift
+HBase ships with REST and Thrift interfaces. These are useful when the interacting application is written in a language other than Java. In both cases, `a Java server hosts an instance of the HBase client brokering REST and Thrift application requests` into and out of the HBase cluster. Consult the Reference Guide for information on running the services, and the client interfaces.  
+
+### Building an Online Query Application
+The existing weather dataset described in previous chapters contains observations for tens of thousands of stations over 100 years, and this data is growing without bound.
+
+For the sake of this example, let us allow that the dataset is massive, that the observations run to the billions, and that the rate at which temperature updates arrive is significant —say, hundreds to thousands of updates per second from around the world and across the whole range of weather stations. Also, let us allow that it is a requirement that the online application must display the most up-to-date observation within a second or so of receipt.   
+
+The first size requirement should preclude our use of a simple RDBMS instance and make HBase a candidate store. The second latency requirement rules out plain HDFS. A MapReduce job could build initial indices that allowed random access over all of the observation data, but keeping up this index as the updates arrive is not what HDFS and MapReduce are good at.
+
+In our example, there will be two tables:   
+* stations  
+This table holds station data. Let the `row key be the stationid`. Let this table have `a column family info` that acts as a key-value dictionary for station information. Let the dictionary keys be the column names info:name, info:location, and info:description. This table is static, and in this case, the info family closely mirrors a typical RDBMS table design.  
+* observations  
+This table holds temperature observations. Let the `row key be a composite key of stationid plus a reverse-order timestamp`(Long.MAX_VALUE - timestamp). Give this table `a column family data` that will contain `one column, airtemp`, with the observed temperature as the column value.
+
+We rely on the fact that station IDs are a fixed length. In some cases, you will need to zero-pad number components so row keys sort properly. Otherwise, you will run into the issue where 10 sorts before 2, say, when only the byte order is considered (02 sorts before 10). Also, if your keys are integers, use a binary representation rather than persisting the string version of a number. The former consumes less space.
+
+In the shell, define the tables as follows:  
+```shell
+hbase(main):001:0> create 'stations', {NAME => 'info'}
+0 row(s) in 0.9600 seconds
+
+hbase(main):002:0> create 'observations', {NAME => 'data'}
+0 row(s) in 0.1770 seconds
+```
+
+All access in HBase is via primary key, so the key design should lend itself to how the data is going to be queried. One thing to keep in mind when designing schemas is that a defining attribute of column(-family)-oriented stores, such as HBase, is `the ability to host wide and sparsely populated tables at no incurred cost`. 
+
+`See Daniel J. Abadi, “Column-Stores for Wide and Sparse Data,” January 2007`.
+
+There is no native database join facility in HBase, but wide tables can make it so that there is no need for database joins to pull from secondary or tertiary tables. A wide row can sometimes be made to hold all data that pertains to a particular primary key.
+
+`There are a relatively small number of stations, so their static data is easily inserted using any of the available interfaces`. The example code includes a Java application for doing this, which is run as follows:  
+```shell
+$ hbase HBaseStationImporter input/ncdc/metadata/stations-fixed-width.txt
+```
+
+However, let’s assume that there are billions of individual observations to be loaded. This kind of import is normally an extremely complex and long-running database operation, but MapReduce and HBase’s distribution model allow us to make full use of the cluster. `We’ll copy the raw input data onto HDFS, and then run a MapReduce job that can read the input and write to HBase`.
+
+**Example 20-3. A MapReduce application to import temperature data from HDFS into an HBase table**  
+```java
+public class HBaseTemperatureImporter extends Configured implements Tool {
+    static class HBaseTemperatureMapper<K> extends Mapper<LongWritable, Text, K, Put> {
+        private NcdcRecordParser parser = new NcdcRecordParser();
+        @Override
+        public void map(LongWritable key, Text value, Context context) throws
+        IOException, InterruptedException {
+            parser.parse(value.toString());
+            if (parser.isValidTemperature()) {
+                byte[] rowKey = RowKeyConverter.makeObservationRowKey(parser.getStationId(),
+                    parser.getObservationDate().getTime());
+                Put p = new Put(rowKey);
+                // HBaseTemperatureQuery.DATA_COLUMNFAMILY = data
+                // HBaseTemperatureQuery.AIRTEMP_QUALIFIER = airtemp
+                p.add(HBaseTemperatureQuery.DATA_COLUMNFAMILY,
+                    HBaseTemperatureQuery.AIRTEMP_QUALIFIER,
+                    Bytes.toBytes(parser.getAirTemperature()));
+                context.write(null, p);
+            }
+        }
+    }
+    @Override
+    public int run(String[] args) throws Exception {
+        if (args.length != 1) {
+            System.err.println("Usage: HBaseTemperatureImporter <input>");
+            return -1;
+        }
+        Job job = new Job(getConf(), getClass().getSimpleName());
+        job.setJarByClass(getClass());
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        job.getConfiguration().set(TableOutputFormat.OUTPUT_TABLE, "observations");
+        job.setMapperClass(HBaseTemperatureMapper.class);
+        job.setNumReduceTasks(0);
+        job.setOutputFormatClass(TableOutputFormat.class);
+        return job.waitForCompletion(true) ? 0 : 1;
+    }
+    public static void main(String[] args) throws Exception {
+        int exitCode = ToolRunner.run(HBaseConfiguration.create(),
+            new HBaseTemperatureImporter(), args);
+        System.exit(exitCode);
+    }
+}
+
+public class RowKeyConverter {
+    private static final int STATION_ID_LENGTH = 12;
+    /**
+    * @return A row key whose format is: <station_id> <reverse_order_timestamp>
+    */
+    public static byte[] makeObservationRowKey(String stationId,
+        long observationTime) {
+        byte[] row = new byte[STATION_ID_LENGTH + Bytes.SIZEOF_LONG];
+        Bytes.putBytes(row, 0, Bytes.toBytes(stationId), 0, STATION_ID_LENGTH);
+        long reverseOrderTimestamp = Long.MAX_VALUE - observationTime;
+        Bytes.putLong(row, STATION_ID_LENGTH, reverseOrderTimestamp);
+        return row;
+    }
+}
+```
+It’s convenient to use **TableOutputFormat** since it manages the creation of an HTable instance for us, which otherwise we would do in the mapper’s setup() method (along with a call to close() in the cleanup() method). TableOutputFormat also disables the HTable auto-flush feature, so that `calls to put() are buffered for greater efficiency`.
+
+```shell
+$ hbase HBaseTemperatureImporter input/ncdc/all
+```
+
+#### Load distribution
+
+Watch for the phenomenon where an import walks in lockstep through the table, with all clients in concert pounding one of the table’s regions (and thus, a single node), then moving on to the next, and so on, rather than evenly distributing the load over all regions. This is usually brought on by some interaction between sorted input and how the splitter works. `Randomizing the ordering of your row keys prior to insertion may help`. In our example, given the distribution of stationid values and how TextInput Format makes splits, the upload should be sufficiently distributed.  
+
+If a table is new, it will have only one region, and all updates will be to this single region until it splits. This will happen even if row keys are randomly distributed. This startup phenomenon means uploads run slowly at first, until there are sufficient regions distributed so all cluster members are able to participate in the uploads. Do not confuse this phenomenon with that noted in the previous paragraph. Both of these problems can be avoided by using bulk loads.
+
+#### HBase Bulk load
+HBase has an efficient facility for bulk loading HBase by writing its internal data format directly into the filesystem from MapReduce. Going this route, it’s possible to load an HBase instance `at rates that are an order of magnitude or more beyond those attainable by writing via the HBase client API`.
+
+Bulk loading is a two-step process.  
+* The first step uses **HFileOutputFormat2** to write HFiles to an HDFS directory using a MapReduce job.  
+Since rows have to be written in order, the job must perform a total sort (see “Total Sort” on page 259) of the row keys. The configureIncrementalLoad() method of HFileOutputFormat2 does all the necessary configuration for you.  
+* The second step of the bulk load involves moving the HFiles from HDFS into an existing HBase table.  
+The table can be live during this process. The example code includes a class called HBaseTemperatureBulkImporter for loading the observation data using a bulk load.
+
+#### HBase Online Queries
+To implement the online query application, we will use the HBase Java API directly.
+
+**Station queries**  
+```java
+static final byte[] INFO_COLUMNFAMILY = Bytes.toBytes("info");
+static final byte[] NAME_QUALIFIER = Bytes.toBytes("name");
+static final byte[] LOCATION_QUALIFIER = Bytes.toBytes("location");
+static final byte[] DESCRIPTION_QUALIFIER = Bytes.toBytes("description");
+public Map<String, String> getStationInfo(HTable table, String stationId)
+throws IOException {
+    Get get = new Get(Bytes.toBytes(stationId));
+    get.addFamily(INFO_COLUMNFAMILY);
+    Result res = table.get(get);
+    if (res == null) {
+        return null;
+    }
+    Map<String, String> resultMap = new LinkedHashMap<String, String>();
+    resultMap.put("name", getValue(res, INFO_COLUMNFAMILY, NAME_QUALIFIER));
+    resultMap.put("location", getValue(res, INFO_COLUMNFAMILY,
+        LOCATION_QUALIFIER));
+    resultMap.put("description", getValue(res, INFO_COLUMNFAMILY,
+        DESCRIPTION_QUALIFIER));
+    return resultMap;
+}
+private static String getValue(Result res, byte[] cf, byte[] qualifier) {
+    byte[] value = res.getValue(cf, qualifier);
+    return value == null? "": Bytes.toString(value);
+}
+```
+We can already see how there is a need for utility functions when using HBase. `There are an increasing number of abstractions being built atop HBase to deal with this lowlevel interaction`, but it’s important to understand how this works and how storage choices make a difference.
+
+`One of the strengths of HBase over a relational database is that you don’t have to specify all the columns up front`. So, if each station now has at least these three attributes but there are hundreds of optional ones, `in the future we can just insert them without modifying the schema`. (Our application’s reading and writing code would, of course, need to be changed. The example code might change in this case to looping through Result rather than grabbing each value explicitly.)
+
+**Observation queries**  
+Queries of the observations table take the form of a station ID, a start time, and a maximum number of rows to return.
+```java
+public class HBaseTemperatureQuery extends Configured implements Tool {
+    static final byte[] DATA_COLUMNFAMILY = Bytes.toBytes("data");
+    static final byte[] AIRTEMP_QUALIFIER = Bytes.toBytes("airtemp");
+    public NavigableMap<Long, Integer> getStationObservations(HTable table,
+        String stationId, long maxStamp, int maxCount) throws IOException {
+        byte[] startRow = RowKeyConverter.makeObservationRowKey(stationId, maxStamp);
+        NavigableMap<Long, Integer> resultMap = new TreeMap<Long, Integer>();
+        Scan scan = new Scan(startRow);
+        scan.addColumn(DATA_COLUMNFAMILY, AIRTEMP_QUALIFIER);
+        ResultScanner scanner = table.getScanner(scan);
+        try {
+            Result res;
+            int count = 0;
+            while ((res = scanner.next()) != null && count++ < maxCount) {
+                byte[] row = res.getRow();
+                byte[] value = res.getValue(DATA_COLUMNFAMILY, AIRTEMP_QUALIFIER);
+                Long stamp = Long.MAX_VALUE -
+                    Bytes.toLong(row, row.length - Bytes.SIZEOF_LONG, Bytes.SIZEOF_LONG);
+                Integer temp = Bytes.toInt(value);
+                resultMap.put(stamp, temp);
+            }
+        } finally {
+            scanner.close();
+        }
+        return resultMap;
+    }
+    public int run(String[] args) throws IOException {
+        if (args.length != 1) {
+            System.err.println("Usage: HBaseTemperatureQuery <station_id>");
+            return -1;
+        }
+        HTable table = new HTable(HBaseConfiguration.create(getConf()), "observations");
+        try {
+            NavigableMap<Long, Integer> observations =
+            getStationObservations(table, args[0], Long.MAX_VALUE, 10).descendingMap();
+            for (Map.Entry<Long, Integer> observation : observations.entrySet()) {
+            // Print the date, time, and temperature
+                System.out.printf("%1$tF %1$tR\t%2$s\n", observation.getKey(),
+                    observation.getValue());
+            }
+            return 0;
+        } finally {
+            table.close();
+        }
+    }
+    public static void main(String[] args) throws Exception {
+        int exitCode = ToolRunner.run(HBaseConfiguration.create(),
+            new HBaseTemperatureQuery(), args);
+        System.exit(exitCode);
+    }
+}
+```
+
+```shell
+$ hbase HBaseTemperatureQuery 011990-99999
+1902-12-31 20:00 -106
+1902-12-31 13:00 -83
+1902-12-30 20:00 -78
+...
+```
+
+If the observations were stored with the actual timestamps(not in reverse order), we would be able to get only the oldest observations for a given offset and limit efficiently. Getting the newest would mean getting all of the rows and then grabbing the newest off the end. It’s much more efficient to get the first n rows, then exit the scanner (this is sometimes called an “earlyout” scenario).
+
+HBase 0.98 added the ability to do reverse scans, which means it is now possible to store observations in chronological order and scan backward from a given starting row. `Reverse scans are a few percent slower than forward scans`. To reverse a scan, call setRe versed(true) on the Scan object before starting the scan.
+
+### HBase Versus RDBMS
+Strictly speaking, an RDBMS is a database that follows [Codd’s 12 rules].
+
+Here is a synopsis of how the typical RDBMS scaling story runs. The following list presumes a successful growing service:  
+* Initial public launch  
+Move from local workstation to a shared, remotely hosted MySQL instance with a well-defined schema.
+* Service becomes more popular; too many reads hitting the database  
+Add **memcached** to cache common queries. Reads are now no longer strictly ACID; cached data must expire.
+* Service continues to grow in popularity; too many writes hitting the database  
+Scale MySQL vertically by buying a beefed-up server with 16 cores, 128 GB of RAM, and banks of 15k RPM hard drives. Costly.
+* New features increase query complexity; now we have too many joins  
+Denormalize your data to reduce joins. (That’s not what they taught me in DBA school!)
+* Rising popularity swamps the server; things are too slow  
+Stop doing any server-side computations.  
+* Some queries are still too slow  
+Periodically prematerialize the most complex queries, and try to stop joining in most cases.  
+* Reads are OK, but writes are getting slower and slower  
+Drop secondary indexes and triggers (no indexes?).   
+
+At this point, there are no clear solutions for how to solve your scaling problems. In any case, `you’ll need to begin to scale horizontally`. You can attempt to build some type of partitioning on your largest tables, or look into some of the commercial solutions that provide multiple master capabilities.  
+
+Countless applications, businesses, and websites have successfully achieved scalable, fault-tolerant, and distributed data systems built on top of RDBMSs and are likely using many of the previous strategies. But what you end up with is something that is no longer a true RDBMS, sacrificing features and conveniences for compromises and complexities. `Any form of slave replication or external caching introduces weak consistency into your now denormalized data`. `The inefficiency of joins and secondary indexes means almost all queries become primary key lookups`. `A multiwriter setup likely means no real joins at all`, and `distributed transactions are a nightmare`. There’s now an incredibly complex network topology to manage with an entirely separate cluster for caching. Even with this system and the compromises made, you will still worry about your primary master crashing and the daunting possibility of having 10 times the data and 10 times the load in a few months.
+
+**Enter HBase, which has the following characteristics**:  
+* No real indexes  
+Rows are stored sequentially, as are the columns within each row. Therefore, no issues with index bloat, and insert performance is independent of table size.  
+* Automatic partitioning  
+As your tables grow, they will automatically be split into regions and distributed across all available nodes.
+* Scale linearly and automatically with new nodes  
+Add a node, point it to the existing cluster, and run the regionserver. `Regions will automatically rebalance`, and load will spread evenly.
+* Commodity hardware  
+Clusters are built on $1,000–$5,000 nodes rather than $50,000 nodes. RDBMSs are I/O hungry, requiring more costly hardware.
+* Fault tolerance  
+Lots of nodes means each is relatively insignificant. No need to worry about individual node downtime.  
+* Batch processing  
+MapReduce integration allows fully parallel, distributed jobs against your data with locality awareness.  
+
+### HBase Praxis
+HBase’s use of HDFS is very different from how it’s used by MapReduce. In MapReduce, generally, HDFS files are opened with their content streamed through a map task and then closed.` In HBase, datafiles are opened on cluster startup and kept open so that we avoid paying the costs associated with opening files on each access`. Because of this, HBase tends to see issues not normally encountered by MapReduce clients:  
+* Running out of file descriptors  
+Because we keep files open, on a loaded cluster it doesn’t take long before we run into system- and Hadoop-imposed limits.  
+`The default limit on the number of file descriptors per process is 1,024. When we exceed the filesystem ulimit, we’ll see the complaint about “Too many open files” in logs`, but often we’ll first see indeterminate behavior in HBase. The fix requires increasing the file descriptor ulimit count; 10,240 is a common setting. Consult the HBase Reference Guide for how to increase the ulimit on your cluster.
+* Running out of datanode threads  
+Similarly, the Hadoop datanode has an upper bound on the number of threads it can run at any one time. Hadoop 1 had a low default of 256 for this setting (dfs.da tanode.max.xcievers), which would cause HBase to behave erratically. Hadoop 2 increased the default to 4,096, so you are much less likely to see a problem for recent versions of HBase (which only run on Hadoop 2 and later). You can change the setting by configuring `dfs.datanode.max.transfer.threads` (the new name for this property) in hdfs-site.xml
+
+HBase runs a web server on the master to present a view on the state of your running cluster. By default, it listens on port 60010.  
+
+Hadoop has a metrics system that can be used to emit vitals over a period to a context (this is covered in “Metrics and JMX” on page 331). Enabling Hadoop metrics, and in particular tying them to Ganglia or emitting them via JMX, will give you views on what is happening on your cluster, both currently and in the recent past. HBase also adds metrics of its own—request rates, counts of vitals, resources used. See the file hadoopmetrics2- hbase.properties under the HBase conf directory.
+
+At StumbleUpon, the first production feature deployed on HBase was keeping counters for the stumbleupon.com frontend. Counters were previously kept in MySQL, but the rate of change was such that drops were frequent, and the load imposed by the counter writes was such that web designers self imposed limits on what was counted. Using the incrementColumnValue() method on HTable, counters can be incremented many thousands of times a second.  
+
+
+
 ## Miscellaneous
 
 ---
@@ -6396,3 +6997,12 @@ public class Mean extends UDAF {
 [Apache Impala]:http://impala.apache.org/ "Apache Impala"
 [hadoop_hive_udaf_flow_img_1]:/resources/img/java/hadoop_hive_udaf_flow_1.png "Figure 17-3. Data flow with partial results for a UDAF"
 [Programming Hive]:http://shop.oreilly.com/product/0636920023555.do "Programming Hive Data Warehouse and Query Language for Hadoop"
+[Bigtable: A Distributed Storage System for Structured Data,]:http://research.google.com/archive/bigtable.html "Bigtable: A Distributed Storage System for Structured Data"  
+[hadoop_hbase_data_model_img_1]:/resources/img/java/hadoop_hbase_data_model_1.png "Figure 20-1. The HBase data model, illustrated for a table storing photos"
+[HBase Reference Guide]:http://hbase.apache.org/book.html "HBase Reference Guide"
+[hadoop_hbase_implementation_img_1]:/resources/img/java/hadoop_hbase_implementation_1.png "Figure 20-2. HBase cluster members"
+[Apache HBase Download]: http://www.apache.org/dyn/closer.cgi/hbase/ "Apache HBase Download"
+[Codd’s 12 rules]:https://en.wikipedia.org/wiki/Codd%27s_12_rules "Codd’s 12 rules"
+[Apache HBase ™ Reference Guide]:http://hbase.apache.org/book.html "Apache HBase ™ Reference Guide"
+[HBase: The Definitive Guide]:http://shop.oreilly.com/product/0636920014348.do "HBase: The Definitive Guide Random Access to Your Planet-Size Data"
+[HBase in Action]:https://www.manning.com/books/hbase-in-action "HBase in Action"

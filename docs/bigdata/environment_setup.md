@@ -12,6 +12,7 @@
 * [Sqoop](#sqoop)
 * [Flume](#flume)
 * [Hive](#hive)
+* [HBase](#hbase)
 * [Virtual Box](#virtual-box)
     - [How to clone a virtual machine](#how-to-clone-a-virtual-machine)
     - [Shared Folder with Host Machine](#shared-folder-with-host-machine)
@@ -823,7 +824,68 @@ for example, use a local Mysql Server
 3. Remote  
 for example, use a remote DB Server  
 
-## Virtual Box        
+## HBase 
+1. Download a stable release from [Apache HBase Download] and unpack it on your local filesystem
+2. JAVA_HOME environment variable is set properly.
+3. hbase environment variables
+```shell
+$ export HBASE_HOME=/usr/local/hbase
+$ export PATH=$PATH:$HBASE_HOME/bin
+```
+4. change setting to prevent zookeeper error  
+```html
+2017-12-02 14:44:32,056 ERROR [main] zookeeper.RecoverableZooKeeper: ZooKeeper exists failed after 4 attempts
+2017-12-02 14:44:32,059 WARN  [main] zookeeper.ZKUtil: hconnection-0x544e81490x0, quorum=localhost:2181, baseZNode=/hbase Unable to set watcher on znode (/hbase/hbaseid)
+org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase/hbaseid
+```
+```xml
+<configuration>
+  <property>
+    <name>hbase.rootdir</name>
+    <value>file:///usr/local/hbase</value>
+  </property>
+  <property>
+    <name>hbase.zookeeper.property.clientPort</name>
+    <value>2182</value>
+  </property>
+  <property>
+    <name>hbase.zookeeper.property.dataDir</name>
+    <value>/usr/local/hbase/zookeeper</value>
+  </property>
+  <property>
+    <name>hbase.master</name>
+    <value>localhost:60000</value>
+    <description>The host and port that the HBase master runs at.</description>
+  </property>
+</configuration>
+```
+
+To start a standalone instance of HBase that uses a temporary directory on the local filesystem for persistence, use this:  
+```shell
+$ start-hbase.sh
+```
+By default, HBase writes to `/${java.io.tmpdir}/hbase-${user.name}`.  `hbase.tmp.dir` in hbase-site.xml. 
+
+In standalone mode, the HBase master, the regionserver, and a ZooKeeper instance are all run in the same JVM.  
+
+To administer your HBase instance, launch the HBase shell as follows:
+```html
+$ hbase shell
+HBase Shell; enter 'help<RETURN>' for list of supported commands.
+Type "exit<RETURN>" to leave the HBase Shell
+Version 0.98.7-hadoop2, r800c23e2207aa3f9bddb7e9514d8340bcfb89277, Wed Oct 8
+15:58:11 PDT 2014
+hbase(main):001:0>
+```
+This will bring up a JRuby IRB interpreter that has had some HBase-specific commands added to it.
+
+Shut down your HBase instance by running:
+```shell
+$ stop-hbase.sh
+```
+
+
+## Virtual Box
 ### How to clone a virtual machine
 1. VirtualBox下通过复制已存在的vdi文件可以快速创建新的虚拟机
     1. 点击新建(ctrl + n)
@@ -1047,3 +1109,4 @@ and some others
 [scala-download-url-1]:http://www.scala-lang.org/download/ "scala download url"
 [virtualbox-extend-vdi-capacity-url-1]:http://blog.csdn.net/onlysingleboy/article/details/38562283 "VirtualBox虚拟机linux(CentOS)扩容 (不破坏已有文件 增加原先设置的大小  扩容至根目录)"
 [Apache Hive Download]:http://hive.apache.org/downloads.html "Apache Hive Download"
+[Apache HBase Download]: http://www.apache.org/dyn/closer.cgi/hbase/ "Apache HBase Download"
