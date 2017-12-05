@@ -13,6 +13,7 @@
 * [Flume](#flume)
 * [Hive](#hive)
 * [HBase](#hbase)
+* [git](#git)
 * [Virtual Box](#virtual-box)
     - [How to clone a virtual machine](#how-to-clone-a-virtual-machine)
     - [Shared Folder with Host Machine](#shared-folder-with-host-machine)
@@ -30,6 +31,10 @@
 Version: 5.1.28  
 2. Download latest CentOS ISO: [centos-download]
 Version: CentOS-7 (1708)
+```shell
+$ cat /etc/redhat-release
+CentOS Linux release 7.4.1708 (Core) 
+```
 3. install CentOS on VirtualBox
     1. follow [install-centos-on-virtualbox], which uses CentOS6.4    
     2. Different settings between CentOS6.4 and CentOS7
@@ -884,6 +889,102 @@ Shut down your HBase instance by running:
 $ stop-hbase.sh
 ```
 
+## git 
+https://stackoverflow.com/questions/21820715/how-to-install-latest-version-of-git-on-centos-6-x-7-x  
+
+* Install from 3rd party repository  
+```shell
+## For CentOS 7.x
+$ yum install http://opensource.wandisco.com/centos/7/git/x86_64/wandisco-git-release-7-2.noarch.rpm
+## For CentOS 6.x
+$ yum install http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
+
+$ yum install git
+```
+* From a untried but looking-promising source  
+Rackspace maintains the ius repository, which contains a reasonably up-to-date git (edit: remove stock git first):   
+ ```shell
+ $ sudo yum remove git
+ $ sudo yum install epel-release
+ $ sudo yum install https://centos6.iuscommunity.org/ius-release.rpm
+ $ sudo yum install git2u
+
+ ## edit: CentOS 7.2 instructions (thanks ksopyła!):
+ $ sudo yum remove git
+ $ sudo yum install epel-release 
+ $ sudo yum install https://centos7.iuscommunity.org/ius-release.rpm
+ $ sudo yum install git2u
+ ```
+* Compile and Install any version on CentOS 7.x 
+    1. Install Compile Tools & Required Packages
+    ```shell
+    ## Compile Tools
+    ## or use yum install "Development Tools"
+    $ yum -y groupinstall "Development Tools"
+    ## Dependencies
+    $ yum -y install zlib-devel perl-CPAN perl-devel perl-ExtUtils-MakeMaker asciidoc xmlto openssl-devel gettext-devel
+    ```
+    2. Uninstall old Git RPM  
+    Now remove any prior installation of Git through RPM file or Yum package manager. If your older version is also compiled through source, then skip this step.  
+    ```shell
+    $ yum remove git
+    ```
+    3. Download and Compile Git Source  
+    ```shell
+    $ cd /usr/src
+    $ wget https://www.kernel.org/pub/software/scm/git/git-2.5.3.tar.gz
+    $ tar xzf git-2.5.3.tar.gz
+    ```
+
+    ```shell
+    $ cd git-2.5.3
+    $ ./configure --prefix=/usr/local/git
+    $ make && make install
+    ```
+    4. Set up environment variables  
+    ```shell
+    $ export PATH="/usr/local/git/bin:$PATH"
+    ```
+    5. Check Git Version  
+    ```shell
+    $ git --version
+    git version 2.5.3
+    ```
+    http://git-scm.com/book/en/v2/Getting-Started-Installing-Git  
+* Compile and Install any version on CentOS 6.x 
+    1. Install Required Packages
+    ```shell
+    $ yum install curl-devel expat-devel gettext-devel openssl-devel zlib-devel
+    $ yum install  gcc perl-ExtUtils-MakeMaker
+    ```
+    2. Uninstall old Git RPM  
+    Now remove any prior installation of Git through RPM file or Yum package manager. If your older version is also compiled through source, then skip this step.  
+    ```shell
+    $ yum remove git
+    ```
+    3. Download and Compile Git Source  
+    ```shell
+    $ cd /usr/src
+    $ wget https://www.kernel.org/pub/software/scm/git/git-2.5.3.tar.gz
+    $ tar xzf git-2.5.3.tar.gz
+    ```
+    ```shell
+    $ cd git-2.5.3
+    $ make prefix=/usr/local/git all
+    $ make prefix=/usr/local/git install
+    $ echo 'export PATH=$PATH:/usr/local/git/bin' >> /etc/bashrc
+    ## or
+    $ echo 'export PATH=$PATH:/usr/local/git/bin' > /etc/profile.d/git.sh
+
+    $ chmod +x /etc/profile.d/git.sh
+    $ source /etc/bashrc
+    ```
+    4. Check Git Version  
+    ```shell
+    $ git --version
+    git version 2.5.3
+    ```
+    http://git-scm.com/book/en/v2/Getting-Started-Installing-Git
 
 ## Virtual Box
 ### How to clone a virtual machine
