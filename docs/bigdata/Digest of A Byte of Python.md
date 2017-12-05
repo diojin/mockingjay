@@ -9,6 +9,10 @@
         + [Vim](#vim)
         + [Emacs](#emacs)
 * [First Steps](#first-steps)
+    - [How to Quit the Interpreter Prompt](#how-to-quit-the-interpreter-prompt)
+    - [Getting Help](#getting-help)
+* [Basics](#basics)
+    - [Strings](#strings)
 * [Indentation](#indentation)
 * [Miscellaneous](#miscellaneous)
 
@@ -91,10 +95,70 @@ hello world
 
 Note that Python is `case-sensitive`. Also, `ensure there are no spaces or tabs before the first character in each line` - we will see why this is important later ([Indentation](#indentation)).
 
+### How to Quit the Interpreter Prompt
+* For Linux
+[ctrl + d] or entering exit(), followed by the [enter] key.
+* For Windows  
+[ctrl + z] followed by the [enter] key.
+
+### Getting Help
+
+If you need quick information about any function or statement in Python, then you can use the built-in `help` functionality. This is very useful especially when using the interpreter prompt. For example, run  
+```python
+help('len')
+```
+
+## Basics  
+`There is no separate long type`. The `int` type can be an integer of any size.  
+
+### Strings
+You can specify strings using followings:  
+* Single Quote  
+All white space i.e. spaces and tabs, within the quotes, are preserved as-is.  
+* Double Quotes  
+Strings in double quotes `work exactly the same way as strings in single quotes`  
+* Triple Quotes  
+You can specify multi-line strings using triple quotes - ( """ or ''' ). You can use single quotes and double quotes freely within the triple quotes. An example is:  
+```python
+'''This is a multi-line string. This is the first line.
+This is the second line.
+"What's your name?," I asked.
+He said "Bond, James Bond."
+'''
+```
+
+Strings Are Immutable.  
+
+>**Note for C/C++ Programmers**
+There is no separate `char` data type in Python. There is no real need for it and I am
+sure you won't miss it.
+
 ### Indentation
 Whitespace is important in Python. `Actually, whitespace at the beginning of the line is important`. This is called indentation. Leading whitespace (spaces and tabs) at the beginning of the logical line is used to determine the indentation level of the logical line, which in turn is used to determine the grouping of statements. 
 
 `This means that statements which go together must have the same indentation`. `Each such set of statements is called a` **block**. We will see examples of how blocks are important in later chapters.
+
+One thing you should remember is that wrong indentation can give rise to errors. For example:  
+```python
+i = 5
+# Error below! Notice a single space at the start of the line
+ print('Value is', i)
+print('I repeat, the value is', i)
+```
+When you run this, you get the following error:  
+```html
+    File "whitespace.py", line 3
+        print('Value is', i)
+        ^
+IndentationError: unexpected indent
+```
+Notice that there is a single space at the beginning of the second line. The error indicated by Python tells us that the syntax of the program is invalid i.e. the program was not properly written. `What this means to you is that you cannot arbitrarily start new blocks of statements (except for the default main block which you have been using all along, of course).` Cases where you can use new blocks will be detailed in later chapters such as the control flow.  
+
+**How to indent**  
+`Use four spaces for indentation. This is the official Python language recommendation`. Good editors will automatically do this for you. Make sure you use a consistent number of spaces for indentation, otherwise your program will not run or will have unexpected behavior. 
+
+**Note to static language programmers**  
+`Python will always use indentation for blocks and will never use braces`. Run `from __future__ import braces` to learn more.
 
 ## Miscellaneous
 ### References
