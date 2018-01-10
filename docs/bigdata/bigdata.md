@@ -268,6 +268,73 @@ https://spark.apache.org/docs/latest/index.html
 https://spark.apache.org/docs/latest/quick-start.html
 https://spark.apache.org/docs/latest/rdd-programming-guide.html
 
+#### Differences between cache, persist and checkpoint
+* cache invoke persist internally, it has only one storage level, MEMORY_ONLY
+* persist can have various storage level, it sets this RDD's storage level and persist its values after the first time it is computed. This can only be used to assign a new storage level if the RDD does not have a storage level set yet, or else an exception occurs.
+* checkpoint 没有使用这种第一次计算得到就存储的方法，而是等到 job 结束后另外启动专门的 job 去完成 checkpoint 。 `也就是说需要 checkpoint 的 RDD 会被计算两次`。因此，在使用 rdd.checkpoint() 的时候，建议加上 rdd.cache()， 这样第二次运行的 job 就不用再去计算该 rdd 了，直接读取 cache 写磁盘。
+
+关于这个问题，Tathagata Das 有一段回答: There is a significant difference between cache and checkpoint. Cache materializes the RDD and keeps it in memory and/or disk（PS: indeed memory only）. But the lineage of RDD will be remembered, so that if there are node failures and parts of the cached RDDs are lost, they can be regenerated. However, `checkpoint saves the RDD to an HDFS file` and actually forgets the lineage completely. This is allows long lineages to be truncated and the data to be saved reliably in HDFS (which is naturally fault tolerant by replication)
+
+深入一点讨论，rdd.persist(StorageLevel.DISK_ONLY) 与 checkpoint 也有区别。前者虽然可以将 RDD 的 partition 持久化到磁盘，但该 partition 由 blockManager 管理。一旦 driver program 执行结束，也就是 executor 所在进程 CoarseGrainedExecutorBackend stop，blockManager 也会 stop，被 cache 到磁盘上的 RDD 也会被清空（整个 blockManager 使用的 local 文件夹被删除）。而 checkpoint 将 RDD 持久化到 HDFS 或本地文件夹，如果不被手动 remove 掉，是一直存在的.
+
+Based on Spark 1.4.1, 
+```scala
+/** Persist this RDD with the default storage level (`MEMORY_ONLY`). */
+def cache(): this.type = persist()
+
+/** Persist this RDD with the default storage level (`MEMORY_ONLY`). */
+def persist(): this.type = persist(StorageLevel.MEMORY_ONLY)
+
+/**
+ * Set this RDD's storage level to persist its values across operations after the first time
+ * it is computed. This can only be used to assign a new storage level if the RDD does not
+ * have a storage level set yet..
+ */
+def persist(newLevel: StorageLevel): this.type = {
+  // TODO: Handle changes of StorageLevel
+  if (storageLevel != StorageLevel.NONE && newLevel != storageLevel) {
+    throw new UnsupportedOperationException(
+      "Cannot change storage level of an RDD after it was already assigned a level")
+  }
+  sc.persistRDD(this)
+  // Register the RDD with the ContextCleaner for automatic GC-based cleanup
+  sc.cleaner.foreach(_.registerRDDForCleanup(this))
+  storageLevel = newLevel
+  this
+}
+
+val MEMORY_ONLY = new StorageLevel(false, true, false, true)
+
+class StorageLevel private(
+    private var _useDisk: Boolean,
+    private var _useMemory: Boolean,
+    private var _useOffHeap: Boolean,
+    private var _deserialized: Boolean,
+    private var _replication: Int = 1)
+  extends Externalizable {
+  ......
+  def useDisk: Boolean = _useDisk
+  def useMemory: Boolean = _useMemory
+  def useOffHeap: Boolean = _useOffHeap
+  def deserialized: Boolean = _deserialized
+  def replication: Int = _replication
+  ......
+}
+```
+
+useOffHeap：使用堆外内存，这是Java虚拟机里面的概念，堆外内存意味着把内存对象分配在Java虚拟机的堆以外的内存，这些内存直接受操作系统管理（而不是虚拟机）。这样做的结果就是能保持一个较小的堆，以减少垃圾收集对应用的影响. 
+
+```scala
+val OFF_HEAP = new StorageLevel(false, false, true, false)
+if (useOffHeap) {
+  require(!useDisk, "Off-heap storage level does not support using disk")
+  require(!useMemory, "Off-heap storage level does not support using heap memory")
+  require(!deserialized, "Off-heap storage level does not support deserialized storage")
+  require(replication == 1, "Off-heap storage level does not support multiple replication")
+}
+```
+
+
 ## Hive
 Hive是基于Hadoop的一个数据仓库工具，处理能力强而且成本低廉。
 

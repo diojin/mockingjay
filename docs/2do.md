@@ -42,26 +42,31 @@ ___
     - [ ] :arrow_right_hook: :seven: Big Data related stuffs
         - [ ] :arrow_right_hook: :one: Big Data learning path
         - [ ] :arrow_right_hook: :two: Scala interview questions
+        - [ ] :arrow_right_hook: :three: hadoop/spark/python/hive interview questions
     - [ ] :arrow_right_hook: :eight: Apply for job positions   
     - [ ] :arrow_right_hook: :nine: go over other uncovered preparation docs 
     - [ ] :arrow_right_hook: :ten: Miscellaneous tasks
         - [ ] :arrow_right_hook: :one: linux monitoring tools, such as iostat, sar, top, vmstat, and etc, by sample scripts.
+        - [ ] :arrow_right_hook: :two: decorate my github homesite & github cv
+        - [ ] :arrow_right_hook: :three: jupyter notebook installation
+        - [ ] :arrow_right_hook: :four: static class & import static
 
 - [ ] :heart_eyes_cat: big data learning path from 2017-10-13
-    - [ ] :arrow_right_hook: :one: Hadoop basic & ecosystems
-    - [ ] :arrow_right_hook: :one: HDFS
-    - [ ] :arrow_right_hook: :one: YARN
+    - [x] :arrow_right_hook: :one: ~~Hadoop basic & ecosystems~~
+    - [x] :arrow_right_hook: :one: ~~HDFS~~
+    - [x] :arrow_right_hook: :one: ~~YARN~~
+    - [x] :arrow_right_hook: :ten: ~~Python~~
     - [ ] :arrow_right_hook: :one: Spark
         - [ ] :arrow_right_hook: :one: Spark Basic
         - [ ] :arrow_right_hook: :one: Spark SQL
         - [ ] :arrow_right_hook: :one: Spark Stream
     - [ ] :arrow_right_hook: :one: Kafka 
-    - [ ] :arrow_right_hook: :one: Sqoop & Flume  
-    - [ ] :arrow_right_hook: :one: MAP/REDUCE(principle only)  
-    - [ ] :arrow_right_hook: :ten: Python
+    - [x] :arrow_right_hook: :one: ~~Sqoop & Flume~~  
+    - [x] :arrow_right_hook: :one: ~~MAP/REDUCE(principle only)~~  
     - [ ] :arrow_right_hook: :ten: Storm
-    - [ ] :arrow_right_hook: :ten: Hive & HBase
+    - [x] :arrow_right_hook: :ten: ~~Hive & HBase~~
     - [ ] :arrow_right_hook: :ten: Pig
+    - [ ] :arrow_right_hook: :eleven: Lambda
     
 
 - [ ] :heart_eyes_cat: Plan as of now
@@ -71,6 +76,7 @@ ___
     - [ ] :arrow_right_hook: :four: Carry on with the rest
 
 - [ ] :kissing_cat: :one: bring darling to 野餐
+- [ ] :kissing_cat: :two: bring darling to 寻梦环游记
 
 - [ ] :kissing_cat: :two: review coupang projects and techniques
     - [ ] :arrow_right_hook: coupang development toolkits

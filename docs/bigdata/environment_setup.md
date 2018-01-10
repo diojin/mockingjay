@@ -1056,8 +1056,7 @@ LVM中有PV、VG、LV分别表示物理卷、卷组、逻辑卷
 
 1. resize VDI or VMDK  
     1. VDI  
-    ```shell
-    $ D:\Outerhaven\Softwares\VirtualBox\VBoxManage.exe modifyhd CenOS1.vdi --resize 16000
+    ```shell\Outerhaven\Softwares\VirtualBox\VBoxManage.exe modifyhd CenOS1.vdi --resize 1600;''/.-555555555555555555r5r5r5454ttttttttreetyyyyyyyyyyytyuioip;pl\xvq11q1     ``  e33e3ww2000p;lolollooololoollooloolloloolopllll;ll./.
     ```
     2. VMDK  
     VMDK converts to VDI, then extend  
