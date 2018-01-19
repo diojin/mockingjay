@@ -21,6 +21,11 @@ ___
     - [ ] :arrow_right_hook: 少看电影和游戏, 改变放松方式, 上网, 找新鲜的东西, 玩有趣的应用,软件
 - [ ] :heart_eyes_cat: 开始死磕, 工匠精神
 
+- [ ] :heart_eyes_cat: go over session from 2018-01-11:  CHANGE!!!
+    - [ ] :arrow_right_hook: :one: very compacted game time
+    - [ ] :arrow_right_hook: :two: combined learning subjects
+    - [ ] :arrow_right_hook: :two: 有没有内推网, 或者朋友可以帮忙内推
+
 - [ ] :heart_eyes_cat: go over session from 2017-09-17
     - [ ] :arrow_right_hook: :one: Browse IT market news every day
     - [x] :arrow_right_hook: :one: ~~Go over other preparation stuffs~~

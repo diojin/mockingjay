@@ -2,6 +2,7 @@
 ##							Tom White				
 ---
 ## Indexes
+* [0. Recommendations](#0-recommendations)
 * [1. Meet Hadoop](#1-meet-hadoop)
     - [Comparison with Other Systems](#comparison-with-other-systems)
 * [2. MapReduce](#2-mapreduce)
@@ -279,6 +280,22 @@
     - [HBase Praxis](#hbase-praxis)
 * [Miscellaneous](#miscellaneous)
 
+## 0. Recommendations
+
+This chapter has given a short overview of YARN. For more detail, see Apache Hadoop YARN by Arun C. Murthy et al. (Addison-Wesley, 2014).
+
+Finally, the book **Data-Intensive Text Processing with MapReduce by Jimmy Lin and Chris Dyer (Morgan & Claypool Publishers, 2010)** is a great resource for learning more about MapReduce algorithm design and is highly recommended.
+
+These chapters still offer valuable information about how Hadoop works from an operations point of view For more in-depth information, I highly recommend [Hadoop Operations] by Eric Sammer (O’Reilly, 2012).
+
+There’s a lot to security in Hadoop, and this section only covers the highlights. For more, readers are referred to [Hadoop Security] by Ben Spivey and Joey Echeverria (O’Reilly, 2014).  
+
+For more detail, see [Using Flume] by Hari Shreedharan (O’Reilly, 2014). There is also a lot of practical information about designing ingest pipelines (and building Hadoop applications in general) in [Hadoop Application Architectures] by Mark Grover, Ted Malaska, Jonathan Seidman, and Gwen Shapira (O’Reilly, 2014). 
+
+For more information on using Sqoop, consult the [Apache Sqoop Cookbook] by Kathleen Ting and Jarek Jarcec Cecho (O’Reilly, 2013).  
+
+For more information about Hive, see [Programming Hive] by Edward Capriolo, Dean Wampler, and Jason Rutherglen (O’Reilly, 2012).
+
 ## 1. Meet Hadoop
 The approach taken by MapReduce may seem like a brute-force approach. The premise is that the `entire dataset—or at least a good portion of it—`can be processed for each query. But this is its power. MapReduce is a batch query processor, and the ability to run an ad hoc query against your whole dataset and get the results in a reasonable time is transformative.
 
@@ -288,7 +305,7 @@ For all its strengths, MapReduce is fundamentally a batch processing system, and
 
 In the last few years, there has been a flowering of different processing patterns that work with Hadoop. Here is a sample:  
 * Interactive SQL  
-By dispensing with MapReduce and using a `distributed query engine` that uses dedicated “always on” daemons (like **Impala**) or container reuse (like **Hive on Tez**), it’s possible to achieve low-latency responses for SQL queries on Hadoop while still scaling up to large dataset sizes.  
+By dispensing with MapReduce and using a `distributed query engine` that uses dedicated “always on” daemons (like **Impala**) or `container reuse` (like **Hive on Tez**), it’s possible to achieve low-latency responses for SQL queries on Hadoop while still scaling up to large dataset sizes.  
 * Iterative processing  
 Many algorithms—such as those in machine learning—are iterative in nature, so it’s much more efficient to hold each intermediate working set in memory, compared to loading from disk on each iteration. The architecture of MapReduce does not allow this, but it’s straightforward with **Spark**, for example, and it enables a highly exploratory style of working with datasets.  
 * Stream processing  
@@ -317,7 +334,7 @@ Structure           |Schema-on-write        |Schema-on-read
 Integrity           |High                   |Low
 Scaling             |Nonlinear              |Linear
 
-Hadoop works well on unstructured or semi-structured data because it is designed to interpret the data at processing time (so called schema-on-read). This provides flexibility and avoids the costly data loading phase of an RDBMS, since in Hadoop it is just a file copy.
+Hadoop works well on unstructured or semi-structured data because it is designed to interpret the data at processing time (`so called schema-on-read`). This provides flexibility and avoids the costly data loading phase of an RDBMS, since in Hadoop it is just a file copy.
 
 Relational data is often normalized to retain its integrity and remove redundancy. Normalization poses problems for Hadoop processing because it makes reading a record a nonlocal operation, and one of the central assumptions that Hadoop makes is that it is possible to perform (high-speed) streaming reads and writes.
 
@@ -341,7 +358,7 @@ MapReduce is designed to run jobs that last minutes or hours on trusted, dedicat
 MapReduce is a programming model for data processing.
 
 ### Data Flow  
-1. Hadoop divides the input to a MapReduce job into `fixed-size pieces` called input splits, or just **splits**. Hadoop creates one map task for each split, which runs the user-defined map function for each record in the split.   
+1. Hadoop divides the input to a MapReduce job into `fixed-size pieces` called input splits, or just **splits**. Hadoop creates `one map task for each split`, which runs the user-defined map function for each record in the split.   
 2. Map tasks write their output to the `local disk`, not to HDFS.  
 3. Reduce tasks don’t have the advantage of data locality; the input to a single reduce task is normally the output from all mappers. 
     1. In the present example, we have a single reduce task that is fed by all of the map tasks. Therefore, the `sorted map outputs` have to be transferred across the network to the node where the reduce task is running, where they are `merged` and then passed to the user-defined reduce function.   
@@ -356,7 +373,7 @@ On the other hand, if splits are too small, the overhead of managing the splits 
 Hadoop does its best to run the map task on a node where the input data resides in HDFS, because it doesn’t use valuable cluster bandwidth. This is called the **data locality optimization**. Sometimes, however, all the nodes hosting the HDFS block replicas for a map task’s input split are running other map tasks, so the job scheduler will look for a free map slot on a node in the same **rack** as one of the blocks. Very occasionally even this is not possible, so an off-rack node is used, which results in an inter-rack network transfer. The three possibilities are illustrated in Figure 2-2.
 ![hadoop_data_locality_img_1]  
 
-Map tasks write their output to the local disk, not to HDFS. Why is this? `Map output is intermediate output`: it’s processed by reduce tasks to produce the final output, and `once the job is complete, the map output can be thrown away. So, storing it in HDFS with replication would be overkill`. If the node running the map task fails before the map output has been consumed by the reduce task, then Hadoop will automatically `rerun the map task on another node` to re-create the map output.(PS: if the map out is not meant to endure node failure, why not maintain it in memory at all?)
+Map tasks write their output to the local disk, not to HDFS. Why is this? `Map output is intermediate output`: it’s processed by reduce tasks to produce the final output, and `once the job is complete, the map output can be thrown away. So, storing it in HDFS with replication would be overkill`. If the node running the map task fails before the map output has been consumed by the reduce task, then Hadoop will automatically `rerun the map task on another node` to re-create the map output.(PS: if the map output is not designed to endure node failure, why not maintain it in memory at all?)
 
 The data flow for the general case of multiple reduce tasks is illustrated in Figure 2-4. This diagram makes it clear why the data flow between map and reduce tasks is colloquially known as “the shuffle,” as each reduce task is fed by many map tasks. `The shuffle` is more complicated than this diagram suggests, and tuning it can have a big impact on job execution time  
 ![hadoop_data_flow_img_1]  
@@ -371,7 +388,7 @@ Hadoop allows the user to specify a combiner function to be `run on the map outp
 it can help cut down the amount of data shuffled between the mappers and the reducers
 
 ### Hadoop Streaming
-Hadoop Streaming uses Unix standard streams as the interface between Hadoop and your program, so you can use any language that can read standard input and write to standard output to write your MapReduce program.
+Hadoop Streaming uses Unix standard streams as the interface between Hadoop and your program, so you can use `any language` that can read standard input and write to standard output to write your MapReduce program.
 
 Streaming is naturally suited for text processing. Map input data is passed over standard input to your map function, which processes it line by line and writes lines to standard output. A map output key-value pair is written as a `single tab-delimited line`. Input to the reduce function is in the same format—a tab-separated key-value pair—passed over standard input. The reduce function reads `lines from standard input, which the framework guarantees are sorted by key`, and writes its results to standard output.
 
@@ -403,6 +420,7 @@ Storage         |12−24 × 1−4 TB SATA disks
 Network         |Gigabit Ethernet with link aggregation
 
 ECC memory is strongly recommended, as several Hadoop users have reported seeing many checksum errors when using non-ECC memory on Hadoop clusters.  
+
 HDFS clusters do not benefit from using RAID (redundant array of independent disks) for datanode storage (although RAID is recommended for the namenode’s disks, to protect against corruption of its metadata). The redundancy that RAID provides is not needed, since HDFS handles it by replication between nodes.
 
 It is also worth examining the applications for which using HDFS does not work so well. Although this may change in the future, these are areas where HDFS is not a good fit today:  
@@ -421,7 +439,7 @@ HDFS, too, has the concept of a block, but it is a much larger unit—128 MB by 
 
 A quick calculation shows that if the seek time is around 10 ms and the transfer rate is 100 MB/s, `to make the seek time 1% of the transfer time`, we need to make the block size around 100 MB. The default is actually 128 MB, although many HDFS installations use larger block sizes. `This figure will continue to be revised upward as transfer speeds grow with new generations of disk drives`.
 
-This argument shouldn’t be taken too far, however. Map tasks in MapReduce normally operate on one block at a time, so if you have too few tasks (fewer than nodes in the cluster), your jobs will run slower than they could otherwise.
+This argument shouldn’t be taken too far, however. `Map tasks in MapReduce normally operate on one block at a time`, so if you have too few tasks (fewer than nodes in the cluster), your jobs will run slower than they could otherwise.
 
 
 #### Namenodes and Datanodes
@@ -443,7 +461,7 @@ Hadoop can be configured so that the namenode writes its persistent state to mul
 #### Block Caching 
 Normally a datanode reads blocks from disk, but for frequently accessed files the blocks may be explicitly cached `in the datanode’s memory`, `in an off-heap block cache`. By default, a block is cached in only one datanode’s memory, although the number is configurable on a per-file basis. Job schedulers (for MapReduce, Spark, and other frameworks) can take advantage of cached blocks by running tasks on the datanode where a block is cached, for increased read performance.    
 
-Users or applications `instruct the namenode` which files to cache (and for how long) by adding a cache directive to a **cache pool**. Cache pools are an administrative grouping for managing cache permissions and resource usage.
+Users or applications `instruct the namenode` which files to cache (and for how long) by adding a cache directive to a **cache pool**. `Cache pool`s are an administrative grouping for managing cache permissions and resource usage.
 
 #### HDFS Federation
 `Under federation, each namenode manages a `**namespace volume**`, which is made up of the metadata for the namespace, and a block pool containing all the blocks for the files in the namespace`. `Namespace volumes are independent of each other`, which means namenodes do not communicate with one another, and furthermore the failure of one namenode does not affect the availability of the namespaces managed by other namenodes.` Block pool storage is not partitioned`, however, so datanodes register with each namenode in the cluster and store blocks from multiple block pools.
@@ -459,7 +477,7 @@ To recover from a failed namenode in this situation, an administrator starts a n
 On large clusters with many files and blocks, the time it takes for a namenode to start from cold can be `30 minutes or more`.
 
 Hadoop 2 remedied this situation by adding support for HDFS high availability (HA). In this implementation, there are `a pair of namenodes in an active-standby configuration`. In the event of the failure of the active namenode, the standby takes over its duties to continue servicing client requests without a significant interruption. A few architectural changes are needed to allow this to happen:  
-* The namenodes must use `highly available shared storage to share the edit log`. When a standby namenode comes up, it reads up to the end of the shared edit log to synchronize its state with the active namenode, and then `continues to read new entries` as they are written by the active namenode. 
+* The namenodes must use `highly available shared storage to share the edit log`. When a standby namenode comes up, it reads up to the end of the shared edit log to synchronize its state with the active namenode, and then `continues to read new entries` as they are `written by the active namenode`. 
 * Datanodes must `send block reports to both namenodes` because the `block mappings are stored in a namenode’s memory, and not on disk`. 
 * Clients must be configured to handle namenode failover, using a mechanism that is transparent to users. 
 * The secondary namenode’s role is subsumed by the standby, which takes periodic checkpoints of the active namenode’s namespace. 
@@ -507,7 +525,7 @@ HDFS has a permissions model for files and directories that is much like the POS
 
 Each file and directory has an owner, a group, and a mode. The mode is made up of the permissions for the user who is the owner, the permissions for the users who are members of the group, and the permissions for users who are neither the owners nor members of the group.  
 
-`By default, Hadoop runs with security disabled`, which means that a client’s identity is not authenticated. Because clients are remote, it is possible for a client to become an arbitrary user simply by creating an account of that name on the remote system. This is not possible if security is turned on. Either way, it is worthwhile having permissions enabled (as they are by default; see the `dfs.permissions.enabled` property) to avoid accidental modification or deletion of substantial parts of the filesystem, either by users or by automated tools or programs.
+`By default, Hadoop runs with security disabled`, which means that a client’s identity is not authenticated. Because clients are remote, it is possible for a client to become an arbitrary user simply by creating an account of that name on the remote system. This is not possible if security is turned on. Either way, it is worthwhile `having permissions enabled` (as they are by default; see the `dfs.permissions.enabled` property) to avoid accidental modification or deletion of substantial parts of the filesystem, either by users or by automated tools or programs.
 
 When permissions checking is enabled, the owner permissions are checked if the client’s username matches the owner, and the group permissions are checked if the client is a member of the group; otherwise, the other permissions are checked.
 
@@ -580,7 +598,7 @@ public static void main(String[] args) throws Exception {
 A file in a Hadoop filesystem is represented by a `Hadoop Path object` (and not a java.io.File object, since its semantics are too closely tied to the local filesystem). You can think of a Path as a Hadoop filesystem URI, such as hdfs://localhost/user/ tom/quangle.txt.
 
 ```java
-// hadoop FileSystemCat hdfs://localhost/user/tom/quangle.txt
+// To execute: hadoop FileSystemCat hdfs://localhost/user/tom/quangle.txt
 public class FileSystemCat {
     public static void main(String[] args) throws Exception {
         String uri = args[0];
@@ -649,7 +667,7 @@ The create() method on FileSystem returns an FSDataOutputStream, which, like **F
 The **FileStatus** class encapsulates filesystem metadata for files and directories, including file length, block size, replication, modification time, ownership, and permission information. The method getFileStatus() on FileSystem provides a way of getting a FileStatus object for a single file or directory.  
 
 **File glob**  
-It is a common requirement to process sets of files in a single operation. For example, a MapReduce job for log processing might analyze a month’s worth of files contained in a number of directories. Rather than having to enumerate each file and directory to specify the input, it is convenient to use wildcard characters to match multiple files with a single expression, an operation that is known as **globbing**.   
+It is a common requirement to process sets of files in a single operation. For example, a MapReduce job for log processing might analyze a month’s worth of files contained in a number of directories. Rather than having to enumerate each file and directory to specify the input, it is convenient to `use wildcard characters to match multiple files` with a single expression, an operation that is known as **globbing**.   
 Hadoop provides two FileSystem methods for processing globs:  
 ```java
 public FileStatus[] globStatus(Path pathPattern) throws IOException 
@@ -672,14 +690,14 @@ The DistributedFileSystem returns an FSDataInputStream (an input stream that sup
 
 When the end of the block is reached, DFSInputStream will close the connection to the datanode, then find the best datanode for the next block (step 5)
 
-Blocks are read in order, with the DFSInputStream opening new connections to datanodes as the client reads through the stream. It will also call the namenode to retrieve the datanode locations for the next batch of blocks as needed
+Blocks are read in order, with the DFSInputStream opening new connections to datanodes as the client reads through the stream. `It will also call the namenode to retrieve the datanode locations for the next batch of blocks as needed`
 
-During reading, if the DFSInputStream encounters an error while communicating with a datanode, it will try the next closest one for that block. It will also remember datanodes that have failed so that it doesn’t needlessly retry them for later blocks. The DFSInputStream also verifies checksums for the data transferred to it from the datanode. `If a corrupted block is found, the DFSInputStream attempts to read a replica of the block from another datanode`; it also `reports the corrupted block to the namenode`.
+During reading, if the DFSInputStream encounters an error while communicating with a datanode, it will try the next closest one for that block. It will also remember datanodes that have failed so that it doesn’t needlessly retry them for later blocks. The DFSInputStream also `verifies checksums for the data` transferred to it from the datanode. `If a corrupted block is found, the DFSInputStream attempts to read a replica of the block from another datanode`; it also `reports the corrupted block to the namenode`.
 
 #### Network Topology and Hadoop
 What does it mean for two nodes in a local network to be “close” to each other? The idea is to `use the bandwidth between two nodes as a measure of distance`.
 
-Rather than measuring bandwidth between nodes, which can be difficult to do in practice (`it requires a quiet cluster`, and the number of pairs of nodes in a cluster grows as the square of the number of nodes), Hadoop takes a simple approach in which the network is represented as a tree and the distance between two nodes is the sum of their distances to their closest common ancestor. Levels in the tree are not predefined, but it is common to have levels that correspond to the **data center**, the **rack**, and the node that a process is running on.  
+Rather than measuring bandwidth between nodes, which can be difficult to do in practice (`it requires a quiet cluster`, and the number of pairs of nodes in a cluster grows as the square of the number of nodes), Hadoop takes a simple approach in which the network is represented as a tree and the distance between two nodes is the sum of their distances to their closest common ancestor. Levels in the tree are not predefined, but it is common to have levels that correspond to the **data center**, the **rack**, and `the node that a process is running on`.  
 The idea is that the bandwidth available for each of the following scenarios becomes progressively(gradually) less:  
 * Processes on the same node
 * Different nodes on the same rack
@@ -694,11 +712,11 @@ Finally, it is important to realize that Hadoop cannot magically discover your n
 
 The DistributedFileSystem returns an FSDataOutputStream for the client to start writing data to. Just as in the read case, FSDataOutputStream wraps a DFSOutputStream, which handles communication with the datanodes and namenode.
 
-As the client writes data (step 3), the **DFSOutputStream** splits it into packets, which it writes to an internal queue called the **data queue**. The data queue is consumed by the **DataStreamer**, which is responsible for asking the namenode to allocate new blocks by picking a list of suitable datanodes to store the replicas. The list of datanodes forms a pipeline, and here we’ll assume the replication level is three, so there are three nodes in the pipeline. The DataStreamer streams the packets to the first datanode in the pipeline, which stores each packet and forwards it to the second datanode in the pipeline. Similarly, the second datanode stores the packet and forwards it to the third (and last) datanode in the pipeline (step 4).  
-The DFSOutputStream also maintains an internal queue of packets that are waiting to be acknowledged by datanodes, called the **ack queue**. A packet is removed from the ack queue only when it has been acknowledged by all the datanodes in the pipeline (step 5).  
-`If any datanode fails while data is being written to it`, then the following actions are taken, which are transparent to the client writing the data. First, the pipeline is closed, and `any packets in the ack queue are added to the front of the data queue` so that datanodes that are downstream from the failed node will not miss any packets. The current block on the good datanodes is given a new identity, which is communicated to the namenode, so that the partial block on `the failed datanode will be deleted` if the failed datanode recovers later on. The failed datanode is removed from the pipeline, and `a new pipeline is constructed from the two good datanodes`. The remainder of the block’s data is written to the good datanodes in the pipeline. The namenode notices that the block is under-replicated, and it `arranges for a further replica to be created on another node`. Subsequent blocks are then treated as normal.  
+As the client writes data (step 3), the **DFSOutputStream** `splits it into packets`, which it writes to an internal queue called the **data queue**. The data queue is consumed by the **DataStreamer**, which is responsible for asking the namenode to allocate new blocks by picking a list of suitable datanodes to store the replicas. The list of datanodes forms a pipeline, and here we’ll assume the replication level is three, so there are three nodes in the pipeline. The DataStreamer streams the packets to the first datanode in the pipeline, which stores each packet and forwards it to the second datanode in the pipeline. Similarly, the second datanode stores the packet and forwards it to the third (and last) datanode in the pipeline (step 4).  
+The **DFSOutputStream** also maintains an internal queue of packets that are waiting to be acknowledged by datanodes, called the **ack queue**. A packet is removed from the ack queue only when it has been acknowledged by all the datanodes in the pipeline (step 5).  
+`If any datanode fails while data is being written to it`, then the following actions are taken, which are transparent to the client writing the data. First, the pipeline is closed, and `any packets in the ack queue are added to the front of the data queue` so that datanodes that are downstream from the failed node will not miss any packets. `The current block on the good datanodes is given a new identity`, which is communicated to the namenode, so that the partial block on `the failed datanode will be deleted` if the failed datanode recovers later on. The failed datanode is removed from the pipeline, and `a new pipeline is constructed from the two good datanodes`. The remainder of the block’s data is written to the good datanodes in the pipeline. The namenode notices that the block is under-replicated, and it `arranges for a further replica to be created on another node`. Subsequent blocks are then treated as normal.  
 It’s possible, but unlikely, for multiple datanodes to fail while a block is being written. `As long as dfs.namenode.replication.min replicas (which defaults to 1) are written, the write will succeed`, and `the block will be asynchronously replicated across the cluster until its target replication factor is reached` (dfs.replication, which defaults to 3).  
-When the client has finished writing data, it calls close() on the stream (step 6). This action flushes all the remaining packets to the datanode pipeline and waits for acknowledgments before contacting the namenode to signal that the file is complete (step 7). The namenode already knows which blocks the file is made up of (because Data Streamer asks for block allocations), so it only has to wait for blocks to be minimally replicated before returning successfully.  
+When the client has finished writing data, it calls close() on the stream (step 6). This action flushes all the remaining packets to the datanode pipeline and waits for acknowledgments before contacting the namenode to signal that the file is complete (step 7). The namenode already knows which blocks the file is made up of (because `DataStreamer asks for block allocations`), so it only has to wait for blocks to be minimally replicated before returning successfully.  
 
 ##### Replica Placement  
 How does the namenode choose which datanodes to store replicas on? There’s a tradeoff between reliability and write bandwidth and read bandwidth here.
@@ -726,7 +744,7 @@ out.hflush();
 assertThat(fs.getFileStatus(p).getLen(), is(((long) "content".length())));
 ```
 
-Note that hflush() does not guarantee that the datanodes have written the data to disk, only that it’s in the datanodes’ memory (so in the event of a data center power outage, for example, data could be lost). For this stronger guarantee, use hsync() instead.  
+`Note that hflush() does not guarantee that the datanodes have written the data to disk, only that it’s in the datanodes’ memory (so in the event of a data center power outage, for example, data could be lost)`. For this stronger guarantee, use hsync() instead.  
 Closing a file in HDFS performs an implicit hflush(), too.  
 The behavior of hsync() is similar to that of the fsync() system call in POSIX that commits buffered data for a file descriptor. For example, using the standard Java API to write a local file, we are guaranteed to see the content after flushing the stream and synchronizing:
 ```java
@@ -747,7 +765,7 @@ $ hadoop distcp dir1 dir2
 ## If we changed a file in the dir1 subtree, we could synchronize the change with dir2 by running:
 $ hadoop distcp -update dir1 dir2
 ```
-distcp is implemented as a MapReduce job where the work of copying is done by the maps that run in parallel across the cluster. There are no reducers. Each file is copied by a single map, and distcp tries to give each map approximately the same amount of data by bucketing files into roughly equal allocations. By default, up to 20 maps are used, but this can be changed by specifying the `-m argument to distcp`
+distcp is implemented as a MapReduce job where the work of copying is done by the maps that run in parallel across the cluster. There are no reducers. `Each file is copied by a single map`, and distcp tries to give each map approximately the same amount of data by bucketing files into roughly equal allocations. By default, up to 20 maps are used, but this can be changed by specifying the `-m argument to distcp`
 
 A very common use case for distcp is for transferring data between two HDFS clusters. For example, the following creates a backup of the first cluster’s /foo directory on the second:  
 ```shell
@@ -766,10 +784,12 @@ Apache YARN (Yet Another Resource Negotiator) is Hadoop’s cluster resource man
 
 YARN provides APIs for requesting and working with cluster resources, but these APIs are not typically used directly by user code. Instead, users write to higher-level APIs provided by distributed computing frameworks, which themselves are built on YARN and hide the resource management details from the user. The situation is illustrated in Figure 4-1, which shows some distributed computing frameworks (MapReduce, Spark, Tez and so on) running as YARN applications on the cluster compute layer (YARN) and the cluster storage layer (HDFS and HBase).
 
+![hadoop_yarn_layout_img_1]  
+
 There is also a layer of applications that build on the frameworks shown in Figure 4-1. Pig, Hive, and Crunch are all examples of processing frameworks that run on MapReduce, Spark, or Tez (or on all three), and don’t interact with YARN directly.
 
 ### Anatomy of a YARN Application Run
-YARN provides its core services via two types of long-running daemon: a **resource manager** (one per cluster) to manage the use of resources across the cluster, and **node managers** running on all the nodes in the cluster to launch and monitor containers. A **container** executes an application-specific process with a constrained set of resources (memory, CPU, and so on)  
+YARN provides its core services via two types of long-running daemon: a **resource manager** (`one per cluster`) to manage the use of resources across the cluster, and **node managers** running on all the nodes in the cluster to launch and monitor containers. A **container** executes an application-specific process with a constrained set of resources (memory, CPU, and so on)  
 
 ![hadoop_data_flow_img_4]   
 
@@ -777,19 +797,19 @@ To run an application on YARN, a client contacts the resource manager and asks i
 Notice from Figure 4-2 that `YARN itself does not provide any way for the parts of the application (client, master, process) to communicate with one another`. `Most nontrivial YARN applications use some form of remote communication (such as Hadoop’s RPC layer) to pass status updates and results back to the client`, but these are specific to the application.
 
 #### Resource Requests
-YARN has a flexible model for making resource requests. A request for a set of containers can express the amount of computer resources required for each container (memory and CPU), as well as locality constraints for the containers in that request.
+YARN has a flexible model for making resource requests. A request for a set of containers can express the amount of computer resources required for each container (memory and CPU), as well as `locality constraints for the containers in that request`.
 
 In the common case of launching a container to process an HDFS block (to run a map task in MapReduce, say), the application will request a container on one of the nodes hosting the block’s three replicas, or on a node in one of the racks hosting the replicas, or, failing that, on any node in the cluster
 
 A YARN application can make resource requests at any time while it is running. For example, an application can make all of its requests up front, or it can take a more dynamic approach whereby it requests more resources dynamically to meet the changing needs of the application.
 
-Spark takes the first approach, starting a fixed number of executors on the cluster (see “Spark on YARN” on page 571). MapReduce, on the other hand, has two phases: the map task containers are requested up front, but the reduce task containers are not started until later. Also, if any tasks fail, additional containers will be requested so the failed tasks can be rerun.
+`Spark takes the first approach, starting a fixed number of executors on the cluster` (see “Spark on YARN” on page 571). `MapReduce, on the other hand, has two phases: the map task containers are requested up front`, but the reduce task containers are not started until later. Also, if any tasks fail, additional containers will be requested so the failed tasks can be rerun.
 
 #### Application Lifespan
 The lifespan of a YARN application can vary dramatically, it’s useful to categorize applications in terms of how they map to the jobs that users run.  
-1. The simplest case is one application per user job, which is the approach that MapReduce takes.
-2. The second model is to run one application per workflow or user session of (possibly unrelated) jobs.  
-This approach can be more efficient than the first, since containers can be reused between jobs, and there is also the potential to cache intermediate data between jobs. Spark is an example that uses this model.
+1. The simplest case is `one application per user job`, which is the approach that `MapReduce takes`.
+2. The second model is to run `one application per workflow or user session` of (possibly unrelated) jobs.  
+This approach can be more efficient than the first, since containers can be reused between jobs, and there is also the potential to cache intermediate data between jobs. `Spark is an example that uses this model`.
 3. The third model is a long-running application that is shared by different users.  
 Such an application often acts in some kind of coordination role. For example, Apache Slider has a long-running application master for launching other applications on the cluster. This approach is also used by Impala (see “SQL-on-Hadoop Alternatives” on page 484) to provide a proxy application that the Impala daemons communicate with to request cluster resources. The “always on” application master means that users have very low latency responses to their queries since the overhead of starting a new application master is avoided.
 
@@ -807,7 +827,7 @@ The distributed implementation of MapReduce in the original version of Hadoop (v
 
 The old and new MapReduce APIs are not the same thing as the MapReduce 1 and MapReduce 2 implementations. All four combinations are supported: both the old and new MapReduce APIs run on both MapReduce 1 and 2.
 
-In MapReduce 1, there are two types of daemon that control the job execution process: a **jobtracker** and one or more **tasktrackers**. The jobtracker coordinates all the jobs run on the system by scheduling tasks to run on tasktrackers. Tasktrackers run tasks and send progress reports to the jobtracker, which keeps a record of the overall progress of each job. If a task fails, the jobtracker can reschedule it on a different tasktracker.
+In MapReduce 1, there are two types of daemon that control the job execution process: a **jobtracker** and one or more **tasktracker**s. The jobtracker coordinates all the jobs run on the system by scheduling tasks to run on tasktrackers. Tasktrackers run tasks and send progress reports to the jobtracker, which keeps a record of the overall progress of each job. If a task fails, the jobtracker can reschedule it on a different tasktracker.
 
 `In MapReduce 1, the jobtracker takes care of both job scheduling (matching tasks with tasktrackers) and task progress monitoring` (keeping track of tasks, restarting failed or slow tasks, and doing task bookkeeping, such as maintaining counter totals). By contrast, in YARN these responsibilities are handled by separate entities: the resource manager and an application master (one for each MapReduce job). 
 
@@ -841,13 +861,25 @@ Furthermore, `resources in YARN are fine grained`, so an application can make a 
 ### Scheduling in YARN
 Three schedulers are available in YARN: the FIFO, Capacity, and Fair Schedulers.  
 
-The `FIFO Scheduler` has the merit of being simple to understand and not needing any configuration, but it’s `not suitable for shared clusters`. Large applications will use all the resources in a cluster, so each application has to wait its turn. `On a shared cluster it is better to use the Capacity Scheduler or the Fair Scheduler`. Both of these allow longrunning jobs to complete in a timely manner, while still allowing users who are running concurrent smaller ad hoc queries to get results back in a reasonable time.  
+The **FIFO Scheduler** has the merit of being `simple` to understand and not needing any configuration, but it’s `not suitable for shared clusters`. Large applications will use all the resources in a cluster, so each application has to wait its turn. `On a shared cluster it is better to use the Capacity Scheduler or the Fair Scheduler`. Both of these allow longrunning jobs to complete in a timely manner, while still allowing users who are running concurrent smaller ad hoc queries to get results back in a reasonable time.  
 
-With the Capacity Scheduler (ii in Figure 4-3), a separate dedicated queue allows the small job to start as soon as it is submitted, although this is at the cost of overall cluster utilization since the queue capacity is reserved for jobs in that queue (some cluster nodes managed by the dedicate queue are reserved). This means that the large job finishes later than when using the FIFO Scheduler.  
+With the **Capacity Scheduler** (ii in Figure 4-3), a separate dedicated queue allows the small job to start as soon as it is submitted, although this is `at the cost of overall cluster utilization` since the queue capacity is reserved for jobs in that queue (some cluster nodes managed by the dedicate queue are reserved). This means that the large job finishes later than when using the FIFO Scheduler.  
 
-With the Fair Scheduler (iii in Figure 4-3), there is no need to reserve a set amount of capacity, since it will dynamically balance resources between all running jobs. Just after the first (large) job starts, it is the only job running, so it gets all the resources in the cluster. When the second (small) job starts, it is allocated half of the cluster resources so that each job is using its fair share of resources.
+With the **Fair Scheduler** (iii in Figure 4-3), there is no need to reserve a set amount of capacity, since it will dynamically balance resources between all running jobs. Just after the first (large) job starts, it is the only job running, so it gets all the resources in the cluster. When the second (small) job starts, it is allocated half of the cluster resources so that each job is using its fair share of resources.
 
-The scheduler in use is determined by the setting of `yarn.resourcemanager.scheduler.class`. The Capacity Scheduler is used by default (although the Fair Scheduler is the default in some Hadoop distributions, such as CDH), but this can be changed by setting yarn.resourcemanager.scheduler.class in yarn-site.xml to the fully qualified classname of the scheduler, `org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FairScheduler`
+The scheduler in use is determined by the setting of `yarn.resourcemanager.scheduler.class`. The Capacity Scheduler is used by default (although the Fair Scheduler is the default in some Hadoop distributions, such as CDH), but this can be changed by setting yarn.resourcemanager.scheduler.class in `yarn-site.xml` to the fully qualified classname of the scheduler, `org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FairScheduler`
+
+#### Capacity Scheduler Configuration
+The Capacity Scheduler allows sharing of a Hadoop cluster along organizational lines, whereby `each organization is allocated a certain capacity of the overall cluster`. Each organization is set up with a dedicated queue that is configured to use a given fraction of the cluster capacity. `Queues may be further divided in hierarchical fashion`, allowing each organization to share its cluster allowance between different groups of users within the organization. `Within a queue, applications are scheduled using FIFO scheduling.`
+
+Capacity Scheduler configuration file, called `capacity-scheduler.xml`  
+
+A single job does not use more resources than its queue’s capacity. However, if there is more than one job in the queue and there are idle resources available, then the Capacity Scheduler may allocate the spare resources to jobs in the queue, even if that causes the queue’s capacity to be exceeded. This behavior is known as **queue elasticity**.  (`yarn.scheduler.capacity.<queue-path>.user-limit-factor` is set to a value larger than 1 (the default))
+
+It is possible to mitigate this by configuring queues with a maximum capacity so that they don’t eat into other queues’ capacities too much. This is at the cost of queue elasticity, of course, so a reasonable trade-off should be found by trial and error. (`yarn.scheduler.capacity.<queue-path>.maximum-capacity`)
+
+##### Queue placement
+The way that you specify which queue an application is placed in is specific to the application. For example, in MapReduce, you set the property `mapreduce.job.queuename` to the name of the queue you want to use (the name of queue is the last part of queue path, for example, in example below, prod and eng are OK, but root.dev.eng and dev.eng do not work). If the queue does not exist, then you’ll get an error at submission time. `If no queue is specified, applications will be placed in a queue called default`.
 
 Imagine a queue hierarchy that looks like this, which is used in sections below  
 ```html
@@ -858,18 +890,7 @@ root
     └── science  
 ```
 
-#### Capacity Scheduler Configuration
-The Capacity Scheduler allows sharing of a Hadoop cluster along organizational lines, whereby `each organization is allocated a certain capacity of the overall cluster`. Each organization is set up with a dedicated queue that is configured to use a given fraction of the cluster capacity. `Queues may be further divided in hierarchical fashion`, allowing each organization to share its cluster allowance between different groups of users within the organization. `Within a queue, applications are scheduled using FIFO scheduling.`
-
-Capacity Scheduler configuration file, called `capacity-scheduler.xml`  
-
-A single job does not use more resources than its queue’s capacity. However, if there is more than one job in the queue and there are idle resources available, then the Capacity Scheduler may allocate the spare resources to jobs in the queue, even if that causes the queue’s capacity to be exceeded.7 This behavior is known as **queue elasticity**.  (`yarn.scheduler.capacity.<queue-path>.user-limit-factor` is set to a value larger than 1 (the default))
-
-It is possible to mitigate this by configuring queues with a maximum capacity so that they don’t eat into other queues’ capacities too much. This is at the cost of queue elasticity, of course, so a reasonable trade-off should be found by trial and error. (`yarn.scheduler.capacity.<queue-path>.maximum-capacity`)
-
-##### Queue placement
-The way that you specify which queue an application is placed in is specific to the application. For example, in MapReduce, you set the property `mapreduce.job.queuename` to the name of the queue you want to use (the name of queue is the last part of queue path, for example, in example below, prod and eng are OK, but root.dev.eng and dev.eng do not work). If the queue does not exist, then you’ll get an error at submission time. `If no queue is specified, applications will be placed in a queue called default`.
-
+The listing in Example 4-1 shows a sample Capacity Scheduler configuration file, called `capacity-scheduler.xml`, for this hierarchy.
 ```xml
 <?xml version="1.0"?>
 <configuration>
@@ -937,7 +958,7 @@ Queues can have different scheduling policies. The default policy for queues can
 
 The policy for a particular queue can be overridden using the schedulingPolicy element for that queue.
 
-Although not shown in this allocation file, queues can be configured with minimum and maximum resources, and a maximum number of running applications. (See the reference page for details.) The minimum resources setting is not a hard limit, but rather is used by the scheduler to prioritize resource allocations. If two queues are below their fair share, then the one that is furthest below its minimum is allocated resources first. The minimum resource setting is also used for preemption, discussed momentarily.
+Although not shown in this allocation file, queues can be configured with minimum and maximum resources, and a maximum number of running applications. (See the reference page for details.) The minimum resources setting is not a hard limit, but rather is used by the scheduler to prioritize resource allocations. `If two queues are below their fair share, then the one that is furthest below its minimum is allocated resources first`. The minimum resource setting is also used for preemption, discussed momentarily.
 
 ##### Queue placement
 The Fair Scheduler uses a rules-based system to determine which queue an application is placed in. In the example above, the queuePlacementPolicy element contains a list of rules, each of which is tried in turn until a match occurs.   
@@ -957,7 +978,7 @@ In other words, unless the queue is explicitly specified, the user’s name is u
 It’s also possible to set this policy without using an allocation file, by setting `yarn.scheduler.fair.user-as-default-queue` to false so that applications will be placed in the default queue rather than a per-user queue. In addition, `yarn.scheduler.fair.allow-undeclared-pools` should be set to false so that users can’t create queues on the fly.
 
 ##### Preemption
-Preemption allows the scheduler to kill containers for queues that are running with more than their fair share of resources so that the resources can be allocated to a queue that is under its fair share. Note that preemption reduces overall cluster efficiency, since the terminated containers need to be reexecuted.  
+Preemption allows the scheduler to kill containers for queues that are running with more than their fair share of resources so that the resources can be allocated to a queue that is under its fair share. Note that `preemption reduces overall cluster efficiency, since the terminated containers need to be reexecuted`.  
 
 Preemption is enabled globally by setting `yarn.scheduler.fair.preemption` to true. There are two relevant preemption timeout settings: one for minimum share and one for fair share, both specified in seconds. By default, the timeouts are not set, so you need to set at least one to allow containers to be preempted.  
 1. minimum share preemption timeout  
@@ -967,7 +988,7 @@ Likewise, if a queue remains below half of its fair share for as long as the fai
 #### Delay Scheduling
 All the YARN schedulers try to honor locality requests. On a busy cluster, if an application requests a particular node, there is a good chance that other containers are running on it at the time of the request. The obvious course of action is to immediately loosen the locality requirement and allocate a container on the same rack. However, it has been observed in practice that waiting a short time (no more than a few seconds) can dramatically increase the chances of being allocated a container on the requested node, and therefore increase the efficiency of the cluster. This feature is called delay scheduling, and it is supported by both the Capacity Scheduler and the Fair Scheduler.  
 
-Every node manager in a YARN cluster periodically sends a heartbeat request to the resource manager—by default, one per second. Heartbeats carry information about the node manager’s running containers and the resources available for new containers, so each heartbeat is a potential **scheduling opportunity** for an application to run a container.  
+`Every node manager in a YARN cluster periodically sends a heartbeat request to the resource manager—by default, one per second`. Heartbeats carry information about the node manager’s running containers and the resources available for new containers, so each heartbeat is a potential **scheduling opportunity** for an application to run a container.  
 
 For the Capacity Scheduler, delay scheduling is configured by setting `yarn.scheduler.capacity.node-locality-delay` to a positive integer representing the number of scheduling opportunities that it is prepared to miss before loosening the node constraint to match any node in the same rack. 
 
@@ -988,7 +1009,6 @@ This chapter has given a short overview of YARN. For more detail, see Apache Had
 ## 5. Hadoop I/O
 
 ### Data Integrity
-
 A commonly used error-detecting code is CRC-32 (32-bit cyclic redundancy check), which computes a 32-bit integer checksum for input of any size. CRC-32 is used for checksumming in Hadoop’s ChecksumFileSystem, while HDFS uses a more efficient variant called CRC-32C.
 
 `HDFS transparently checksums all data written to it and by default verifies checksums when reading data`. A separate checksum is created for every `dfs.bytes-per-checksum` bytes of data. The default is 512 bytes, and because a CRC-32C checksum is 4 bytes long, the storage overhead is less than 1%.
@@ -1000,7 +1020,7 @@ When clients read data from datanodes, they verify checksums as well, comparing 
 In addition to block verification on client reads, each datanode runs a **DataBlockScanner** in a background thread that periodically verifies all the blocks stored on the datanode. This is to guard against corruption due to “bit rot” in the physical storage media. 
 
 Because HDFS stores replicas of blocks, it can “heal” corrupted blocks by copying one of the good replicas to produce a new, uncorrupt replica.
-`It is possible to disable verification of checksums` by passing false to the setVerifyChecksum() method on FileSystem before using the open() method to read a file. The same effect is possible from the shell by using the -ignoreCrc option with the -get or the equivalent -copyToLocal command. This feature is useful if you have a corrupt file that you want to inspect so you can decide what to do with it. For example, you might want to see whether it can be salvaged before you delete it.
+`It is possible to disable verification of checksums` by passing false to the setVerifyChecksum() method on FileSystem before using the open() method to read a file. The same effect is possible from the shell by using the `-ignoreCrc` option with the -get or the equivalent -copyToLocal command. This feature is useful if you have a corrupt file that you want to inspect so you can decide what to do with it. For example, you might want to see whether it can be salvaged before you delete it.
 
 #### LocalFileSystem
 The Hadoop LocalFileSystem performs client-side checksumming. This means that when you write a file called filename, the filesystem client transparently creates a hidden file, `.filename.crc`, in the same directory containing the checksums for each chunk of the file. The chunk size is controlled by the `file.bytes-per-checksum` property, which defaults to 512 bytes.  
@@ -1038,22 +1058,22 @@ Compression format  |Tool   |Algorithm  |Filename extension |Splittable?
 DEFLATE             |N/A    |DEFLATE    |.deflate           |No
 gzip                |gzip   |DEFLATE    |.gz                |No
 bzip2               |bzip2  |bzip2      |.bz2               |Yes
-LZO                 |lzop   |LZO        |.lzo               |No
+LZO                 |lzop   |LZO        |.lzo               |"No"
 LZ4                 |N/A    |LZ4        |.lz4               |No
 Snappy              |N/A    |Snappy     |.snappy            |No
 
 The different tools have very different compression characteristics.  
-* gzip is a generalpurpose compressor and sits in the middle of the space/time trade-off.   
+* gzip is a general-purpose compressor and sits in the middle of the space/time trade-off.   
 * bzip2 compresses more effectively than gzip, but is slower. bzip2’s decompression speed is faster than its compression speed, but it is still slower than the other formats. 
-* LZO, LZ4, and Snappy, on the other hand, all optimize for speed and are around an order of magnitude faster than gzip, but compress less effectively. Snappy and LZ4 are also significantly faster than LZO for decompression.  
+* LZO, LZ4, and Snappy, on the other hand, all optimize for speed and are around an order of magnitude faster than gzip, but compress less effectively. `Snappy and LZ4 are also significantly faster than LZO for decompression`.  
 * bzip2 is splittable, LZO files are splittable if they have been indexed in a preprocessing step using an indexer tool that comes with the Hadoop LZO libraries
 
-The “Splittable” column in Table 5-1 indicates whether the compression format supports splitting (that is, whether you can seek to any point in the stream and start reading from some point further on). Splittable compression formats are especially suitable for Map‐Reduce
+The “Splittable” column in Table 5-1 indicates whether the compression format supports splitting (that is, whether you can seek to any point in the stream and start reading from some point further on). Splittable compression formats are especially suitable for Map‐Reduce.
 
 [hadoop-jvm-compressor-benchmark-1]  
 
 A codec is the implementation of a compression-decompression algorithm. In Hadoop, a codec is represented by an implementation of the **CompressionCodec** interface.  
-For large files, you should not use a compression format that does not support splitting on the whole file, because you lose locality and make MapReduce applications very inefficient.
+`For large files, you should not use a compression format that does not support splitting on the whole file, because you lose locality and make MapReduce applications very inefficient`.
 
 #### Codecs
 **CompressionOutputStream** and **CompressionInputStream** are similar to java.util. zip.DeflaterOutputStream and java.util.zip.DeflaterInputStream, except that both of the former provide the ability to reset their underlying compressor or decompressor. This is important for applications that compress sections of the data stream as separate blocks, such as in a SequenceFile.
@@ -1065,8 +1085,7 @@ public class StreamCompressor {
         String codecClassname = args[0];
         Class<?> codecClass = Class.forName(codecClassname);
         Configuration conf = new Configuration();
-        CompressionCodec codec = (CompressionCodec)
-        ReflectionUtils.newInstance(codecClass, conf);
+        CompressionCodec codec = (CompressionCodec)ReflectionUtils.newInstance(codecClass, conf);
         CompressionOutputStream out = codec.createOutputStream(System.out);
         IOUtils.copyBytes(System.in, out, 4096, false);
         out.finish();
@@ -1089,7 +1108,7 @@ public class FileDecompressor {
             System.exit(1);
         }
         String outputUri =
-        CompressionCodecFactory.removeSuffix(uri, codec.getDefaultExtension());
+            CompressionCodecFactory.removeSuffix(uri, codec.getDefaultExtension());
         InputStream in = null;
         OutputStream out = null;
         try {
@@ -1103,15 +1122,15 @@ public class FileDecompressor {
     }
 }
 ```
-use `io.compression.codecs` configuration property if you have a custom codec that you wish to register
+use `io.compression.codecs` configuration property if you have a custom codec that you wish to register.
 
 #### Native libraries
 For performance, it is preferable to use a native library for compression and decompression.  
 
-The Apache Hadoop binary tarball comes with prebuilt native compression binaries for 64-bit Linux, called libhadoop.so. For other platforms, you will need to compile the libraries yourself, following the BUILDING.txt instructions at the top level of the source tree.  
+The Apache Hadoop binary tarball comes with prebuilt native compression binaries for 64-bit Linux, called `libhadoop.so`. For other platforms, you will need to compile the libraries yourself, following the BUILDING.txt instructions at the top level of the source tree.  
 The native libraries are picked up using the Java system property `java.library.path`. The hadoop script in the etc/hadoop directory sets this property for you, but if you don’t use this script, you will need to set the property in your application.
 
-By default, Hadoop looks for native libraries for the platform it is running on, and loads them automatically if they are found. This means you don’t have to change any configuration settings to use the native libraries. In some circumstances, however, you may wish to disable use of native libraries, such as when you are debugging a compression related problem. You can do this by setting the property `io.native.lib.available` to false, which ensures that the built-in Java equivalents will be used (if they are available).
+By default, Hadoop looks for native libraries for the platform it is running on, and loads them automatically if they are found. `This means you don’t have to change any configuration settings to use the native libraries`. In some circumstances, however, you may wish to disable use of native libraries, such as when you are debugging a compression related problem. You can do this by setting the property `io.native.lib.available` to false, which ensures that the built-in Java equivalents will be used (if they are available).
 
 #### CodecPool
 If you are using a native library and you are doing a lot of compression or decompression in your application, consider using CodecPool, which allows you to reuse compressors and decompressors, thereby amortizing the cost of creating these objects.  
@@ -1123,13 +1142,11 @@ public class PooledStreamCompressor {
         String codecClassname = args[0];
         Class<?> codecClass = Class.forName(codecClassname);
         Configuration conf = new Configuration();
-        CompressionCodec codec = (CompressionCodec)
-        ReflectionUtils.newInstance(codecClass, conf);
+        CompressionCodec codec = (CompressionCodec)ReflectionUtils.newInstance(codecClass, conf);
         Compressor compressor = null;
         try {
             compressor = CodecPool.getCompressor(codec);
-            CompressionOutputStream out =
-            codec.createOutputStream(System.out, compressor);
+            CompressionOutputStream out = codec.createOutputStream(System.out, compressor);
             IOUtils.copyBytes(System.in, out, 4096, false);
             out.finish();
         } finally {
@@ -1178,7 +1195,7 @@ public class MaxTemperatureWithCompression {
 $ hadoop MaxTemperatureWithCompression input/ncdc/sample.txt.gz output
 ```
 
-If you are emitting sequence files for your output, you can set the `mapreduce.out put.fileoutputformat.compress.type` property to control the type of compression to use. The default is RECORD, which compresses individual records. Changing this to BLOCK, which compresses groups of records, is recommended because it compresses better
+If you are emitting sequence files for your output, you can set the `mapreduce.output.fileoutputformat.compress.type` property to control the type of compression to use. The default is RECORD, which compresses individual records. Changing this to BLOCK, which compresses groups of records, is recommended because it compresses better
 
 ##### Compressing map output
 Even if your MapReduce application reads and writes uncompressed data, it may benefit from compressing the intermediate output of the map phase. The map output is written to disk and transferred across the network to the reducer nodes, so by using a fast compressor such as LZO, LZ4, or Snappy, you can get performance gains simply because the volume of data to transfer is reduced.  
@@ -1188,8 +1205,7 @@ Even if your MapReduce application reads and writes uncompressed data, it may be
 ```java
 Configuration conf = new Configuration();
 conf.setBoolean(Job.MAP_OUTPUT_COMPRESS, true);
-conf.setClass(Job.MAP_OUTPUT_COMPRESS_CODEC, GzipCodec.class,
-CompressionCodec.class);
+conf.setClass(Job.MAP_OUTPUT_COMPRESS_CODEC, GzipCodec.class, CompressionCodec.class);
 Job job = new Job(conf);
 ```
 
@@ -1198,7 +1214,7 @@ Serialization is the process of turning structured objects into a byte stream fo
 
 Serialization is used in two quite distinct areas of distributed data processing: for interprocess communication and for persistent storage.  
 
-In Hadoop, interprocess communication between nodes in the system is implemented using remote procedure calls (RPCs). In general, it is desirable that an RPC serialization format is:  
+`In Hadoop, interprocess communication between nodes in the system is implemented using remote procedure calls (RPCs)`. In general, it is desirable that an RPC serialization format is:  
 * Compact  
 * Fast
 * Extensible  
@@ -1277,7 +1293,7 @@ This interface permits implementors to compare records read from a stream withou
 **WritableComparator** is a general-purpose implementation of RawComparator for WritableComparable classes. It provides two main functions. First, it provides a default implementation of the raw compare() method that `deserializes the objects to be compared from the stream and invokes the object compare() method`. Second, it acts as `a factory for RawComparator instances` (that Writable implementations have registered). For example, to obtain a comparator for IntWritable, we just use:  
 ```java
 RawComparator<IntWritable> comparator =
-WritableComparator.get(IntWritable.class);
+    WritableComparator.get(IntWritable.class);
 // first
 IntWritable w1 = new IntWritable(163);
 IntWritable w2 = new IntWritable(67);
@@ -1298,14 +1314,14 @@ There are Writable wrappers for all the Java primitive types (see Table 5-7, all
 
 Some other WriteableComparable implementations are Text, NullWritable, BytesWritable, MD5Hash. 
 
-When it comes to encoding integers, there is a choice between the fixed-length formats (IntWritable and LongWritable) and the variable-length formats (VIntWritable and VLongWritable). The variable-length formats use only a single byte to encode the value if it is small enough (between –112 and 127, inclusive); otherwise, they use the first byte to indicate whether the value is positive or negative, and how many bytes follow. on average, the variable-length encoding will save space. Another advantage of variable-length encodings is that you can switch from VIntWritable to VLongWritable, because their encodings are actually the same.  
+When it comes to encoding integers, there is a choice between the fixed-length formats (IntWritable and LongWritable) and the variable-length formats (VIntWritable and VLongWritable). The variable-length formats use only a single byte to encode the value if it is small enough (between –112 and 127, inclusive); otherwise, they use the first byte to indicate whether the value is positive or negative, and how many bytes follow. on average, `the variable-length encoding will save space`. Another advantage of variable-length encodings is that you can switch from VIntWritable to VLongWritable, because their encodings are actually the same.  
 
 ##### Text
-Text is a Writable for UTF-8 sequences. It can be thought of as the Writable equivalent of java.lang.String.  
+Text is a Writable for **UTF-8** sequences. It can be thought of as the Writable equivalent of java.lang.String.  
 
-The Text class uses an int (with a variable-length encoding) to store the number of bytes in the string encoding, so the maximum value is 2 GB. Furthermore, Text uses standard UTF-8, which makes it potentially easier to interoperate with other tools that understand UTF-8.  
+`The Text class uses an int (with a variable-length encoding) to store the number of bytes in the string encoding, so the maximum value is 2 GB`. Furthermore, Text uses standard UTF-8, which makes it potentially easier to interoperate with other tools that understand UTF-8.  
 
-Because of its emphasis on using standard UTF-8, there are some differences between Text and the Java String class. Indexing for the Text class is in terms of position in the encoded byte sequence, but not the Unicode character in the string or the Java char code unit in the string (as how indexing is for String).
+Because of its emphasis on using standard UTF-8, there are some differences between Text and the Java String class. `Indexing for the Text class is in terms of position in the encoded byte sequence, but not the Unicode character in the string or the Java char code unit in the string (as how indexing is for String).(PS: the latters are in term of Unicode character)`
 
 Iterating over the Unicode characters in Text is complicated by the use of byte offsets for indexing, since you can’t just increment the index. The idiom for iteration is a little obscure (see Example 5-6): turn the Text object into a java.nio.ByteBuffer, then repeatedly call the bytesToCodePoint() static method on Text with the buffer.  
 **Example 5-6. Iterating over the characters in a Text object**  
@@ -1322,7 +1338,7 @@ public class TextIterator {
 }
 ```
 
-Another difference from String is that Text is mutable (like all Writable implementations in Hadoop, except NullWritable, which is a singleton).  
+`Another difference from String is that Text is mutable` (like all Writable implementations in Hadoop, except NullWritable, which is a singleton).  
 
 getBytes() doesn't return the actual size, but return current capacity, which is the case for BytesWritable  
 ```java
@@ -1340,10 +1356,10 @@ assertThat(new Text("hadoop").toString(), is("hadoop"));
 ```
 
 ##### NullWritable
-NullWritable is a special type of Writable, as it has a zero-length serialization. No bytes are written to or read from the stream. It is used as a placeholder; for example, in Map-Reduce, a key or a value can be declared as a NullWritable when you don’t need to use that position, effectively storing a constant empty value. NullWritable can also be useful as a key in a SequenceFile when you want to store a list of values, as opposed to keyvalue pairs. It is an immutable singleton, and the instance can be retrieved by calling NullWritable.get().
+NullWritable is a special type of Writable, as it has a zero-length serialization. No bytes are written to or read from the stream. It is used as a placeholder; for example, in Map-Reduce, a key or a value can be declared as a NullWritable when you don’t need to use that position, effectively storing a constant empty value. NullWritable can also be useful as a key in a SequenceFile when you want to store a list of values, as opposed to key-value pairs. It is an immutable singleton, and the instance can be retrieved by calling NullWritable.get().
 
 ##### ObjectWritable and GenericWritable
-ObjectWritable is a general-purpose wrapper for the following: Java primitives, String, enum, Writable, null, or arrays of any of these types. It is used in Hadoop RPC to marshal and unmarshal method arguments and return types.  
+ObjectWritable is a general-purpose wrapper for the following: Java primitives, String, enum, Writable, null, or arrays of any of these types. `It is used in Hadoop RPC to marshal and unmarshal method arguments and return types`.  
 
 ObjectWritable is useful when a field can be of more than one type.  
 
@@ -1351,7 +1367,7 @@ Being a general-purpose mechanism, it wastes a fair amount of space because it w
 
 ##### Writable collections
 The org.apache.hadoop.io package includes six Writable collection types: 
-* Array Writable
+* ArrayWritable
 * ArrayPrimitiveWritable
 * TwoDArrayWritable
 * MapWritable
@@ -1367,7 +1383,7 @@ public class TextArrayWritable extends ArrayWritable {
 }
 ```
 
-MapWritable is an implementation of java.util.Map<Writable, Writable>, and SortedMapWritable is an implementation of java.util.SortedMap<WritableComparable, Writable>. The type of each key and value field is a part of the serialization format for that field. The type is stored as a single byte that acts as an index into an array of types. The array is populated with the standard types in the org.apache.hadoop.io package, but custom Writable types are accommodated, too, by writing a header that encodes the type array for nonstandard types. As they are implemented, MapWritable and SortedMapWritable use positive byte values for custom types, so a maximum of 127 distinct nonstandard Writable classes can be used in any particular MapWritable or SortedMapWritable instance.  
+MapWritable is an implementation of java.util.Map<Writable, Writable>, and SortedMapWritable is an implementation of java.util.SortedMap<WritableComparable, Writable>. The type of each key and value field is a part of the serialization format for that field. The type is stored as `a single byte` that acts as an index into `an array of types`. The array is populated with the standard types in the org.apache.hadoop.io package, but custom Writable types are accommodated, too, by writing a header that encodes the type array for nonstandard types. As they are implemented, MapWritable and SortedMapWritable use positive byte values for custom types, so a maximum of 127 distinct nonstandard Writable classes can be used in any particular MapWritable or SortedMapWritable instance.  
 
 A general set can be emulated by using a MapWritable (or a SortedMapWritable for a sorted set) with NullWritable values.  
 
@@ -1473,10 +1489,10 @@ Hadoop has an API for pluggable serialization frameworks. A serialization framew
 A Serialization defines a mapping from types to **Serializer** instances (for turning an object into a byte stream) and **Deserializer** instances (for turning a byte stream into an object).  
 Set the `io.serializations` property to a comma-separated list of classnames in order to register Serialization implementations. Its default value includes org.apache.hadoop.io.serializer.WritableSerialization and the Avro Specific and Reflect serializations (see “Avro Data Types and Schemas” on page 346), which means that only Writable or Avro objects can be serialized or deserialized out of the box.
 
-Hadoop includes a class called **JavaSerialization** that uses Java Object Serialization. Although it makes it convenient to be able to use standard Java types such as Integer or String in MapReduce programs, Java Object Serialization is not as efficient as Writables, so it’s not worth making this trade-off.
+Hadoop includes a class called **JavaSerialization** that uses Java Object Serialization. Although it makes it convenient to be able to use standard Java types such as Integer or String in MapReduce programs, `Java Object Serialization is not as efficient as Writables`, so it’s not worth making this trade-off.
 
 Java Serialization, that is tightly integrated with the language. It looked big and hairy and I thought we needed something lean and mean, where we had precise control over exactly how objects are written and read, since that is central to Hadoop.  
-The logic for not using RMI was similar. Effective, high performance inter-process communications are critical to Hadoop. I felt like we’d need to precisely control how things like connections, timeouts and buffers are handled, and RMI gives you little control over those.
+The logic for not using RMI was similar. `Effective, high performance inter-process communications are critical to Hadoop. I felt like we’d need to precisely control how things like connections, timeouts and buffers are handled, and RMI gives you little control over those.`
 
 ##### Serialization IDL
 There are a number of other serialization frameworks that approach the problem in a different way: rather than defining types through code, you define them in a language-neutral, declarative fashion, using an interface description language (IDL). The system can then generate types for different languages, which is good for interoperability. They also typically define versioning schemes that make type evolution straightforward.
@@ -1491,10 +1507,10 @@ For some applications, you need a specialized data structure to hold your data. 
 ### SequenceFile
 Imagine a logfile where `each log record is a new line of text`. If you want to log binary types, plain text isn’t a suitable format. Hadoop’s SequenceFile class fits the bill in this situation, providing a persistent data structure for `binary key-value pairs`. To use it as a logfile format, you would choose a key, such as timestamp represented by a LongWritable, and the value would be a Writable that represents the quantity being logged.
 
-`SequenceFiles also work well as containers for smaller files`. HDFS and MapReduce are optimized for large files, so packing files into a SequenceFile makes storing and processing the smaller files more efficient
+`SequenceFiles also work well as containers for smaller files`. HDFS and MapReduce are optimized for large files, so packing files into a SequenceFile makes storing and processing the smaller files more efficient.
 
 #### Writing a SequenceFile
-To create a SequenceFile, use one of its createWriter() static methods, which return a SequenceFile.Writer instance. There are several overloaded versions, but they all require you to specify a stream to write to (either an FSDataOutputStream or a FileSystem and Path pairing), a Configuration object, and the key and value types. Optional arguments include the compression type and codec, a Progressable callback to be informed of write progress, and a Metadata instance to be stored in the SequenceFile header.
+To create a SequenceFile, use one of its createWriter() static methods, which return a SequenceFile.Writer instance. There are several overloaded versions, but they all require you to specify a stream to write to (either an FSDataOutputStream or a FileSystem and Path pairing), a Configuration object, and the key and value types. Optional arguments include the compression type and codec, a Progressable callback to be informed of write progress, and `a Metadata instance to be stored in the SequenceFile header`.
 
 **Example 5-10. Writing a SequenceFile**
 ```java
@@ -1559,7 +1575,7 @@ assertThat(reader.getPosition(), is(2021L));
 assertThat(reader.next(key, value), is(true));
 assertThat(((IntWritable) key).get(), is(59));
 ```
-SequenceFile.Writer has a method called sync() for inserting a sync point at the current position in the stream.
+SequenceFile.Writer has a method called sync() for `inserting a sync point at the current position` in the stream.
 
 Sync points come into their own when using sequence files as input to MapReduce, since they permit the files to be split and different portions to be processed independently by separate map tasks.
 
@@ -1577,10 +1593,8 @@ public class SequenceFileReadDemo {
         SequenceFile.Reader reader = null;
         try {
             reader = new SequenceFile.Reader(fs, path, conf);
-            Writable key = (Writable)
-            ReflectionUtils.newInstance(reader.getKeyClass(), conf);
-            Writable value = (Writable)
-            ReflectionUtils.newInstance(reader.getValueClass(), conf);
+            Writable key = (Writable)ReflectionUtils.newInstance(reader.getKeyClass(), conf);
+            Writable value = (Writable)ReflectionUtils.newInstance(reader.getValueClass(), conf);
             long position = reader.getPosition();
             while (reader.next(key, value)) {
                 // sync point
@@ -1601,7 +1615,7 @@ $ hadoop SequenceFileReadDemo numbers.seq
 [2021*] 59 Three, four, shut the door
 ```
 
-A **sync point** is a point in the stream that can be used to resynchronize with a record boundary if the reader is “lost”—for example, after seeking to an arbitrary position in the stream. `Sync points are recorded by SequenceFile.Writer, which inserts a special entry to mark the sync point every few records as a sequence file is being written`. Such entries are small enough to incur only a modest storage overhead—less than 1%. Sync points always align with record boundaries.
+A **sync point** is a point in the stream that can be used to resynchronize with a record boundary if the reader is “lost”—for example, after seeking to an arbitrary position in the stream. `Sync points are recorded by SequenceFile.Writer, which inserts a special entry to mark the sync point every few records as a sequence file is being written`. Such entries are small enough to incur only a modest storage overhead—less than 1%. `Sync points always align with record boundaries`.
 
 #### Displaying a SequenceFile with the command-line interface
 The hadoop fs command has a -text option to display sequence files in textual form. It can recognize gzipped files, sequence files, and Avro 
@@ -1662,15 +1676,15 @@ MapFile offers a very similar interface to SequenceFile for reading and writing�
 
 ![hadoop_storage_row_vs_column_img_1]  
 
-Sequence files, map files, and Avro datafiles are all row-oriented file formats, which means that the values for each row are stored contiguously in the file. In a column-oriented format, the rows in a file (or, equivalently, a table in Hive) are broken up into `row splits`, then each split is stored in column-oriented fashion: the values for each row in the first column are stored first, followed by the values for each row in the second column, and so on.  
+`Sequence files, map files, and Avro datafiles are all row-oriented file formats`, which means that the values for each row are stored contiguously in the file. In a column-oriented format, the rows in a file (or, equivalently, a table in Hive) are broken up into `row splits`, then each split is stored in column-oriented fashion: the values for each row in the first column are stored first, followed by the values for each row in the second column, and so on.  
 
 With row-oriented storage, Lazy deserialization saves some processing cycles by deserializing only the column fields that are accessed, but it can’t avoid the cost of reading each row’s bytes from disk. 
 
 In general, column-oriented formats work well when queries access only a small number of columns in the table. Conversely, row-oriented formats are appropriate when a large number of columns of a single row are needed for processing at the same time.
 
-Column-oriented formats need more memory for reading and writing, since they have to buffer a row split in memory, rather than just a single row. Also, it’s not usually possible to control when writes occur (via flush or sync operations), so `column-oriented formats are not suited to streaming writes`, as the current file cannot be recovered if the writer process fails. On the other hand, row-oriented formats like sequence files and Avro datafiles can be read up to the last sync point after a writer failure. It is for this reason that `Flume (see Chapter 14) uses row-oriented formats`. 
+`Column-oriented formats need more memory for reading and writing, since they have to buffer a row split in memory, rather than just a single row`. Also, it’s not usually possible to control when writes occur (via flush or sync operations), so `column-oriented formats are not suited to streaming writes`, as the current file cannot be recovered if the writer process fails. On the other hand, row-oriented formats like sequence files and Avro datafiles can be read up to the last sync point after a writer failure. It is for this reason that `Flume (see Chapter 14) uses row-oriented formats`. 
 
-The first column-oriented file format in Hadoop was Hive’s RCFile, short for Record Columnar File. It has since been superseded by Hive’s ORCFile (Optimized Record Columnar File), and Parquet (covered in Chapter 13). `Parquet is a general-purpose column-oriented file format based on Google’s Dremel, and has wide support across Hadoop components`. Avro also has a column-oriented format called Trevni.
+The first column-oriented file format in Hadoop was Hive’s `RCFile, short for Record Columnar File`. It has since been superseded by Hive’s `ORCFile (Optimized Record Columnar File)`, and Parquet (covered in Chapter 13). `Parquet is a general-purpose column-oriented file format based on Google’s Dremel, and has wide support across Hadoop components`. `Avro also has a column-oriented format called Trevni.`
 
 ## 6. Developing a MapReduce Application
 
@@ -1796,7 +1810,7 @@ assertThat(conf.get("length"), is((String) null));
 </project>
 ```
 
-For building MapReduce jobs, you only need to have the hadoop-client dependency, which contains all the Hadoop client-side classes needed to interact with HDFS and MapReduce. For running unit tests, we use junit, and for writing MapReduce tests, we use mrunit. The hadoop-minicluster library contains the “mini-” clusters that are useful for testing with Hadoop clusters running in a single JVM.  
+For building MapReduce jobs, you only need to have the `hadoop-client` dependency, which contains all the Hadoop client-side classes needed to interact with HDFS and MapReduce. For running unit tests, we use `junit`, and for writing MapReduce tests, we use `mrunit`. The `hadoop-minicluster` library contains the “mini-” clusters that are useful for `testing with Hadoop clusters running in a single JVM`.  
 
 ```shell
 $ mvn eclipse:eclipse -DdownloadSources=true -DdownloadJavadocs=true
@@ -1805,11 +1819,11 @@ $ mvn eclipse:eclipse -DdownloadSources=true -DdownloadJavadocs=true
 #### Managing Configuration
 When developing Hadoop applications, it is common to switch between running the application locally and running it on a cluster.
 
-One way to accommodate these variations is to have Hadoop configuration files containing the connection settings for each cluster you run against and specify which one you are using when you run Hadoop applications or tools. As a matter of best practice, it’s recommended to keep these files outside Hadoop’s installation directory tree, as this makes it easy to switch between Hadoop versions without duplicating or losing settings.
+One way to accommodate these variations is to have Hadoop configuration files containing the connection settings for each cluster you run against and specify which one you are using when you run Hadoop applications or tools. As a matter of best practice, it’s recommended to keep these files outside   Hadoop’s installation directory tree, as this makes it easy to switch between Hadoop versions without duplicating or losing settings.
 
 Hadoop can be run in one of three modes:  
 1. Standalone (or local) mode  
-There are no daemons running and everything runs in a single JVM. Standalone mode is suitable for running MapReduce programs during development, since it is easy to test and debug them.  
+`There are no daemons running and everything runs in a single JVM`. Standalone mode is suitable for running MapReduce programs during development, since it is easy to test and debug them.  
 In standalone mode, there is no further action to take, since the default properties are set for standalone mode and there are no daemons to run.
 2. Pseudo distributed mode  
 The Hadoop daemons run on the local machine, thus simulating a cluster on a small scale.
@@ -1943,7 +1957,7 @@ You can also override user group mappings by means of the `hadoop.user.group.sta
 
 You can set the user identity that the Hadoop web interfaces run as by setting the `hadoop.http.staticuser.user` property. By default, it is dr.who, which is not a superuser, so system files are not accessible through the web interface.
 
-Tools that come with Hadoop support the -conf option, but it’s straightforward to make your programs (such as programs that run MapReduce jobs) support it, too, using the Tool interface.
+Tools that come with Hadoop support the -conf option, but it’s straightforward to make your programs (such as programs that run MapReduce jobs) support it, too, using the **Tool** interface.
 
 #### GenericOptionsParser, Tool, and ToolRunner
 Hadoop comes with a few helper classes for making it easier to run jobs from the command line. GenericOptionsParser is a class that interprets common Hadoop command-line options and sets them on a Configuration object for your application to use as desired. You don’t usually use GenericOptionsParser directly, as it’s more convenient to implement the Tool interface and run your application with the ToolRunner, which uses GenericOptionsParser internally.  
@@ -1971,7 +1985,7 @@ public class ConfigurationPrinter extends Configured implements Tool {
     }
 }
 ```
-We make ConfigurationPrinter a subclass of Configured, which is an implementation of the Configurable interface. All implementations of Tool need to implement Configurable (since Tool extends it), and subclassing Configured is often the easiest way to achieve this. The run() method obtains the Configuration using Configurable’s getConf() method and then iterates over it, printing each property to standard output.
+We make ConfigurationPrinter a subclass of **Configured**, which is an implementation of the Configurable interface. `All implementations of Tool need to implement Configurable (since Tool extends it), and subclassing Configured is often the easiest way to achieve this`. The run() method obtains the Configuration using Configurable’s getConf() method and then iterates over it, printing each property to standard output.
 
 `Be aware that some properties have no effect when set in the client configuration`. For example, if you set yarn.nodemanager.resource.memory-mb in your job submission with the expectation that it would change the amount of memory available to the node managers running your job, you would be disappointed, because this property is honored only if set in the node manager’s yarn-site.xml file. In general, you can tell the component where a property should be set by its name, so the fact that yarn.nodemanager.resource.memory-mb starts with yarn.nodemanager gives you a clue that it can be set only for the node manager daemon.
 
@@ -2105,7 +2119,7 @@ public class MaxTemperatureMapperTest {
 }
 ```
 
-A MapDriver can be used to check for zero, one, or more output records, according to the number of times that withOutput() is called. Test ignoresMissingTemperatureRecord() would fail if there were output, since there is no withOutput() called, expecting no output.
+A MapDriver can be used to check for zero, one, or more output records, `according to the number of times that withOutput() is called`. Test ignoresMissingTemperatureRecord() would fail if there were output, since there is no withOutput() called, expecting no output.
 
 ### Running Locally on Test Data
 #### Running a Job in a Local Job Runner
@@ -2183,18 +2197,18 @@ public void test() throws Exception {
 }
 ```
 2. The second way of testing the driver is to run it using a “mini-” cluster.  
-Hadoop has a set of testing classes, called **MiniDFSCluster**, **MiniMRCluster**, and **MiniYARNCluster**, that provide a programmatic way of creating in-process clusters. Unlike the local job runner, these allow testing against the full HDFS, MapReduce, and YARN machinery. Bear in mind, too, that node managers in a mini-cluster launch separate JVMs to run tasks in, which can make debugging more difficult.  
+Hadoop has a set of testing classes, called **MiniDFSCluster**, **MiniMRCluster**, and **MiniYARNCluster**, that provide a programmatic way of creating in-process clusters. Unlike the local job runner, these allow testing against the full HDFS, MapReduce, and YARN machinery. Bear in mind, too, that `node managers in a mini-cluster launch separate JVMs to run tasks in, which can make debugging more difficult`.  
 You can run a mini-cluster from the command line too, with the following:  
 ```shell
 % hadoop jar \
 $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-*-tests.jar \
 minicluster
 ```
-Mini-clusters are used extensively in Hadoop’s own automated test suite, but they can be used for testing user code, too. Hadoop’s ClusterMapReduceTestCase abstract class provides a useful base for writing such a test, handles the details of starting and stopping the in-process HDFS and YARN clusters in its setUp() and tearDown() methods, and generates a suitable Configuration object that is set up to work with them. Subclasses need only populate data in HDFS (perhaps by copying from a local file), run a MapReduce job, and confirm the output is as expected. Refer to the MaxTemperatureDriver MiniTest class in the example code that comes with this book for the listing.  
+Mini-clusters are used extensively in Hadoop’s own automated test suite, but they can be used for testing user code, too. Hadoop’s **ClusterMapReduceTestCase** abstract class provides a useful base for writing such a test, handles the details of starting and stopping the in-process HDFS and YARN clusters in its setUp() and tearDown() methods, and generates a suitable Configuration object that is set up to work with them. Subclasses need only populate data in HDFS (perhaps by copying from a local file), run a MapReduce job, and confirm the output is as expected. Refer to the MaxTemperatureDriver MiniTest class in the example code that comes with this book for the listing.  
 
 ### Running on a Cluster
 #### Packaging a Job
-For a start, a job’s classes must be packaged into a job JAR file to send to the cluster. Hadoop will find the job JAR automatically by searching for the JAR on the driver’s classpath that contains the class set in the setJarByClass() method (on JobConf or Job). Alternatively, if you want to set an explicit JAR file by its file path, you can use the setJar() method. (The JAR file path may be local or an HDFS file path.)
+For a start, `a job’s classes must be packaged into a job JAR file to send to the cluster`. Hadoop will find the job JAR automatically by searching for the JAR on the driver’s classpath that contains the class set in the setJarByClass() method (on JobConf or Job). Alternatively, if you want to set an explicit JAR file by its file path, you can use the setJar() method. (The JAR file path may be local or an HDFS file path.)
 
 Creating a job JAR file is conveniently achieved using a build tool such as Ant or Maven.
 ```shell
@@ -2221,8 +2235,8 @@ On a cluster (including pseudo distributed mode), map and reduce tasks run in se
 Instead, the user’s task classpath is comprised of the following:  
     * The job JAR file
     * Any JAR files contained in the lib directory of the job JAR file, and the classes directory (if present)
-    * Any files added to the distributed cache using the -libjars option , or the addFileToClassPath() method on DistributedCache (old API), or Job (new API)  
-    The last option, using the distributed cache, is simplest from a build point of view because dependencies don’t need rebundling in the job JAR. Also, using the distributed cache can mean fewer transfers of JAR files around the cluster, since files may be cached on a node between tasks.  
+    * Any files added to the `distributed cache` using the -libjars option , or the addFileToClassPath() method on DistributedCache (old API), or Job (new API)  
+    The last option, using the distributed cache, is simplest from a build point of view because dependencies don’t need rebundling in the job JAR. Also, using the distributed cache can mean fewer transfers of JAR files around the cluster, since `files may be cached on a node between tasks`.  
 
 **Classpath precedence**  
 User JAR files are added to the end of both the client classpath and the task classpath, sometimes you need to be able to control the task classpath order so that your classes are picked up first.  
@@ -2248,14 +2262,14 @@ The corresponding job ID is created simply by replacing the application prefix o
 
 Tasks belong to a job, and their IDs are formed by replacing the job prefix of a job ID with a task prefix and adding a suffix to identify the task within the job. For example: `task_1410450250506_0003_m_000003` (000003, the fourth, task IDs are 0-based). `The task IDs are created for a job when it is initialized, so they do not necessarily dictate the order in which the tasks will be executed`.
 
-Tasks may be executed more than once, due to failure (see “Task Failure” on page 193) or speculative execution (see “Speculative Execution” on page 204), so to identify different instances of a task execution, task attempts are given unique IDs. For example: `attempt_1410450250506_0003_m_000003_0` is the first (0; attempt IDs are 0-based) attempt at running task task_1410450250506_0003_m_000003. Task attempts are allocated during the job run as needed, so their ordering represents the order in which they were created to run.  
+Tasks may be executed more than once, due to failure (see “Task Failure” on page 193) or speculative execution (see “Speculative Execution” on page 204), so to identify different instances of a task execution, task attempts are given unique IDs. For example: `attempt_1410450250506_0003_m_000003_0` is the first (0; attempt IDs are 0-based) attempt at running task task_1410450250506_0003_m_000003. `Task attempts are allocated during the job run as needed, so their ordering represents the order in which they were created to run`.  
 
 #### The MapReduce Web UI
 http://resource-manager-host:8088/
 
 ##### Job History  
 Job history is retained regardless of whether the job was successful.  
-Job history files are stored in HDFS by the MapReduce application master, in a directory set by the `mapreduce.jobhistory.done-dir` property. Job history files are kept for one week before being deleted by the system.  
+Job history files are stored in HDFS `by the MapReduce application master`, in a directory set by the `mapreduce.jobhistory.done-dir` property. Job history files are kept for one week before being deleted by the system.  
 ```shell
 mapred job -history
 ```
@@ -2269,7 +2283,7 @@ The -getmerge option to the hadoop fs command is useful here, as it gets all the
 hadoop fs -getmerge {output_directory} {target_filename}
 ```
 
-We sorted the output, as the reduce output partitions are unordered (owing to the hash partition function).
+We sorted the output, as `the reduce output partitions are unordered` (owing to the hash partition function).
 
 #### Debugging a Job
 
@@ -2308,7 +2322,7 @@ public class NcdcRecordParser {
 ```
 
 1. always use log
-2. We can use a debug statement to log to standard error, in conjunction with updating the task’s status message to prompt us to look in the error log. The web UI makes this easy, as we pass: [will see].
+2. We can use a debug statement to log to standard error, in conjunction with `updating the task’s status message` to prompt us to look in the error log. The web UI makes this easy, as we pass: [will see].
 3. We also create a custom counter(statistics figure) to count the total number of abnormal records.
 4. If the amount of log data you produce in the course of debugging is large  
     1. write the information to the map’s output, rather than to standard error, for analysis and aggregation by the reduce task.  
@@ -2368,7 +2382,7 @@ InterruptedException {
 
 #### Hadoop Logs
 * System daemon logs  
-Primary audience: Administrators,  Each Hadoop daemon produces a logfile (using log4j, .log)  and another file that combines standard out and error (.out). Written in the directory defined by the HADOOP_LOG_DIR environment variable. It is under $HADOOP_HOME/logs by default. This can be changed using the HADOOP_LOG_DIR setting in hadoop-env.sh. Logfile names (of both types) are a combination of the name of the user running the daemon, the daemon name, and the machine hostname. For example, hadoop-hdfs-datanode-ip-10-45-174-112.log. The username in the logfile name is actually the default for the **HADOOP_IDENT_STRING** setting in hadoop-env.sh
+Primary audience: Administrators,  Each Hadoop daemon produces a logfile (using log4j, .log)  and `another file that combines standard out and error (.out)`. Written in the directory defined by the `HADOOP_LOG_DIR` environment variable. It is under `$HADOOP_HOME/logs` by default. This can be changed using the HADOOP_LOG_DIR setting in hadoop-env.sh. Logfile names (of both types) are a combination of the name of the user running the daemon, the daemon name, and the machine hostname. For example, hadoop-hdfs-datanode-ip-10-45-174-112.log. The username in the logfile name is actually the default for the **HADOOP_IDENT_STRING** setting in hadoop-env.sh
 
 * HDFS audit logs  
 Administrators,  A log of all HDFS requests, turned off by default. Written to the namenode’s log, although this is configurable. HDFS can log all filesystem access requests, Audit logging is implemented using log4j logging at the INFO level. (hdfs-audit.log) It can be enabled by adding the following line to hadoop-env.sh:  
@@ -2377,12 +2391,11 @@ Administrators,  A log of all HDFS requests, turned off by default. Written to t
     ```
 
 * MapReduce job history logs  
-Users, A log of the events (such as task completion) that occur in the course of running a job. Job history files are `stored centrally in HDFS` by the MapReduce application master, in JSON format, in a directory set by the `mapreduce.jobhistory.done-dir` property. 
+Users, A log of the events (such as task completion) that occur in the course of running a job. Job history files are `stored centrally in HDFS` by the MapReduce `application master`, in JSON format, in a directory set by the `mapreduce.jobhistory.done-dir` property. 
 
 * MapReduce task logs  
-Users, Each task child process produces a logfile using log4j (called syslog), a file for data sent to standard out (stdout), and a file for standard error (stderr). Written in the `userlogs` subdirectory of the directory defined by the `YARN_LOG_DIR` environment variable.
-
-YARN has a service for log aggregation that takes the task logs for completed applications and moves them to HDFS, where they are stored in a container file for archival purposes. If this service is enabled (by setting yarn.log-aggregation-enable to true on the cluster), then task logs can be viewed by clicking on the logs link in the task attempt web UI, or by using the `mapred job -logs` command. By default, log aggregation is not enabled. In this case, task logs can be retrieved by visiting the node manager’s web UI at http://node-manager-host:8042/logs/userlogs.
+Users, Each task child process produces a logfile using log4j (called syslog), a file for data sent to standard out (stdout), and a file for standard error (stderr). Written in the `userlogs` subdirectory of the directory defined by the `YARN_LOG_DIR` environment variable.  
+YARN has a service for **log aggregation** that takes the task logs for completed applications and `moves them to HDFS`, where they are stored in a container file for archival purposes. If this service is enabled (by setting yarn.log-aggregation-enable to true on the cluster), then task logs can be viewed by clicking on the logs link in the task attempt web UI, or by using the `mapred job -logs` command. By default, log aggregation is not enabled. In this case, task logs can be retrieved by visiting the node manager’s web UI at http://node-manager-host:8042/logs/userlogs.
 
 ```java
 import org.apache.commons.logging.Log;
@@ -2443,7 +2456,7 @@ How long are your mappers running for? If they are only running for a few second
 Suggestion: use **CombineFileInputFormat** to avoid small files. (“small” means significantly smaller than an HDFS block)   
 Hadoop works better with a small number of large files than a large number of small files. Compare a 1 GB file broken into eight 128 MB blocks with 10,000 or so 100 KB files. The 10,000 files use one map each, and the job time can be
 tens or hundreds of times slower than the equivalent one with a single input file and eight map tasks.  
-The situation is alleviated somewhat by CombineFileInputFormat, which was designed to work well with small files. Where FileInputFormat creates a split per file, CombineFileInputFormat packs many files into each split so that each mapper has more to process. Crucially, CombineFileInputFormat takes node and rack locality into account when deciding which blocks to place in the same split, so it does not compromise the speed at which it can process the input in a typical MapReduce job.  
+The situation is alleviated somewhat by CombineFileInputFormat, which was designed to work well with small files. Where FileInputFormat creates a split per file, CombineFileInputFormat packs many files into each split so that each mapper has more to process. `Crucially, CombineFileInputFormat takes node and rack locality into account` when deciding which blocks to place in the same split, so it does not compromise the speed at which it can process the input in a typical MapReduce job.  
 CombineFileInputFormat isn’t just good for small files. It can bring benefits when processing large files, too, since it will `generate one split per node`, which may be made up of multiple blocks. Essentially, CombineFileInputFormat decouples the amount of data that a mapper consumes from the block size of the files in HDFS.  
 Of course, if possible, it is still a good idea to avoid the many small files case, because `MapReduce works best when it can operate at the transfer rate of the disks in the cluster`, and `processing many small files increases the number of seeks that are needed to run a job`.  `One technique for avoiding the many small files case is to merge small files into larger files by using a sequence file`.  
 * Number of reducers  
@@ -2460,14 +2473,14 @@ If you are using your own custom Writable objects or custom comparators, make su
 The MapReduce shuffle exposes around a dozen tuning parameters for memory management, `which may help you wring out the last bit of performance`.  
 
 #### Profiling Tasks
-Hadoop allows you to profile a fraction of the tasks in a job and, as each task completes, pulls down the profile information to your machine for later analysis with standard profiling tools.  
+Hadoop allows you to `profile a fraction of the tasks` in a job and, as each task completes, pulls down the profile information to your machine for later analysis with standard profiling tools.  
 
-To be sure that any tuning is effective, you should compare the new execution time with the old one running on a real cluster. Even this is easier said than done, since job execution times can vary due to resource contention with other jobs and the decisions the scheduler makes regarding task placement. To get a good idea of job execution time under these circumstances, perform a series of runs (with and without the change) and check whether any improvement is statistically significant.
+To be sure that any tuning is effective, you should compare the new execution time with the old one running on a real cluster. Even this is easier said than done, since job execution times can vary due to resource contention with other jobs and the decisions the scheduler makes regarding task placement. `To get a good idea of job execution time under these circumstances, perform a series of runs (with and without the change) and check whether any improvement is statistically significant`.
 
 **The HPROF profiler**  
 There are a number of configuration properties to control profiling, which are also exposed via convenience methods on JobConf. Enabling profiling is as simple as setting the property `mapreduce.task.profile` to true
 
-This runs the job as normal, but adds an `-agentlib` parameter to the Java command used to launch the task containers on the node managers. You can control the precise parameter that is added by setting the `mapreduce.task.profile.params` property. The default uses HPROF, a profiling tool that comes with the JDK that, although basic, can give valuable information about a program’s CPU and heap usage.  
+This runs the job as normal, but adds an `-agentlib` parameter to the Java command used to launch the task containers on the node managers. You can control the precise parameter that is added by setting the `mapreduce.task.profile.params` property. `The default uses HPROF, a profiling tool that comes with the JDK` that, although basic, can give valuable information about a program’s CPU and heap usage.  
 
 It doesn’t usually make sense to profile all tasks in the job, so by default only those with IDs 0, 1, and 2 are profiled (for both maps and reduces). You can change this by setting `mapreduce.task.profile.maps` and `mapreduce.task.profile.reduces` to specify the range of task IDs to profile. The profile output for each task is saved with the task logs in the userlogs subdirectory of the node manager’s local log directory (alongside the syslog, stdout, and stderr files), and can be retrieved in the way described in “Hadoop Logs” on page 172, according to whether log aggregation is enabled or not.
 
@@ -2479,8 +2492,8 @@ For more complex problems, it is worth considering a higher-level language than 
 Finally, the book **Data-Intensive Text Processing with MapReduce by Jimmy Lin and Chris Dyer (Morgan & Claypool Publishers, 2010)** is a great resource for learning more about MapReduce algorithm design and is highly recommended.
 
 #### Decomposing a Problem into MapReduce Jobs
-A mapper commonly performs input format parsing, projection (selecting the 
-relevant fields), and filtering (removing records that are not of interest).  In the mappers you have seen so far, we have implemented all of these functions in a single mapper. However, there is a case for splitting these into distinct mappers and chaining them into a single mapper using the **ChainMapper** library class that comes with Hadoop. Combined with a **ChainReducer**, you can run a chain of mappers, followed by a reducer and another chain of mappers, in a single MapReduce job.
+A mapper commonly performs `input format parsing`, `projection` (selecting the 
+relevant fields), and `filtering` (removing records that are not of interest).  In the mappers you have seen so far, we have implemented all of these functions in a single mapper. However, there is a case for splitting these into distinct mappers and chaining them into a single mapper using the **ChainMapper** library class that comes with Hadoop. Combined with a **ChainReducer**, you can run a chain of mappers, followed by a reducer and another chain of mappers, in a single MapReduce job.
 
 #### JobControl
 When there is more than one job in a MapReduce workflow, the question arises: how do you manage the jobs so they are executed in order? There are several approaches, and the main consideration is whether you have a `linear chain` of jobs or a more complex `directed acyclic graph (DAG)` of jobs.
@@ -2489,14 +2502,14 @@ For a linear chain, the simplest approach is to run each job one after another, 
 
 For anything more complex than a linear chain, there are libraries that can help orchestrate your workflow (although they are also suited to linear chains, or even one-off jobs). The simplest is in the org.apache.hadoop.mapreduce.jobcontrol package: the **JobControl** class. (There is an equivalent class in the org.apache.hadoop.mapred.jobcontrol package, too.) An instance of JobControl represents a graph of jobs to be run. You add the job configurations, then tell the JobControl instance the dependencies between jobs. You run the JobControl in a thread, and it runs the jobs in dependency order. You can poll for progress, and when the jobs have finished, you can query for all the jobs’ statuses and the associated errors for any failures. If a job fails, JobControl won’t run its dependencies.
 
-JobControl, which runs on the client machine submitting the jobs.  
+`JobControl, which runs on the client machine submitting the jobs`.  
 
 #### Apache Oozie
 Apache Oozie is a system for running workflows of dependent jobs. It is composed of two main parts: `a workflow engine` that stores and runs workflows composed of different types of Hadoop jobs (MapReduce, Pig, Hive, and so on), and `a coordinator engine` that runs workflow jobs based on `predefined schedules` and `data availability`. Oozie has been designed to `scale`, and it can manage the `timely execution of thousands of workflows` in a Hadoop cluster, each composed of possibly dozens of constituent jobs.  
 
 Oozie makes `rerunning failed workflows` more tractable, `since no time is wasted running successful parts of a workflow`. Anyone who has managed a complex batch system knows how difficult it can be to catch up from jobs missed due to downtime or failure, and will appreciate this feature.
 
-Unlike JobControl, which runs on the client machine submitting the jobs, Oozie runs as a service in the cluster, and clients submit workflow definitions for immediate or later execution. In Oozie parlance, a workflow is a DAG of action nodes and control-flow nodes.
+Unlike JobControl, which runs on the client machine submitting the jobs, `Oozie runs as a service in the cluster`, and clients submit workflow definitions for immediate or later execution. `In Oozie parlance, a workflow is a DAG of action nodes and control-flow nodes`.
 
 An action node performs a workflow task, such as moving files in HDFS; running a MapReduce, Streaming, Pig, or Hive job; performing a Sqoop import; or running an arbitrary shell script or Java program. A control-flow node governs the workflow execution between actions by allowing such constructs as conditional logic (so different execution branches may be followed depending on the result of an earlier action node) or parallel execution. When the workflow completes, Oozie can make an HTTP callback to the client to inform it of the workflow status. It is also possible to receive callbacks every time the workflow enters or exits an action node.
 
@@ -2566,7 +2579,7 @@ Workflow definitions are written in XML using the Hadoop Process Definition Lang
 
 This workflow has three control-flow nodes and one action node: a start control node, a map-reduce action node, a kill control node, and an end control node.  
 
-The Oozie specification lists all the EL functions that Oozie supports. 
+The Oozie specification lists all the `EL functions` that Oozie supports. 
 
 ##### Packaging and deploying an Oozie workflow application
 A workflow application is made up of the workflow definition plus all the associated resources (such as MapReduce JAR files, Pig scripts, and so on) needed to run it. Applications must adhere to a simple directory structure, and are deployed to HDFS so that they can be accessed by Oozie. For this workflow application, we’ll put all of the files in a base directory called max-temp-workflow, as shown diagrammatically here:   
@@ -2579,7 +2592,7 @@ max-temp-workflow/
 The workflow definition file workflow.xml must appear in the top level of this directory. JAR files containing the application’s MapReduce classes are placed in the lib directory.
 
 ##### Running an Oozie workflow job
-For this we use the oozie command-line tool, a client program for communicating with an Oozie server. For convenience, we export the OOZIE_URL environment variable to tell the oozie command which Oozie server to use (here we’re using one running locally):  
+For this we use the `oozie command-line tool, a client program for communicating with an Oozie server`. For convenience, we export the OOZIE_URL environment variable to tell the oozie command which Oozie server to use (here we’re using one running locally):  
 ```shell
 $ export OOZIE_URL="http://localhost:11000/oozie"
 $ oozie job -config ch06-mr-dev/src/main/resources/max-temp-workflow.properties \
@@ -2610,17 +2623,17 @@ At the highest level, there are five independent entities:
 Not discussed in this section are the `job history server daemon` (for retaining job history data) and the `shuffle handler auxiliary service` (for serving map outputs to reduce tasks).
 
 ##### Job Submission
-The submit() method on Job creates an internal **JobSubmitter** instance and calls submitJobInternal() on it. Having submitted the job, waitForCompletion() polls the job’s progress once per second and reports the progress to the console if it has changed since the last report. When the job completes successfully, the job counters are displayed. Otherwise, the error that caused the job to fail is logged to the console.
+The submit() method on **Job** creates an internal **JobSubmitter** instance and calls submitJobInternal() on it. Having submitted the job, `waitForCompletion()` `polls the job’s progress once per second` and reports the progress to the console if it has changed since the last report. `When the job completes successfully, the job counters are displayed`. Otherwise, the error that caused the job to fail is logged to the console.
 
-The job submission process implemented by JobSubmitter does the following:  
+The job submission process implemented by **JobSubmitter** does the following:  
 * Asks the resource manager for a new application ID, used for the MapReduce job ID (step 2).  
 * Checks the output specification of the job. For example, if the output directory has not been specified or it already exists, the job is not submitted and an error is thrown to the MapReduce program. 
-* Computes the input splits for the job. If the splits cannot be computed (because the input paths don’t exist, for example), the job is not submitted and an error is thrown to the MapReduce program. 
+* `Computes the input splits for the job`. If the splits cannot be computed (because the input paths don’t exist, for example), the job is not submitted and an error is thrown to the MapReduce program. 
 * Copies the resources needed to run the job, including the job JAR file, the configuration file, and the computed input splits, to `the shared filesystem in a directory named after the job ID` (step 3). The job JAR is copied with a high replication factor (controlled by the `mapreduce.client.submit.file.replication` property, which defaults to 10) so that there are lots of copies across the cluster for the node managers to access when they run tasks for the job. 
 * Submits the job by calling submitApplication() on the resource manager (step 4).
 
 ##### Job Initialization
-When the resource manager receives a call to its submitApplication() method, it hands off the request to the **YARN scheduler**. The scheduler allocates a container, and the resource manager then launches the application master’s process there, under the node manager’s management (steps 5a and 5b). 
+When the resource manager receives a call to its submitApplication() method, it hands off the request to the **YARN scheduler**. `The scheduler allocates a container, and the resource manager then launches the application master’s process there, under the node manager’s management (steps 5a and 5b)`. 
 
 The application master for MapReduce jobs is a Java application whose main class is **MRAppMaster**. It `initializes the job by creating a number of bookkeeping objects to keep track of the job’s progress`, as it will receive progress and completion reports from the tasks (step 6). Next, it retrieves the input splits computed in the client from the shared filesystem (step 7). `It then creates a map task object for each split`, as well as a number of reduce task objects determined by the `mapreduce.job.reduces` property (set by the setNumReduceTasks() method on Job). Tasks are given IDs at this point.
 
@@ -2663,7 +2676,7 @@ The Streaming task communicates with the process (`which may be written in any l
 #### Progress and Status Updates
 A job and each of its tasks have a status, which includes such things as the state of the job or task (e.g., running, successfully completed, failed), the progress of maps and reduces, the values of the job’s counters, and a status message or description (which may be set by user code).
 
-When a task is running, it keeps track of its progress (i.e., the proportion of the task completed). For map tasks, this is the proportion of the input that has been processed. For reduce tasks, it’s a little more complex, but the system can still estimate the proportion of the reduce input processed. It does this by dividing the total progress into three parts, corresponding to the three phases of the shuffle (see “Shuffle and Sort” on page 197, Copy, Sort, Reduce). For example, if the task has run the reducer on half its input, the task’s progress is 5/6, since it has completed the copy and sort phases (1/3 each) and is halfway through the reduce phase (1/6).   
+When a task is running, it keeps track of its progress (i.e., the proportion of the task completed). For map tasks, this is `the proportion of the input` that has been processed. For reduce tasks, it’s a little more complex, but the system can still estimate the proportion of the reduce input processed. It does this by dividing the total progress into three parts, corresponding to the three phases of the shuffle (see “Shuffle and Sort” on page 197, Copy, Sort, Reduce). For example, if the task has run the reducer on half its input, the task’s progress is 5/6, since it has completed the copy and sort phases (1/3 each) and is halfway through the reduce phase (1/6).   
 
 Progress reporting is important, as Hadoop will not fail a task that’s making progress. All of the following operations constitute progress:  
 * Reading an input record (in a mapper or reducer)
@@ -2682,7 +2695,7 @@ When the application master receives a notification that the last task for a job
 
 The application master also sends an HTTP job notification if it is configured to do so. This can be configured by clients wishing to receive callbacks, via the `mapreduce.job.end-notification.url` property. 
 
-Finally, on job completion, the application master and the task containers clean up their working state (so intermediate output is deleted), and the OutputCommitter’s commit Job() method is called. Job information is archived by the job history server to enable later interrogation by users if desired.
+Finally, on job completion, the application master and the task containers clean up their working state (so intermediate output is deleted), and the OutputCommitter’s commitJob() method is called. Job information is archived by the job history server to enable later interrogation by users if desired.
 
 ### Failures
 #### Task Failure
@@ -2692,7 +2705,7 @@ For Streaming tasks, if the Streaming process exits with a nonzero exit code, it
 
 Another failure mode is the sudden exit of the task JVM, in this case, the `node manager notices that the process has exited and informs the application master so it can mark the attempt as failed`.
 
-Hanging tasks are dealt with differently. The application master notices that it hasn’t received a progress update for a while and proceeds to mark the task as failed. The task JVM process will be killed automatically after this period. The timeout period after which tasks are considered failed is normally 10 minutes and can be configured on a per-job basis (or a cluster basis) by setting the `mapreduce.task.timeout` property to a value in milliseconds. Setting the timeout to a value of zero disables the timeout.  
+`Hanging tasks are dealt with differently. The application master notices that it hasn’t received a progress update for a while and proceeds to mark the task as failed`. `The task JVM process will be killed automatically after this period`. The timeout period after which tasks are considered failed is normally 10 minutes and can be configured on a per-job basis (or a cluster basis) by setting the `mapreduce.task.timeout` property to a value in milliseconds. `Setting the timeout to a value of zero disables the timeout. ` 
 
 If a Streaming process hangs, the node manager will kill it (along with the JVM that launched it) only in the following circumstances: either `yarn.nodemanager.container-executor.class` is set to org.apache.hadoop.yarn.server.nodemanager.LinuxContainerExecutor, or the default container executor is being used and the setsid command is available on the system (so that the task JVM and any processes it launches are in the same process group). `In any other case, orphaned Streaming processes will accumulate on the system`, which will impact utilization over time.
 
@@ -2707,19 +2720,19 @@ Applications in YARN are retried in the event of failure. The maximum number of 
 
 The way recovery works is as follows. An application master sends `periodic heartbeats` to the resource manager, and in the event of application master failure, the resource manager will detect the failure and start a new instance of the master running in a new container (managed by a node manager). In the case of the MapReduce application master, `it will use the job history to recover the state of the tasks that were already run by the (failed) application so they don’t have to be rerun`. Recovery is enabled by default, but can be disabled by setting `yarn.app.mapreduce.am.job.recovery.enable` to false.
 
-The MapReduce client polls the application master for progress reports, but if its application master fails, the client needs to locate the new instance. During job initialization, the client asks the resource manager for the application master’s address, and then caches it so it doesn’t overload the resource manager with a request every time it needs to poll the application master. If the application master fails, however, the client will experience a timeout when it issues a status update, at which point the client will go back to the resource manager to ask for the new application master’s address.
+`The MapReduce client polls the application master for progress reports`, but if its application master fails, the client needs to locate the new instance. `During job initialization, the client asks the resource manager for the application master’s address, and then caches it` so it doesn’t overload the resource manager with a request every time it needs to poll the application master. `If the application master fails, however, the client will experience a timeout when it issues a status update, at which point the client will go back to the resource manager to ask for the new application master’s address`.
 
 #### Node Manager Failure
-If a node manager fails by crashing or running very slowly, it will stop sending heartbeats to the resource manager (or send them very infrequently). The resource manager will notice a node manager that has stopped sending heartbeats if it hasn’t received one for 10 minutes (this is configured, in milliseconds, via the `yarn.resourcemanager.nm.liveness-monitor.expiry-interval-ms` property) and remove it from its pool of nodes to schedule containers on.  
+If a node manager fails by crashing or running very slowly, it will stop sending heartbeats to the resource manager (or send them very infrequently). The resource manager will notice a node manager that has stopped sending heartbeats if it hasn’t received one for 10 minutes (this is configured, in milliseconds, via the `yarn.resourcemanager.nm.liveness-monitor.expiry-interval-ms` property) and `remove it from its pool of nodes to schedule containers on`.  
 
-Any task or application master running on the failed node manager will be recovered using the mechanisms described in the previous two sections. In addition, the application master arranges for map tasks that were run and completed successfully on the failed node manager to be rerun if they belong to incomplete jobs, since their intermediate output residing on the failed node manager’s local filesystem may not be accessible to the reduce task.  
+`Any task or application master running on the failed node manager will be recovered using the mechanisms described in the previous two sections.` In addition, the application master arranges for map tasks that were run and completed successfully on the failed node manager to be rerun if they belong to incomplete jobs, since their intermediate output residing on the failed node manager’s local filesystem may not be accessible to the reduce task.  
 
 Node managers may be blacklisted if the number of failures for the application is high, even if the node manager itself has not failed. `Blacklisting is done by the application master`, and for MapReduce the application master will try to reschedule tasks on different nodes if more than three tasks fail on a node manager. The user may set the threshold with the `mapreduce.job.maxtaskfailures.per.tracker` job property.  
 
-Note that the resource manager does not do blacklisting across applications (at the time of writing), so tasks from new jobs may be scheduled on bad nodes even if they have been blacklisted by an application master running an earlier job.
+`Note that the resource manager does not do blacklisting across applications` (at the time of writing), so tasks from new jobs may be scheduled on bad nodes even if they have been blacklisted by an application master running an earlier job.
 
 #### Resource Manager Failure
-`In the default configuration, the resource manager is a single point of failure`, since in the (unlikely) event of machine failure, all running jobs fail—and can’t be recovered.  
+`In the default configuration, the resource manager is a single point of failure`, since in the (unlikely) event of machine failure, all running jobs fail—and `can’t be recovered`.  
 
 `To achieve high availability (HA), it is necessary to run a pair of resource managers in an active-standby configuration`. If the active resource manager fails, then the standby can take over without a significant interruption to the client.
 
@@ -2741,7 +2754,7 @@ The shuffle is an area of the codebase where refinements and improvements are co
 ![hadoop_shuffle_process_img_1]  
 When the map function starts producing output, it is not simply written to disk. The process is more involved, and takes advantage of buffering writes in memory and doing some presorting for efficiency reasons.
 
-Each map task has a `circular memory buffer` that it writes the output to. The buffer is 100 MB by default (the size can be tuned by changing the `mapreduce.task.io.sort.mb` property). When the contents of the buffer reach a certain threshold size (`mapre duce.map.sort.spill.percent`, which has the default value 0.80, or 80%), a background thread will start to spill the contents to disk. `Map outputs will continue to be written to the buffer while the spill takes place`, but if the buffer fills up during this time, the map will block until the spill is complete. Spills are written in round-robin fashion to the directories specified by the `mapreduce.cluster.local.dir` property, in a job specific subdirectory.
+Each map task has a `circular memory buffer` that it writes the output to. The buffer is 100 MB by default (the size can be tuned by changing the `mapreduce.task.io.sort.mb` property). When the contents of the buffer reach a certain threshold size (`mapreduce.map.sort.spill.percent`, which has the default value 0.80, or 80%), a background thread will start to spill the contents to disk. `Map outputs will continue to be written to the buffer while the spill takes place`, but if the buffer fills up during this time, the map will block until the spill is complete. Spills are written in round-robin fashion to the directories specified by the `mapreduce.cluster.local.dir` property, in a job specific subdirectory.
 
 Before it writes to disk, the thread first divides the data into partitions corresponding to the reducers that they will ultimately be sent to. Within each partition, the background thread performs an in-memory sort by key, and if there is a `combiner function`, it is run on the output of the sort. Running the combiner function makes for a more compact map output, so there is less data to write to local disk and to transfer to the reducer.
 
@@ -2756,10 +2769,10 @@ The output file’s partitions are made available to the reducers over HTTP. The
 
 #### The Reduce Side
 1. copy phrase  
-The map output file is sitting on the local disk of the machine that ran the map task (note that although map outputs always get written to local disk, reduce outputs may not be). The reduce task needs the map output for its particular partition from several map tasks across the cluster. The map tasks may finish at different times, so the reduce task starts copying their outputs as soon as each completes. This is known as the copy phase of the reduce task.  
+The map output file is sitting on the local disk of the machine that ran the map task (note that although map outputs always get written to local disk, reduce outputs may not be). The reduce task needs the map output for its particular partition from several map tasks across the cluster. `The map tasks may finish at different times, so the reduce task starts copying their outputs as soon as each completes`. This is known as the copy phase of the reduce task.  
 The reduce task has a small number of copier threads so that it can fetch map outputs in parallel. The default is 5 threads, but this number can be changed by setting the `mapreduce.reduce.shuffle.parallelcopies` property.  
 How do reducers know which machines to fetch map output from?  
-As map tasks complete successfully, they notify their `application master` using the heartbeat mechanism. Therefore, for a given job, the application master knows the mapping between map outputs and hosts. `A thread in the reducer periodically asks the master for map output hosts` until it has retrieved them all. Hosts do not delete map outputs from disk as soon as the first reducer has retrieved them, as the reducer may subsequently fail. Instead, they wait until they are told to delete them by the application master, which is after the job has completed.  
+As map tasks complete successfully, they notify their `application master` using the heartbeat mechanism. Therefore, for a given job, the `application master knows the mapping between map outputs and hosts`. `A thread in the reducer periodically asks the master for map output hosts` until it has retrieved them all. Hosts do not delete map outputs from disk as soon as the first reducer has retrieved them, as the reducer may subsequently fail. Instead, they wait until they are told to delete them by the application master, which is after the job has completed.  
 Map outputs are copied to the reduce task JVM’s memory if they are small enough (the buffer’s size is controlled by `mapreduce.reduce.shuffle.input.buffer.percent`, which specifies the proportion of the heap to use for this purpose); otherwise, they are copied to disk. When the in-memory buffer reaches a threshold size (controlled by `mapreduce.reduce.shuffle.merge.percent`) or reaches a threshold number of map outputs (`mapreduce.reduce.merge.inmem.threshold`), it is merged and spilled to disk. If a `combiner` is specified, it will be run during the merge to reduce the amount of data written to disk.  
 As the copies accumulate on disk, a background thread merges them into larger, sorted files. This saves some time merging later on. `Note that any map outputs that were compressed (by the map task) have to be decompressed in memory in order to perform a merge on them.`  
 2. sort phrase  
@@ -2825,7 +2838,7 @@ The MapReduce model is to break jobs into tasks and run the tasks in parallel to
 
 Tasks may be slow for various reasons, including hardware degradation or software misconfiguration, but the causes may be hard to detect because the tasks still complete successfully, albeit after a longer time than expected. Hadoop doesn’t try to diagnose and fix slow-running tasks; instead, it tries to detect when a task is running slower than expected and launches another equivalent task as a backup. This is termed `speculative execution` of tasks.  
 
-It’s important to understand that speculative execution does not work by launching two duplicate tasks at about the same time so they can race each other. This would be wasteful of cluster resources. Rather, `the scheduler tracks the progress of all tasks of the same type (map and reduce) in a job, and only launches speculative duplicates for the small proportion that are running significantly slower than the average`. When a task completes successfully, any duplicate tasks that are running are killed since they are no longer needed. So, if the original task completes before the speculative task, the speculative task is killed; on the other hand, if the speculative task finishes first, the original is killed.  
+It’s important to understand that speculative execution does not work by launching two duplicate tasks at about the same time so they can race each other. This would be wasteful of cluster resources. Rather, `the scheduler tracks the progress of all tasks of the same type (map and reduce) in a job, and only launches speculative duplicates for the small proportion that are running significantly slower than the average`. `When a task completes successfully, any duplicate tasks that are running are killed` since they are no longer needed. So, if the original task completes before the speculative task, the speculative task is killed; on the other hand, if the speculative task finishes first, the original is killed.  
 
 Speculative execution is turned on by default. It can be enabled or disabled independently
 for map tasks and reduce tasks, on a cluster-wide basis, or on a per-job basis.
@@ -2837,8 +2850,6 @@ org.apache.hadoop.mapreduce.v2.app.speculate.DefaultSpeculator
 * yarn.app.mapreduce.am.job.task.estimator.class  
 org.apache.hadoop.mapreduce.v2.app.speculate.LegacyTaskRuntimeEstimator
 
-Speculative execution is turned on by default. It can be enabled or disabled independently for map tasks and reduce tasks, on a cluster-wide basis, or on a per-job basis.
- 
 Why would you ever want to turn speculative execution off?  
 * On a busy cluster, speculative execution can reduce overall throughput  
 The goal of speculative execution is to reduce job execution time, but this comes at the cost of cluster efficiency. On a busy cluster, speculative execution can reduce overall throughput, since redundant tasks are being executed in an attempt to bring down the execution time for a single job. For this reason, `some cluster administrators prefer to turn it off on the cluster and have users explicitly turn it on for individual jobs. This was especially relevant for older versions of Hadoop, when speculative execution could be overly aggressive in scheduling speculative tasks`.  
@@ -2847,7 +2858,7 @@ The goal of speculative execution is to reduce job execution time, but this come
 `However, in many cases it is possible to write tasks to be idempotent and use an OutputCommitter to promote the output to its final location when the task succeeds`.  
 
 #### Output Committers
-Hadoop MapReduce uses a commit protocol to ensure that jobs and tasks either succeed or fail cleanly. The behavior is implemented by the OutputCommitter in use for the job, which is set in the old MapReduce API by calling the setOutputCommitter() on Job Conf or by setting `mapred.output.committer.class` in the configuration. `In the new MapReduce API, the OutputCommitter is determined by the OutputFormat`, via its getOutputCommitter() method. The default is FileOutputCommitter, which is appropriate for file-based MapReduce.  
+Hadoop MapReduce uses a commit protocol to ensure that jobs and tasks either succeed or fail cleanly. The behavior is implemented by the OutputCommitter in use for the job, which is set in the old MapReduce API by calling the setOutputCommitter() on JobConf or by setting `mapred.output.committer.class` in the configuration. `In the new MapReduce API, the OutputCommitter is determined by the OutputFormat`, via its getOutputCommitter() method. The default is FileOutputCommitter, which is appropriate for file-based MapReduce.  
 ```java
 public abstract class OutputCommitter {
     public abstract void setupJob(JobContext jobContext) throws IOException;
@@ -2881,7 +2892,7 @@ The usual way of writing output from map and reduce tasks is by using **OutputCo
 
 Care needs to be taken to ensure that multiple instances of the same task don’t try to write to the same file. As we saw in the previous section, the OutputCommitter protocol solves this problem. If applications write side files in their tasks’ working directories, the side files for tasks that successfully complete will be promoted to the output directory automatically, whereas failed tasks will have their side files deleted. 
 
-A task may find its working directory by retrieving the value of the `mapreduce.task.output.dir` property from the job configuration. Alternatively, a MapReduce program using the Java API may call the getWorkOutputPath() static method on FileOutputFor mat to get the Path object representing the working directory. The framework creates the working directory before executing the task, so you don’t need to create it.
+A task may find its working directory by retrieving the value of the `mapreduce.task.output.dir` property from the job configuration. Alternatively, a MapReduce program using the Java API may call the getWorkOutputPath() static method on FileOutputFormat to get the Path object representing the working directory. The framework creates the working directory before executing the task, so you don’t need to create it.
 
 ## 8. MapReduce Types and Formats
 ### MapReduce Types
@@ -2992,7 +3003,8 @@ public class MinimalMapReduceWithDefaults extends Configured implements Tool {
         int exitCode = ToolRunner.run(new MinimalMapReduceWithDefaults(), args);
         System.exit(exitCode);
     }
-
+}
+public class JobBuilder {
     public static Job parseInputAndOutput(Tool tool, Configuration conf,
         String[] args) throws IOException {
         if (args.length != 2) {
@@ -3024,7 +3036,7 @@ public class Mapper<KEYIN, VALUEIN, KEYOUT, VALUEOUT> {
     }
 }
 ```
-The default partitioner is HashPartitioner, which hashes a record’s key to determine which partition the record belongs in. Each partition is processed by a reduce task:  
+The default partitioner is HashPartitioner, which hashes a record’s key to determine which partition the record belongs in. `Each partition is processed by a reduce task`:  
 ```java
 public class HashPartitioner<K, V> extends Partitioner<K, V> {
     public int getPartition(K key, V value,
@@ -3033,7 +3045,7 @@ public class HashPartitioner<K, V> extends Partitioner<K, V> {
     }
 }
 ```
-`You may have noticed that we didn’t set the number of map tasks`. The reason for this is that the number is equal to the number of splits that the input is turned into, which is driven by the size of the input and the file’s block size (if the file is in HDFS).
+`You may have noticed that we didn’t set the number of map tasks`. `The reason for this is that the number is equal to the number of splits that the input is turned into, which is driven by the size of the input and the file’s block size (if the file is in HDFS)`.
 
 The default reducer is Reducer, again a generic type, which simply writes all its input to its output:  
 ```java
@@ -3099,13 +3111,13 @@ An InputSplit has a length in bytes and a set of storage locations, which are ju
 ```java
 public abstract class InputFormat<K, V> {
     public abstract List<InputSplit> getSplits(JobContext context)
-    throws IOException, InterruptedException;
+        throws IOException, InterruptedException;
     public abstract RecordReader<K, V>
-    createRecordReader(InputSplit split, TaskAttemptContext context)
-    throws IOException, InterruptedException;
+        createRecordReader(InputSplit split, TaskAttemptContext context)
+        throws IOException, InterruptedException;
 }
 ```
-The `client` running the job calculates the splits for the job by calling getSplits(), then sends them to the `application master`, which uses their storage locations to schedule map tasks that will process them on the cluster. `The map task` passes the split to the createRecordReader() method on InputFormat to obtain a RecordReader for that split. A RecordReader is little more than an iterator over records, and the map task uses one to generate record key-value pairs, which it passes to the map function. We can see this by looking at the Mapper’s run() method:  
+The `client` running the job calculates the splits for the job by calling getSplits()(PS: should be JobSubmitter invoking getSplits()), then sends them to the `application master`, which uses their storage locations to schedule map tasks that will process them on the cluster. `The map task` passes the split to the createRecordReader() method on InputFormat to obtain a RecordReader for that split. A RecordReader is little more than an iterator over records, and the map task uses one to generate record key-value pairs, which it passes to the map function. We can see this by looking at the Mapper’s run() method:  
 ```java
 public void run(Context context) throws IOException, InterruptedException {
     setup(context);
@@ -3142,7 +3154,7 @@ public class JoinReducer extends Reducer<TextPair, Text, Text, Text> {
 ![hadoop_inputformat_class_hierarchy_img_1]  
 
 **Given a set of files, how does FileInputFormat turn them into splits?**   
-FileInputFormat splits only large files—here, “large” means larger than an HDFS block. The split size is normally the size of an HDFS block, which is appropriate for most applications; however, it is possible to control this value by setting various Hadoop properties,  
+FileInputFormat splits only large files—here, “large” means larger than an HDFS block. `The split size is normally the size of an HDFS block`, which is appropriate for most applications; however, it is possible to control this value by setting various Hadoop properties,  
 1. mapreduce.input.fileinputformat.split.minsize
 2. mapreduce.input.fileinputformat.split.maxsize
 3. dfs.blocksize
@@ -3198,7 +3210,7 @@ See Mahout’s XmlInputFormat for an improved XML input format.
 ##### SequenceFileInputFormat
 Hadoop’s sequence file format stores sequences of binary key-value pairs. Sequence files are well suited as a format for MapReduce data because they are splittable (they have sync points so that readers can synchronize with record boundaries from an arbitrary point in the file, such as the start of a split), they support compression as a part of the format, and they can store arbitrary types using a variety of serialization frameworks. (These topics are covered in “SequenceFile” on page 127.)
 
-To use data from sequence files as the input to MapReduce, you can use SequenceFi leInputFormat. The keys and values are determined by the sequence file, and you need to make sure that your map input types correspond. SequenceFileInputFormat can read map files as well as sequence files.  
+To use data from sequence files as the input to MapReduce, you can use SequenceFileInputFormat. The keys and values are determined by the sequence file, and you need to make sure that your map input types correspond. SequenceFileInputFormat can read map files as well as sequence files.  
 
 ##### SequenceFileAsTextInputFormat
 SequenceFileAsTextInputFormat is a variant of SequenceFileInputFormat that `converts the sequence file’s keys and values to Text objects`. The conversion is performed `by calling toString()` on the keys and values. `This format makes sequence files suitable input for Streaming`.
@@ -3240,7 +3252,7 @@ SequenceFileAsBinaryOutputFormat—the counterpart to SequenceFileAsBinaryInputF
 MapFileOutputFormat writes map files as output. `The keys in a MapFile must be added in order, so you need to ensure that your reducers emit keys in sorted order`.
 
 ##### Multiple Outputs
-Sometimes there is a need to have more control over the naming of the files or to produce multiple files per reducer. MapReduce comes with the MultipleOutputs class to help you do this.  
+Sometimes there is a need to have `more control over the naming of the files` or to `produce multiple files per reducer`. MapReduce comes with the MultipleOutputs class to help you do this.  
 
 `It is generally a bad idea to allow the number of partitions to be rigidly fixed by the application, since this can lead to small or unevensized partitions.`
 
@@ -3370,7 +3382,7 @@ TemperatureQuality
 ```
 Notice that the counters for temperature have been made more readable by using a resource bundle named after the enum (using an underscore as a separator for nested classes)—in this case MaxTemperatureWithCounters_Temperature.properties, which contains the display name mappings.
 
-The two ways of creating and accessing counters—using enums and using strings—are actually equivalent because Hadoop turns enums into strings to send counters over RPC. Enums are slightly easier to work with, provide type safety, and are suitable for most jobs. For the odd occasion when you need to create counters dynamically, you can use the String interface.
+`The two ways of creating and accessing counters—using enums and using strings`—are actually equivalent because Hadoop turns enums into strings to send counters over RPC. Enums are slightly easier to work with, provide type safety, and are suitable for most jobs. For the odd occasion when you need `to create counters dynamically, you can use the String interface`.
 
 In addition to using the web UI and the command line (using mapred job -counter), you can retrieve counter values using the Java API. You can do this while the job is running, although it is more usual to get counters at the end of a job run, when they are stable.
 ```java
@@ -3428,7 +3440,7 @@ reporter:status:message
 ### Sorting
 The ability to sort data is at the heart of MapReduce.  
 
-Storing temperatures as Text objects doesn’t work for sorting purposes, because signed integers don’t sort lexicographically.  One commonly used workaround for this problem—particularly in text-based Streaming applications—is to add an offset to eliminate all negative numbers and to left pad with zeros so all numbers are the same number of characters ???? However, see “Streaming” on page 266 for another approach.
+Storing temperatures as Text objects doesn’t work for sorting purposes, because signed integers don’t sort lexicographically.  One commonly used workaround for this problem—particularly in text-based Streaming applications—is to add an offset to eliminate all negative numbers and to left pad with zeros so all numbers are the same number of characters(PS: perhaps by adding the absolute value of the largest negtive number) However, see “Streaming” on page 266 for another approach.
 
 Example 9-3. A MapReduce program for transforming the weather data into SequenceFile format
 ```java
@@ -3500,10 +3512,10 @@ The **InputSampler** class defines a nested Sampler interface whose implementati
 ```java
 public interface Sampler<K, V> {
     K[] getSample(InputFormat<K, V> inf, Job job)
-    throws IOException, InterruptedException;
+        throws IOException, InterruptedException;
 }
 ```
-This interface usually is not called directly by clients. Instead, the writePartition File() static method on InputSampler is used, which creates a sequence file to store the keys that define the partitions:  
+This interface usually is not called directly by clients. Instead, the writePartitionFile() static method on InputSampler is used, which creates a sequence file to store the keys that define the partitions:  
 ```java
 public static <K, V> void writePartitionFile(Job job, Sampler<K, V> sampler)
     throws IOException, ClassNotFoundException, InterruptedException
@@ -3532,7 +3544,7 @@ implements Tool {
         job.setPartitionerClass(TotalOrderPartitioner.class);
         // RandomSampler(a uniform probability, maximum number of samples, maximum number of splits to sample)
         InputSampler.Sampler<IntWritable, Text> sampler =
-        new InputSampler.RandomSampler<IntWritable, Text>(0.1, 10000, 10);
+            new InputSampler.RandomSampler<IntWritable, Text>(0.1, 10000, 10);
         InputSampler.writePartitionFile(job, sampler);
         // Add to DistributedCache
         Configuration conf = job.getConfiguration();
@@ -3568,14 +3580,14 @@ If none of these suits your application (and remember that the point of sampling
 One of the nice properties of InputSampler and TotalOrderPartitioner is that you are free to choose the number of partitions—that is, the number of reducers. However, TotalOrderPartitioner will work only if the partition boundaries are distinct. One problem with choosing a high number is that you may get collisions if you have a small key space.
 
 #### Secondary Sort
-The MapReduce framework sorts the records by key before they reach the reducers. For any particular key, however, the values are not sorted. The order in which the values appear is not even stable from one run to the next.
-However, it is possible to impose an order on the values by sorting and grouping the keys in a particular way.  
+The MapReduce framework sorts the records by key before they reach the reducers. `For any particular key, however, the values are not sorted. The order in which the values appear is not even stable from one run to the next`.  
+However, it is possible to `impose an order on the VALUES` by sorting and grouping the keys in a particular way.  
 
 To summarize, there is a recipe here to get the effect of sorting by value:  
 * Make the key a composite of the natural key and the natural value. 
-* The sort comparator should order by the composite key (i.e., the natural key and natural value). (PS: the same sort comparator is for both map output and reduce sort phrase)
+* The sort comparator should order by the composite key (i.e., the natural key and natural value). (PS: the same sort comparator is for both map sort and reduce sort phrase)  
 * The partitioner and grouping comparator for the composite key should consider only the natural key for partitioning and grouping.  
-PS: grouping comparator should work after reduce sort comparator and generate list(V2) for reducer, it always retrieve the first key.  
+PS: grouping comparator should work after sort comparator and generate list(V2) for the reducer, it always retrieve the first key.  
 ```scala
 map: (K1, V1) → list(K2, V2)
 combiner: (K2, list(V2)) → list(K2, V2)
@@ -3699,7 +3711,7 @@ for line in sys.stdin:
         print "%s\t%s" % (year, temp)
 ```
 Our map function (Example 9-7) emits records with year and temperature fields. We want to treat the combination of both of these fields as the key, so we set stream.num.map.output.key.fields to 2. This means that values will be empty, just like in the Java case.  
-In the Java version, we had to set the grouping comparator; however, in Streaming, groups are not demarcated in any way, so in the reduce function we have to `detect the group boundaries ourselves` by looking for when the year changes (Example 9-8).  
+`In the Java version, we had to set the grouping comparator; however, in Streaming, groups are not demarcated in any way`, so in the reduce function we have to `detect the group boundaries ourselves` by looking for when the year changes (Example 9-8).  
 
 **Example 9-8. Reduce function for secondary sort in Python**  
 ```python
@@ -3727,14 +3739,14 @@ How we implement the join depends on how large the datasets are and how they are
 If both datasets are too large for either to be copied to each node in the cluster, we can still join them using MapReduce with a map-side or reduce-side join, depending on how the data is structured.  
 
 #### Map-Side Joins
-A map-side join between large inputs works by performing the join `before the data reaches the map function`. For this to work, though, the inputs to each map must be partitioned and sorted in a particular way. Each input dataset must be divided into the same number of partitions, and it must be sorted by the same key (the join key) in each source. All the records for a particular key must reside in the same partition. This may sound like a strict requirement (and it is), but it actually fits the description of the output of a MapReduce job.  
+A map-side join between large inputs works by performing the join `before the data reaches the map function`. For this to work, though, the inputs to each map must be partitioned and sorted in a particular way. `Each input dataset must be divided into the same number of partitions, and it must be sorted by the same key (the join key) in each source. All the records for a particular key must reside in the same partition`. This may sound like a strict requirement (and it is), but it actually fits the description of the output of a MapReduce job.  
 
 A map-side join can be used to join the outputs of several jobs that had the same number of reducers, the same keys, and output files that are not splittable (by virtue of being smaller than an HDFS block or being gzip compressed, for example)
 
-You use a **CompositeInputFormat** from the org.apache.hadoop.mapreduce.join package to run a map-side join. The input sources and join type (inner or outer) for CompositeInputFormat are configured through a join expression that is written according to a simple grammar.
+You use a **CompositeInputFormat** from the org.apache.hadoop.mapreduce.join package to run a map-side join. The input sources and `join type (inner or outer)` for CompositeInputFormat are configured through a join expression that is written according to a simple grammar.
 
 #### Reduce-Side Joins
-A reduce-side join is more general than a map-side join, in that the input datasets don’t have to be structured in any particular way, but it is less efficient because both datasets have to go through the MapReduce shuffle. The basic idea is that the `mapper tags each record with its source and uses the join key as the map output key`(PS: for example, label each source as 0, 1, ..., and append the join key with source label),  so that the records with the same key are brought together in the reducer. We use several ingredients to make this work in practice:  
+A reduce-side join is more general than a map-side join, in that the input datasets don’t have to be structured in any particular way, but it is `less efficient because both datasets have to go through the MapReduce shuffle`. The basic idea is that the `mapper tags each record with its source and uses the join key as the map output key`(PS: for example, label each source as 0, 1, ..., and append either the join key or value with source label),  so that the records with the same key are brought together in the reducer. We use several ingredients to make this work in practice:  
 * Multiple inputs  
 The input sources for the datasets generally have different formats, so it is very convenient to use the **MultipleInputs** class to separate the logic for parsing and tagging each source.  
 * Secondary sort  
@@ -3786,7 +3798,7 @@ public class JoinReducer extends Reducer<TextPair, Text, Text, Text> {
 }
 ```
 
-The code assumes that every station ID in the weather records has exactly one matching record in the station dataset. If this were not the case, we would need to generalize the code to put the tag into the value objects, by using another TextPair. The reduce() method would then be able to tell which entries were station names and detect (and handle) missing or duplicate entries before processing the weather records.  
+`The code assumes that every station ID in the weather records has exactly one matching record in the station dataset. If this were not the case, we would need to generalize the code to put the tag into the value objects, by using another TextPair`. The reduce() method would then be able to tell which entries were station names and detect (and handle) missing or duplicate entries before processing the weather records.  
 
 Tying the job together is the driver class, shown in Example 9-12. The essential point here is that we partition and group on the first part of the key, the station ID, which we do with a custom Partitioner (KeyPartitioner) and a custom group comparator, FirstComparator (from TextPair).  
 
@@ -3833,19 +3845,19 @@ public class JoinRecordWithStationName extends Configured implements Tool {
 Side data can be defined as extra read-only data needed by a job to process the main dataset. The challenge is to make side data available to all the map or reduce tasks (which are spread across the cluster) in a convenient and efficient fashion.  
 
 #### Using the Job Configuration
-You can set arbitrary key-value pairs in the job configuration using the various setter methods on Configuration (or JobConf in the old MapReduce API). This is very useful when you need to pass a small piece of metadata to your tasks.  
+You can set arbitrary `key-value pairs` in the job configuration using the various setter methods on Configuration (or JobConf in the old MapReduce API). This is very useful when you need to pass `a small piece of metadata` to your tasks.  
 
 In the task, you can retrieve the data from the configuration returned by Context’s getConfiguration() method. (In the old API, it’s a little more involved: override the configure() method in the Mapper or Reducer and use a getter method on the JobConf object passed in to retrieve the data. It’s very common to store the data in an instance field so it can be used in the map() or reduce() method???)  
 
 Usually a primitive type is sufficient to encode your metadata, but for arbitrary objects you can either handle the serialization yourself (if you have an existing mechanism for turning objects to strings and back) or use Hadoop’s **Stringifier** class. The DefaultStringifier uses Hadoop’s serialization framework to serialize objects.  
 
-You shouldn’t use this mechanism for transferring more than `a few kilobytes of data`, because it can put pressure on the memory usage in MapReduce components. The job configuration is always read by the client, the application master, and the task JVM, and each time the configuration is read, `all of its entries are read into memory`, even if they are not used.  
+You shouldn’t use this mechanism for transferring more than `a few kilobytes of data`, because it can put pressure on the memory usage in MapReduce components. The job configuration is always read `by the client, the application master, and the task JVM`, and each time the configuration is read, `all of its entries are read into memory`, even if they are not used.  
 
 #### Distributed Cache
 Rather than serializing side data in the job configuration, `it is preferable to distribute datasets using Hadoop’s distributed cache mechanism`. This provides a service for copying files and archives to the task nodes in time for the tasks to use them when they run. To save network bandwidth, files are normally copied to any particular node once per job.  
 
 For tools that use GenericOptionsParser (this includes many of the programs in this book; see “GenericOptionsParser, Tool, and ToolRunner” on page 148), you can specify the files to be distributed as a comma-separated list of URIs as the argument to the `-files` option. Files can be on the local filesystem, on HDFS, or on another Hadoopreadable filesystem (such as S3). If no scheme is supplied, then the files are assumed to be local. (This is true even when the default filesystem is not the local filesystem.)  
-You can also copy archive files (JAR files, ZIP files, tar files, and gzipped tar files) to your tasks using the `-archives` option; these are unarchived on the task node.  
+You can also copy archive files (JAR files, ZIP files, tar files, and gzipped tar files) to your tasks using the `-archives` option; these are `unarchived on the task node`.  
 The `-libjars` option will add JAR files to the classpath of the mapper and reducer tasks. This is useful if you haven’t bundled library JAR files in your job JAR file.
 
 Let’s see how to use the distributed cache to share a metadata file for station names. The command we will run is:  
@@ -3873,7 +3885,7 @@ extends Configured implements Tool {
         }
     }
     static class MaxTemperatureReducerWithStationLookup
-    extends Reducer<Text, IntWritable, Text, IntWritable> {
+            extends Reducer<Text, IntWritable, Text, IntWritable> {
         private NcdcStationMetadata metadata;
         @Override
         protected void setup(Context context)
@@ -3919,7 +3931,7 @@ You can use the distributed cache for `copying files that do not fit in memory`.
 **How it works**  
 `When you launch a job`(loaded once per job, not per task), Hadoop copies the files specified by the -files, -archives, and -libjars options to the distributed filesystem (normally HDFS). Then, before a task is run, the `node manager` copies the files from the distributed filesystem to `a local disk—the cache—`so the task can access the files. The files are said to be localized at this point. From the task’s point of view, the files are just there, symbolically linked from the task’s working directory. In addition, files specified by -libjars are added to the task’s classpath before it is launched.  
 
-The node manager also maintains a reference count for the number of tasks using each file in the cache. Before the task has run, the file’s reference count is incremented by 1; then, after the task has run, the count is decreased by 1. Only when the file is not being used (when the count reaches zero) is it eligible for deletion. Files are deleted to make room for a new file when the node’s cache exceeds a certain size—10 GB by default— using a least-recently used policy. The cache size may be changed by setting the configuration property `yarn.nodemanager.localizer.cache.target-size-mb`.  
+`The node manager also maintains a reference count for the number of tasks using each file in the cache`. Before the task has run, the file’s reference count is incremented by 1; then, after the task has run, the count is decreased by 1. Only when the file is not being used (when the count reaches zero) is it eligible for deletion. Files are deleted to make room for a new file when the node’s cache exceeds a certain size—10 GB by default— using a least-recently used policy. The cache size may be changed by setting the configuration property `yarn.nodemanager.localizer.cache.target-size-mb`.  
 
 Although this design doesn’t guarantee that subsequent tasks from the same job running on the same node will find the file they need in the cache, it is very likely that they will: tasks from a job are usually scheduled to run at around the same time, so there isn’t the opportunity for enough other jobs to run to cause the original task’s file to be deleted from the cache.
 
@@ -3934,7 +3946,7 @@ public void addFileToClassPath(Path file)
 public void addArchiveToClassPath(Path archive)
 ```
 
-The URIs referenced in the add or set methods must be files in a shared filesystem that exist when the job is run. On the other hand, the filenames specified as a GenericOptionsParser option (e.g., - files) may refer to local files, in which case they get copied to the default shared filesystem (normally HDFS) on your behalf.  
+The URIs referenced in the add or set methods must be files `in a shared filesystem` that exist when the job is run. On the other hand, the filenames specified as a GenericOptionsParser option (e.g., - files) may refer to local files, in which case they `get copied to the default shared filesystem (normally HDFS) on your behalf`.  
 This is the key difference between using the Java API directly and using GenericOptionsParser: `the Java API does not copy the file specified in the add or set method to the shared filesystem`, whereas the GenericOptionsParser does.
 
 ### MapReduce Library Classes
@@ -4057,7 +4069,7 @@ slaves                                   |A list of machines (one per line) that
 These files are all found in the `etc/hadoop` directory of the Hadoop distribution. The configuration directory can be relocated to another part of the filesystem (outside the Hadoop installation, which makes upgrades marginally easier) as long as daemons are started with the `--config` option (or, equivalently, with the `HADOOP_CONF_DIR` environment variable set) specifying the location of this directory on the local filesystem.
 
 #### Configuration Management
-Hadoop does not have a single, global location for configuration information. Instead, each Hadoop node in the cluster has its own set of configuration files, and it is up to administrators to ensure that they are kept in sync across the system. There are parallel shell tools that can help do this, such as dsh or pdsh. This is an area where Hadoop cluster management tools like `Cloudera Manager` and `Apache Ambari` really shine, since they take care of propagating changes across the cluster.
+Hadoop does not have a single, global location for configuration information. Instead, each Hadoop node in the cluster has its own set of configuration files, and it is up to administrators to ensure that they are kept in sync across the system. There are parallel shell tools that can help do this, such as **dsh** or **pdsh**. This is an area where Hadoop cluster management tools like `Cloudera Manager` and `Apache Ambari` really shine, since they take care of propagating changes across the cluster.
 
 Hadoop is designed so that it is possible to have a single set of configuration files that are used for all master and worker machines.  
 To have the concept of a `class` of machine and maintain a separate configuration for each class. Hadoop doesn’t provide tools to do this, but there are several excellent tools for doing precisely this type of configuration management, such as Chef, Puppet, CFEngine, and Bcfg2.
@@ -4134,7 +4146,7 @@ To find the actual configuration of a running daemon, visit the /conf page on it
     </property>
     <property>
         <name>yarn.nodemanager.aux-services</name>
-        <value>mapreduce.shuffle</value>
+        <value>mapreduce_shuffle</value>
     </property>
     <property>
         <name>yarn.nodemanager.resource.memory-mb</name>
@@ -4149,14 +4161,13 @@ To find the actual configuration of a running daemon, visit the /conf page on it
 
 ##### HDFS
 1. fs.defaultFS  
-The URI defines the hostname and port that the namenode’s RPC server runs on. The default port is 8020.  
+The URI defines the hostname and port that `the namenode’s RPC server runs on. The default port is 8020`.  
 default:  `file:///`  
-`fs.defaultFS` is used to specify both the HDFS namenode and the default filesystem, it means HDFS has to be the default filesystem in the server configuration. Bear in mind, however, that it is possible to specify a different filesystem as the default in the client configuration, for convenience.  
+`fs.defaultFS` is used to specify `both the HDFS namenode and the default filesystem`, it means HDFS has to be the default filesystem in the server configuration. Bear in mind, however, that it is possible to specify a different filesystem as the default in the client configuration, for convenience.  
 For example, if you use both HDFS and S3 filesystems, then you have a choice of specifying either (of HDFS or S3) as the default in the client configuration, which allows you to refer to the default with a relative URI and the other with an absolute URI.  
-In Example 10-1, the relative URI /a/b is resolved to hdfs://namenode/a/b.  
-The property dfs.name node.name.dir specifies a list of directories where the namenode stores persistent filesystem metadata (the edit log and the filesystem image). A copy of each metadata file is stored in each directory for redundancy.   
+In Example 10-1, the relative URI /a/b is resolved to hdfs://namenode/a/b.   
 2. dfs.namenode.name.dir  
-The property dfs.namenode.name.dir specifies a list of directories where the namenode stores persistent filesystem metadata (the edit log and the filesystem image). A copy of each metadata file is stored in each directory for redundancy.   
+The property `dfs.namenode.name.dir` specifies a list of directories where the namenode stores persistent filesystem metadata (the edit log and the filesystem image). A copy of each metadata file is stored in each directory for redundancy.   
 default: `file://${hadoop.tmp.dir}/dfs/name`   
 3. dfs.datanode.data.dir  
 It specifies a list of directories for a datanode to store its blocks in. Unlike the namenode, which uses multiple directories for redundancy, a datanode `round-robins writes between its storage directories`, so `for performance you should specify a storage directory for each local disk`. `Read performance also benefits from having multiple disks for storage`, because blocks will be spread across them and concurrent reads for distinct blocks will be correspondingly spread across disks.  
@@ -4185,8 +4196,8 @@ A service is implemented by the class defined by the property `yarn.nodemanager.
 
 Property name                                       |Default value  |Description
 --------------------------------------------|-----------------|--------------------------------------------------------------------------------------
-yarn.nodemanager.resource.cpuvcores   |8                     |The number of CPU cores that may be allocated to `containers` being run by the nodemanager.  
-yarn.nodemanager.resource.memorymb |8192                |The amount of physical memory (in MB) that may be allocated to `containers` being run by the node manager.
+yarn.nodemanager.resource.cpu-vcores |8                     |The number of CPU cores that may be allocated to `containers` being run by the nodemanager.  
+yarn.nodemanager.resource.memory-mb|8192                |The amount of physical memory (in MB) that may be allocated to `containers` being run by the node manager.
 yarn.nodemanager.vmem-pmem-ratio    |2.1                    |The ratio of virtual to physical memory for containers. Virtual memory usage may exceed the allocation by this amount.
 
 ##### Memory settings in YARN and MapReduce
@@ -4196,7 +4207,8 @@ In the YARN model, node managers allocate memory from a pool, so the number of t
 * yarn.nodemanager.resource.memory-mb  
 Set aside enough memory for a datanode daemon(1000MB by default) and a node manager daemon(1000MB by default), as well as other processes that are running on the machine, and the remainder can be dedicated to `the node manager’s containers` by setting the configuration property `yarn.nodemanager.resource.memory-mb` to the total allocation in MB. (The default is 8,192 MB, which is normally too low for most setups.)  
 
-The next step is to determine how to set memory options for individual jobs. There are two main controls: one for the size of the container allocated by YARN, and another for the heap size of the Java process run in the container.  
+The next step is to determine how to set memory options for individual jobs. `There are two main controls: one for the size of the container allocated by YARN, and another for the heap size of the Java process run in the container`.  
+
 The memory controls for MapReduce are all set by the client in the job configuration. The YARN settings are cluster settings and cannot be modified by the client.  
 
 `Container sizes` are determined by `mapreduce.map.memory.mb` and `mapreduce.reduce.memory.mb`; both default to 1,024 MB. These settings are used by the application master when negotiating for resources in the cluster, and also by the node manager, which runs and monitors the task containers. `The heap size of the Java process` is set by `mapred.child.java.opts`, and defaults to 200 MB. You can also set the Java options separately for map and reduce tasks (see Table 10-4).
@@ -4211,25 +4223,25 @@ mapred.child.java.opts              |-Xmx200m           |The JVM options used to
 mapreduce.map.java.opts          |-Xmx200m           |The JVM options used for the child process that runs map tasks.
 mapreduce.reduce.java.opts     |-Xmx200m           |The JVM options used for the child process that runs reduce tasks.
 
-For example, suppose mapred.child.java.opts is set to -Xmx800m and mapre duce.map.memory.mb is left at its default value of 1,024 MB. When a map task is run, the node manager will allocate a 1,024 MB container (decreasing the size of its pool by that amount for the duration of the task) and will launch the task JVM configured with an 800 MB maximum heap size???? Note that the JVM process will have a larger memory footprint than the heap size, and the overhead will depend on such things as the native libraries that are in use, the size of the permanent generation space, and so on. The important thing is that the physical memory used by the JVM process, including any processes that it spawns, such as Streaming processes, does not exceed its allocation (1,024 MB). If a container uses more memory than it has been allocated, then it may be terminated by the node manager and marked as failed.
+For example, suppose mapred.child.java.opts is set to -Xmx800m and mapreduce.map.memory.mb is left at its default value of 1,024 MB. When a map task is run, the node manager will allocate a 1,024 MB container (decreasing the size of its pool by that amount for the duration of the task) and will launch the task JVM configured with an 800 MB maximum heap size. Note that the JVM process will have a larger memory footprint than the heap size, and the overhead will depend on such things as the native libraries that are in use, the size of the permanent generation space, and so on. The important thing is that the physical memory used by the JVM process, including any processes that it spawns, such as Streaming processes, does not exceed its allocation (1,024 MB). If a container uses more memory than it has been allocated, then it may be terminated by the node manager and marked as failed.
 
 YARN schedulers impose a minimum or maximum on memory allocations. The default minimum is 1,024 MB (set by `yarn.scheduler.minimum-allocation-mb`), and the default maximum is 8,192 MB (set by `yarn.scheduler.maximum-allocation-mb`).
 
 The multiple is expressed by the `yarn.nodemanager.vmem-pmem-ratio property`, which defaults to 2.1. In the example used earlier, the virtual memory threshold above which the task may be terminated is 2,150 MB, which is 2.1 × 1,024 MB.  
 
 ##### CPU settings in YARN and MapReduce
-The number of cores that a node manager can allocate to containers is controlled by the yarn.nodemanager.resource.cpu-vcores property. It should be set to the total number of cores on the machine, minus a core for each daemon process running on the machine (datanode, node manager, and any other long-running processes).
+The number of cores that a node manager can allocate to containers is controlled by the `yarn.nodemanager.resource.cpu-vcores` property. It should be set to the total number of cores on the machine, `minus a core for each daemon process running on the machine` (datanode, node manager, and any other long-running processes).
 
 MapReduce jobs can control the number of cores allocated to map and reduce containers by setting `mapreduce.map.cpu.vcores` and `mapreduce.reduce.cpu.vcores`. Both default to 1, an appropriate setting for normal single-threaded MapReduce tasks, which can only saturate a single core.  
 
-While the number of cores is tracked during scheduling (so a container won’t be allocated on a machine where there are no spare cores, for example), `the node manager will not, by default, limit actual CPU usage of running containers`. This means that a container can abuse its allocation by using more CPU than it was given, possibly starving other containers running on the same host. `YARN has support for enforcing CPU limits using Linux cgroups`. The node manager’s container executor class (`yarn.nodemanager.container-executor. class`) must be set to use the **LinuxContainerExecutor** class, which in turn must be configured to use cgroups (see the properties under `yarn.nodemanager.linux-container-executor`).  
+While the number of cores is tracked during scheduling (so a container won’t be allocated on a machine where there are no spare cores, for example), `the node manager will not, by default, limit actual CPU usage of running containers`. This means that a container can abuse its allocation by using more CPU than it was given, possibly starving other containers running on the same host. `YARN has support for enforcing CPU limits using Linux cgroups`. The node manager’s container executor class (`yarn.nodemanager.container-executor.class`) must be set to use the **LinuxContainerExecutor** class, which in turn must be configured to use cgroups (see the properties under `yarn.nodemanager.linux-container-executor`).  
 
 #### Hadoop Daemon Addresses and Ports
-Hadoop daemons generally run both an RPC server for communication between daemons (Table 10-5) and an HTTP server to provide web pages for human consumption (Table 10-6). Each server is configured by setting the network address and port number to listen on.
+`Hadoop daemons generally run both an RPC server for communication between daemons (Table 10-5) and an HTTP server to provide web pages for human consumption` (Table 10-6). Each server is configured by setting the network address and port number to listen on.
 
 It is often desirable for servers to bind to multiple network interfaces. By setting `yarn.resourcemanager.hostname` to the (externally resolvable) hostname or IP address and `yarn.resourcemanager.bind-host` to 0.0.0.0, you ensure that the resource manager will bind to all addresses on the machine, while at the same time providing a resolvable address for node managers and clients.  
 
-In addition to an RPC server, `datanodes run a TCP/IP server for block transfers`. The server address and port are set by the dfs.datanode.address property , which has a default value of 0.0.0.0:50010
+In addition to an RPC server, `datanodes run a TCP/IP server for block transfers`. The server address and port are set by the `dfs.datanode.address` property , which has a default value of 0.0.0.0:50010
 
 There is also a setting for controlling which network interfaces the datanodes use as their IP addresses (for HTTP and RPC servers). The relevant property is dfs.data node.dns.interface, which is set to default to use the default network interface. You can set this explicitly to report the address of a particular interface (eth0, for example).  
 
@@ -4237,7 +4249,7 @@ There is also a setting for controlling which network interfaces the datanodes u
 * Cluster membership  
 To aid in the addition and removal of nodes in the future, you can specify a file containing `a list of authorized machines` that may join the cluster `as datanodes or node managers`. The file is specified using the `dfs.hosts` and `yarn.resourcemanager.nodes.include-path` properties (for datanodes and node managers, respectively), and the corresponding `dfs.hosts.exclude `and `yarn.resourcemanager.nodes.exclude-path` properties specify the files used for decommissioning.  
 * Buffer size  
-Hadoop uses a buffer size of 4 KB (4,096 bytes) for its I/O operations. This is a conservative setting, and with modern hardware and operating systems, you will likely see performance benefits by increasing it; 128 KB (131,072 bytes) is a common choice. Set the value in bytes using the `io.file.buffer.size` property in core-site.xml.  
+Hadoop uses a buffer size of 4 KB (4,096 bytes) for its I/O operations. This is a conservative setting, and with modern hardware and operating systems, `you will likely see performance benefits by increasing it`; 128 KB (131,072 bytes) is a common choice. Set the value in bytes using the `io.file.buffer.size` property in core-site.xml.  
 * HDFS block size  
 The HDFS block size is 128 MB by default, but many clusters use more (e.g., 256 MB) to ease memory pressure on the namenode and to give mappers more data to work on. Use the `dfs.blocksize` property in hdfs-site.xml to specify the size in bytes.
 * Reserved storage space  
@@ -4301,7 +4313,8 @@ This feature is enabled by setting `yarn.nodemanager.container-executor.class` t
 * The shuffle is secure, preventing a malicious user from requesting another user’s map outputs.
 * When appropriately configured, `it’s no longer possible for a malicious user to run a rogue secondary namenode, datanode, or node manager that can join the cluster and potentially compromise data stored in the cluster`.  
 This is enforced by requiring daemons to authenticate with the master node they are connecting to. To enable this feature, you first need to configure Hadoop to use a keytab previously generated with the ktutil command. For a datanode, for example, you would set the dfs.datanode.keytab.file property to the keytab filename and dfs.data node.kerberos.principal to the username to use for the datanode. Finally, the ACL for the DataNodeProtocol (which is used by datanodes to communicate with the namenode) must be set in hadoop-policy.xml, by restricting `security.datanode.protocol.acl` to the datanode’s username.  
-* A datanode may be run on a privileged port (one lower than 1024), so a client may be reasonably sure that it was started securely. * A task may communicate only with its parent application master, thus preventing an attacker from obtaining MapReduce data from another user’s job. 
+* A datanode may be run on a privileged port (one lower than 1024), so a client may be reasonably sure that it was started securely. 
+* A task may communicate only with its parent application master, thus preventing an attacker from obtaining MapReduce data from another user’s job. 
 * Various parts of Hadoop can be configured `to encrypt network data`, including RPC (hadoop.rpc.protection), HDFS block transfers (dfs.encrypt.data.transfer), the MapReduce shuffle (mapreduce.shuffle.ssl.enabled), and the web UIs (hadokop.ssl.enabled). Work is ongoing to encrypt data “at rest,” too, so that HDFS blocks can be stored in encrypted form, for example.
 
 ### Hadoop Benchmarks
@@ -4395,13 +4408,13 @@ The in_use.lock file is a lock file that the namenode uses to lock the storage d
 
 #### The filesystem image and edit log
 
-When a filesystem client performs a write operation (such as creating or moving a file), the transaction is first recorded in the edit log. The namenode also has an in-memory representation of the filesystem metadata, which it(is?) updates after the edit log has been modified. The in-memory metadata is used to serve read requests.
+When a filesystem client performs a write operation (such as creating or moving a file), the transaction is first recorded in the edit log. The namenode also has an in-memory representation of the filesystem metadata, which it(is?) updates after the edit log has been modified. `The in-memory metadata is used to serve read requests`.
 
 Conceptually the edit log is a single entity, but it is represented as a number of files on disk. Each file is called a segment, and has the prefix edits and a suffix that indicates the transaction IDs contained in it. Only one file is open for writes at any one time (edits_inprogress_0000000000000000020 in the preceding example), and it is flushed and synced after every transaction, before a success code is returned to the client. For namenodes that write to multiple directories, the write must be flushed and synced to every copy before returning successfully. This ensures that no transaction is lost due to machine failure.
 
-Each fsimage file is a complete persistent checkpoint of the filesystem metadata. (The suffix indicates the last transaction in the image.) However, it is not updated for every filesystem write operation, because writing out the fsimage file, which can grow to be gigabytes in size, would be very slow. This does not compromise resilience because if the namenode fails, then the latest state of its metadata can be reconstructed by loading the latest fsimage from disk into memory, and then applying each of the transactions from the relevant point onward in the edit log. In fact, this is precisely what the namenode does when it starts up (see “Safe Mode” on page 322).
+Each fsimage file is a complete persistent checkpoint of the filesystem metadata. (The suffix indicates the last transaction in the image.) However, `it is not updated for every filesystem write operation`, because writing out the fsimage file, which can grow to be gigabytes in size, would be very slow. This does not compromise resilience because if the namenode fails, then the latest state of its metadata can be reconstructed by loading the latest fsimage from disk into memory, and then applying each of the transactions from the relevant point onward in the edit log. In fact, this is precisely what the namenode does when it starts up (see “Safe Mode” on page 322).
 
-Each fsimage file contains a serialized form of all the directory and file inodes in the filesystem. Each inode is an internal representation of a file or directory’s metadata and contains such information as the file’s replication level, modification and access times, access permissions, `block size, and the blocks the file is made up of`. For directories, the modification time, permissions, and quota metadata are stored.  
+Each fsimage file contains `a serialized form of all the directory and file inodes` in the filesystem. Each inode is an internal representation of a file or directory’s metadata and contains such information as the file’s replication level, modification and access times, access permissions, `block size, and the blocks the file is made up of`. For directories, the modification time, permissions, and quota metadata are stored.  
 `An fsimage file does not record the datanodes on which the blocks are stored`. Instead, the namenode `keeps this mapping in memory`, which it constructs by asking the datanodes for their block lists when they join the cluster and periodically afterward to ensure the namenode’s block mapping is up to date.
 
 ![hadoop_secondary_namenode_checkpoint_img_1]  
@@ -4411,7 +4424,8 @@ The solution is to run the secondary namenode, whose purpose is to produce check
 1. The secondary asks the primary to roll its in-progress edits file, so new edits go to a new file. The primary also updates the seen_txid file in all its storage directories.  
 2. The secondary retrieves the latest fsimage and edits files from the primary (using HTTP GET).  
 3. The secondary loads fsimage into memory, applies each transaction from edits, then creates a new merged fsimage file.  
-4. The secondary sends the new fsimage back to the primary (using HTTP PUT), and the primary saves it as a temporary .ckpt file. 5. The primary renames the temporary fsimage file to make it available.
+4. The secondary sends the new fsimage back to the primary (using HTTP PUT), and the primary saves it as a temporary .ckpt file.   
+5. The primary renames the temporary fsimage file to make it available.
 
 At the end of the process, the primary has an up-to-date fsimage file and a short inprogress edits file (it is not necessarily empty, as it may have received some edits while the checkpoint was being taken). It is possible for an administrator to run this process manually while the namenode is in safe mode, using the `hdfs dfsadmin -saveNamespace` command.
 
@@ -4443,13 +4457,13 @@ ${dfs.datanode.data.dir}/
 
 HDFS blocks are stored in files with a blk_ prefix; they consist of the raw bytes of a portion of the file being stored(PS: a file containing multiple blocks). Each block has an associated metadata file with a .meta suffix. It is made up of a header with version and type information, followed by a series of checksums for sections of the block.  
 Each block belongs to a block pool, and each block pool has its own storage directory that is formed from its ID (it’s the same block pool ID from the namenode’s VERSION file, BP-526805057-127.0.0.1-1411980876842 in this case). 
-When the number of blocks in a directory grows to a certain size, the datanode creates a new subdirectory in which to place new blocks and their accompanying metadata. It creates a new subdirectory every time the number of blocks in a directory reaches 64 (set by the `dfs.datanode.numblocks` configuration property). The effect is to have a tree with high fan-out, so even for systems with a very large number of blocks, the directories will be only a few levels deep, and avoids the problems that most operating systems encounter when there are a large number of files (tens or hundreds of thousands) in a single directory.
+`When the number of blocks in a directory grows to a certain size, the datanode creates a new subdirectory in which to place new blocks and their accompanying metadata`. It creates a new subdirectory every time the number of blocks in a directory reaches 64 (set by the `dfs.datanode.numblocks` configuration property). `The effect is to have a tree with high fan-out, so even for systems with a very large number of blocks, the directories will be only a few levels deep`, and avoids the problems that most operating systems encounter when there are a large number of files (tens or hundreds of thousands) in a single directory.
 
 ### HDFS Safe Mode
-When the namenode starts, the first thing it does is load its image file (fsimage) into memory and apply the edits from the edit log. Once it has reconstructed a consistent in-memory image of the filesystem metadata, it creates a new fsimage file (effectively doing the checkpoint itself, without recourse to the secondary namenode) and an empty edit log. `During this process, the namenode is running in safe mode, which means that it offers only a read-only view of the filesystem to clients.`   
+`When the namenode starts, the first thing it does is load its image file (fsimage) into memory and apply the edits from the edit log`. Once it has reconstructed a consistent in-memory image of the filesystem metadata, it creates a new fsimage file (effectively doing the checkpoint itself, without recourse to the secondary namenode) and an empty edit log. `During this process, the namenode is running in safe mode, which means that it offers only a read-only view of the filesystem to clients.`   
 Strictly speaking, in safe mode, only filesystem operations that access the filesystem metadata (such as producing a directory listing) are guaranteed to work. Reading a file will work only when the blocks are available on the current set of datanodes in the cluster, and file modifications (writes, deletes, or renames) will always fail.
 
-Safe mode is needed to give the datanodes time to check in to the namenode with their block lists, so the namenode can be informed of enough block locations to run the filesystem effectively. If the namenode didn’t wait for enough datanodes to check in, it would start the process of replicating blocks to new datanodes, which would be unnecessary in most cases. Indeed, while in safe mode, the namenode does not issue any block-replication or deletion instructions to datanodes.
+Safe mode is needed to give the datanodes time to check in to the namenode with their block lists, so the namenode can be informed of enough block locations to run the filesystem effectively. `If the namenode didn’t wait for enough datanodes to check in, it would start the process of replicating blocks to new datanodes, which would be unnecessary in most cases`. Indeed, while in safe mode, the namenode does not issue any block-replication or deletion instructions to datanodes.
 
 Safe mode is exited when the minimal replication condition is reached, plus an extension time of 30 seconds. The minimal replication condition is when 99.9% of the blocks in the whole filesystem meet their minimum replication level (which defaults to 1 and is set by `dfs.namenode.replication.min`; see Table 11-1). `dfs.namenode.safemode.threshold-pct` and `dfs.namenode.safemode.extension`  
 
@@ -4516,30 +4530,32 @@ Number of data-nodes: 4
 Number of racks: 1
 The filesystem under path '/' is HEALTHY
 ```
-Note that fsck retrieves all of its information from the namenode; it does not communicate with any datanodes to actually retrieve any block data.  
-    1. Not problem cases
+Note that fsck retrieves all of its information from the namenode; it does not communicate with any datanodes to actually retrieve any block data.     
+    1. Not problem cases  
         1. Over-replicated blocks  
-        HDFS will automatically delete excess replicas
+        HDFS will automatically delete excess replicas  
         2. Under-replicated blocks  
         HDFS will automatically create new replicas.   
-        You can get information about the blocks being replicated (or waiting to be replicated) using `hdfs dfsadmin -metasave`.
-        3. Misreplicated blocks  
-        These are blocks that do not satisfy the block replica placement policy, HDFS will automatically re-replicate misreplicated blocks so that they satisfy the rack placement policy.  
+        You can get information about the blocks being replicated (or waiting to be replicated) using `hdfs dfsadmin -metasave`.  
+        3. Misreplicated blocks   
+        These are blocks that do not satisfy the block replica placement policy, HDFS will automatically re-replicate misreplicated blocks so that they satisfy the rack placement policy.   
     2. Problems  
         1. Corrupt blocks   
-        These are blocks whose replicas are all corrupt. Blocks with at least one noncorrupt replica are not reported as corrupt; the namenode will replicate the noncorrupt replica until the target replication is met.  
+        These are blocks whose replicas are all corrupt.  
+        Blocks with at least one noncorrupt replica are not reported as corrupt; the namenode will replicate the noncorrupt replica until the target replication is met.  
         2. Missing replicas  
         These are blocks with no replicas anywhere in the cluster  
     Corrupt or missing blocks are the biggest cause for concern, as they mean data has been lost. By default, fsck leaves files with corrupt or missing blocks, but you can tell it to perform one of the following actions on them:  
     * Move the affected files to the /lost+found directory in HDFS, using the -move option.  
     Files are broken into chains of contiguous blocks to aid any salvaging efforts you may attempt.   
-    * Delete the affected files, using the -delete option. Files cannot be recovered after being deleted.  
+    * Delete the affected files, using the -delete option.  
+    Files cannot be recovered after being deleted.  
 The fsck tool provides an easy way to find out which blocks are in any particular file. For example:  
 ```shell
 $ hdfs fsck /user/tom/part-00007 -files -blocks -racks
 ```
 * Datanode block scanner  
-Every datanode runs a block scanner, which periodically verifies all the blocks stored on the datanode.  
+`Every datanode runs a block scanner`, which periodically verifies all the blocks stored on the datanode.  
 It employs a throttling mechanism to preserve disk bandwidth on the datanode.  
 Blocks are verified every three weeks to guard against disk errors over time (this period is controlled by the `dfs.datanode.scan.period.hours` property, which defaults to 504 hours). Corrupt blocks are reported to the namenode to be fixed.  
 http://datanode:50075/blockScannerReport   
@@ -4552,7 +4568,7 @@ It moves blocks until the cluster is deemed to be balanced, which means that the
 $ start-balancer.sh
 ```
 At any one time, only one balancer may be running on the cluster.  
-The balancer is designed to run in the background without unduly taxing the cluster or interfering with other clients using the cluster. It limits the bandwidth that it uses to copy a block from one node to another. The default is a modest 1 MB/s, but this can be changed by setting the `dfs.datanode.balance.bandwidthPerSec` property in hdfs-site. xml, specified in bytes.  
+The balancer is designed to run in the background without unduly taxing the cluster or interfering with other clients using the cluster. `It limits the bandwidth that it uses to copy a block from one node to another`. The default is a modest 1 MB/s, but this can be changed by setting the `dfs.datanode.balance.bandwidthPerSec` property in hdfs-site.xml, specified in bytes.  
 
 ### Monitoring
 In addition to the facilities described next, some administrators run test jobs on a periodic basis as a test of the cluster’s health.
@@ -4574,13 +4590,13 @@ Log levels changed in this way are reset when the daemon restarts.
 Hadoop daemons expose a web page (/stacks in the web UI) that produces a thread dump for all running threads in the `daemon’s JVM`. For example, you can get a thread dump for a resource manager from http://resource-manager-host:8088/stacks
 
 #### Metrics and JMX
-Metrics belong to a context; “dfs,” “mapred,” “yarn,” and “rpc” are examples of different contexts. Hadoop daemons usually collect metrics under several contexts. For example, datanodes collect metrics for the “dfs” and “rpc” contexts.  
+Metrics belong to a context; “dfs", “mapred,” “yarn,” and “rpc” are examples of different contexts. Hadoop daemons usually collect metrics under several contexts. For example, datanodes collect metrics for the “dfs” and “rpc” contexts.  
 
 **How Do Metrics Differ from Counters?**  
-The main difference is their scope: metrics are collected by Hadoop daemons, whereas counters (see “Counters” on page 247) are collected for MapReduce tasks and aggregated for the whole job. They have different audiences, too: broadly speaking, metrics are for administrators, and counters are for MapReduce users.
+`The main difference is their scope: metrics are collected by Hadoop daemons, whereas counters (see “Counters” on page 247) are collected for MapReduce tasks and aggregated for the whole job`. They have different audiences, too: broadly speaking, metrics are for administrators, and counters are for MapReduce users.
 
 The way they are collected and aggregated is also different. Counters are a MapReduce feature, and the MapReduce system ensures that counter values are propagated from the task JVMs where they are produced back to the application master, and finally back to the client running the MapReduce job. (`Counters are propagated via RPC heartbeats`; see “Progress and Status Updates” on page 190.) `Both the task process and the application master perform aggregation.`  
-The collection mechanism for metrics is decoupled from the component that receives the updates, and there are various pluggable outputs, including local files, Ganglia, and JMX. `The daemon collecting the metrics performs aggregation on them` before they are sent to the output.
+The collection mechanism for metrics is decoupled from the component that receives the updates, and there are `various pluggable outputs, including local files, Ganglia, and JMX`. `The daemon collecting the metrics performs aggregation on them` before they are sent to the output.
 
 `All Hadoop metrics are published to JMX` (Java Management Extensions), so you can use standard JMX tools like JConsole (which comes with the JDK) to view them. For remote monitoring, you must set the JMX system property `com.sun.management.jmxremote.port` (and others for security) to allow access. To do this for the namenode, say, you would set the following in hadoop-env.sh: 
 ```shell
@@ -4593,20 +4609,20 @@ Hadoop comes with a number of metrics sinks for publishing metrics to external s
 ### Maintenance
 #### Routine Administration Procedures
 ##### Metadata backups
-To backup namenode’s persistent metadata.  
+**To backup namenode’s persistent metadata**.    
 A straightforward way to make backups is to use the dfsadmin command to download a copy of the namenode’s most recent fsimage:  
 ```shell
 $ hdfs dfsadmin -fetchImage fsimage.backup
 ```
 
-You can write a script to run this command from an offsite location to store archive copies of the fsimage. The script should additionally test the integrity of the copy. This can be done by starting a local namenode daemon and verifying that it has successfully read the fsimage and edits files into memory (by scanning the namenode log for the appropriate success message, for example). Or else, Hadoop comes with an Offline Image Viewer and an Offline Edits Viewer, which can be used to check the integrity of the fsimage and edits files, Type hdfs oiv and hdfs oev to invoke these tools.
+You can write a script to run this command from an offsite location to store archive copies of the fsimage. The script should additionally test the integrity of the copy. `This can be done by starting a local namenode daemon and verifying that it has successfully read the fsimage and edits files into memory` (by scanning the namenode log for the appropriate success message, for example). Or else, Hadoop comes with an `Offline Image Viewer` and an `Offline Edits Viewer`, which can be used to check the integrity of the fsimage and edits files, Type `hdfs oiv` and `hdfs oev` to invoke these tools.
 
 ##### Data backups
 Do not make the mistake of thinking that HDFS replication is a substitute for making backups. Bugs in HDFS can cause replicas to be lost, and so can hardware failures. Although Hadoop is expressly designed so that hardware failure is very unlikely to result in data loss, the possibility can never be completely ruled out, particularly when combined with software bugs or human error.  
 
-The distcp tool is ideal for making backups to other HDFS clusters or other Hadoop filesystems (such as S3) because it can copy files in parallel. 
+The `distcp` tool is ideal for making backups to other HDFS clusters or other Hadoop filesystems (such as S3) because it can copy files in parallel. 
 
-HDFS allows administrators and users to take **snapshots** of the filesystem. A snapshot is a read-only copy of a filesystem subtree at a given point in time. `Snapshots are very efficient since they do not copy data`; they simply record each file’s metadata and block list, which is sufficient to reconstruct the filesystem contents at the time the snapshot was taken.  
+HDFS allows administrators and users to take **snapshots** of the filesystem. A snapshot is a read-only copy of a filesystem subtree at a given point in time. `Snapshots are very efficient since they do not copy data`; `they simply record each file’s metadata and block list, which is sufficient to reconstruct the filesystem contents at the time the snapshot was taken.`  
 Snapshots are not a replacement for data backups, but they are a useful tool for point-in-time data recovery for files that were mistakenly deleted by users.  
 
 #### Commissioning and Decommissioning Nodes
@@ -4614,7 +4630,7 @@ Datanodes that are permitted to connect to the namenode are specified in a file 
 Similarly, node managers that may connect to the resource manager are specified in a file whose name is specified by the `yarn.resourcemanager.nodes.include-path` property.  
 In most cases, there is one shared file, referred to as the `include` file, that both dfs.hosts and yarn.resourcemanager.nodes.include-path refer to, since nodes in the cluster run both datanode and node manager daemons.
 
-The file (or files) specified by the `dfs.hosts` and `yarn.resourcemanager.nodes.include-path` properties is different from the `slaves` file. The former is used by the namenode and resource manager to determine which worker nodes may connect. The slaves file is used by the Hadoop control scripts to perform clusterwide operations, such as cluster restarts. It is never used by the Hadoop daemons.
+The file (or files) specified by the `dfs.hosts` and `yarn.resourcemanager.nodes.include-path` properties is different from the `slaves` file. The former is used by the namenode and resource manager to determine which worker nodes may connect. The **slaves** file is used by the `Hadoop control scripts` to perform clusterwide operations, such as cluster restarts. It is `never used by the Hadoop daemons`.
 
 **To add new nodes to the cluster**:  
 1. Add the network addresses of the new nodes to the include file.  
@@ -4632,7 +4648,7 @@ $ yarn rmadmin -refreshNodes
 
 `HDFS will not move blocks from old datanodes to new datanodes to balance the cluster. To do this, you should run the balancer` described in “Balancer” on page 329.
 
-The way to decommission datanodes is to inform the namenode of the nodes that you wish to take out of circulation, so that it can replicate the blocks to other datanodes before the datanodes are shut down.  
+The way to decommission datanodes is to inform the namenode of the nodes that you wish to take out of circulation, so that it can `replicate the blocks to other datanodes before the datanodes are shut down`.  
 
 The decommissioning process is controlled by an exclude file, which is set for HDFS by the `dfs.hosts.exclude` property and for YARN by the `yarn.resourcemanager.nodes.exclude-path` property. It is often the case that these properties refer to the same file. The exclude file lists the nodes that are not permitted to connect to the cluster.
 
@@ -4661,7 +4677,7 @@ $ yarn rmadmin -refreshNodes
 #### Upgrades
 The most important consideration is the HDFS upgrade. If the layout version of the filesystem has changed, then `the upgrade will automatically migrate` the filesystem data and metadata to a format that is compatible with the new version. As with any procedure that involves data migration, there is a risk of data loss, so you should be sure that `both your data and the metadata are backed up` (see “Routine Administration Procedures” on page 332).  
 
-Upgrading a cluster when the filesystem layout has not changed is fairly straightforward: install the new version of Hadoop on the cluster (and on clients at the same time), shut down the old daemons, update the configuration files, and then start up the new daemons and switch clients to use the new libraries. This process is reversible, so rolling back an upgrade is also straightforward. After every successful upgrade, you should perform a couple of final cleanup steps:  
+`Upgrading a cluster when the filesystem layout has not changed is fairly straightforward`: install the new version of Hadoop on the cluster (and on clients at the same time), shut down the old daemons, update the configuration files, and then start up the new daemons and switch clients to use the new libraries. This process is reversible, so rolling back an upgrade is also straightforward. After every successful upgrade, you should perform a couple of final cleanup steps:  
 1. Remove the old installation and configuration files from the cluster. 
 2. Fix any deprecation warnings in your code and configuration.
 
@@ -4709,7 +4725,7 @@ $ $NEW_HADOOP_HOME/bin/hdfs dfsadmin -upgradeProgress status
 
 An upgrade of HDFS makes a copy of the previous version’s metadata and data. `Doing an upgrade does not double the storage requirements of the cluster, as the datanodes use hard links to keep two references (for the current and previous version) to the same block of data`. This design makes it straightforward to roll back to the previous version of the filesystem, if you need to. You should understand that any changes made to the data on the upgraded system will be lost after the rollback completes, however.   
 
-You can keep only the previous version of the filesystem, which means you can’t roll back several versions. Therefore, to carry out another upgrade to HDFS data and metadata, you will need to delete the previous version, a process called finalizing the upgrade. Once an upgrade is finalized, there is no procedure for rolling back to a previous version.
+You can keep only the previous version of the filesystem, which means you can’t roll back several versions. Therefore, to carry out another upgrade to HDFS data and metadata, you will need to delete the previous version, a process called `finalizing the upgrade`. Once an upgrade is finalized, there is no procedure for rolling back to a previous version.
 
 ##### Compatibility
 There are several aspects to consider: API compatibility, data compatibility, and wire compatibility.  
@@ -4726,11 +4742,11 @@ For more detail, see [Using Flume] by Hari Shreedharan (O’Reilly, 2014). There
 
 Many systems produce streams of data that we would like to aggregate, store, and analyze using Hadoop—and these are the systems that Apache Flume is an ideal fit for.
 
-Flume is designed for high-volume ingestion of event-based data into Hadoop. The canonical example is using Flume to collect logfiles from a bank of web servers, then moving the log events from those files into new aggregated files in HDFS for processing. The usual destination (or sink in Flume parlance) is HDFS. However, Flume is flexible enough to write to other systems, like HBase or Solr.
+Flume is designed for `high-volume ingestion` of `event-based data` into Hadoop. The canonical example is using Flume to collect logfiles from a bank of web servers, then moving the log events from those files into new aggregated files in HDFS for processing. The usual destination (or sink in Flume parlance) is `HDFS`. However, Flume is flexible enough to write to other systems, like `HBase or Solr`.
 
 To use Flume, we need to run a Flume agent, which is a long-lived Java process that runs sources and sinks, connected by channels. A source in Flume produces events and delivers them to the channel, which stores the events until they are forwarded to the sink. You can think of the source-channel-sink combination as a basic Flume building block.
 
-A Flume installation is made up of a collection of connected agents running in a distributed topology. Agents on the edge of the system (co-located on web server machines, for example) collect data and forward it to agents that are responsible for aggregating and then storing the data in its final destination. Agents are configured to run a collection of particular sources and sinks, so using Flume is mainly a configuration exercise in wiring the pieces together. In this chapter, we’ll see how to build Flume topologies for data ingestion that you can use as a part of your own Hadoop pipeline.
+`A Flume installation is made up of a collection of connected agents running in a distributed topology`. Agents on the edge of the system (co-located on web server machines, for example) collect data and forward it to agents that are responsible for aggregating and then storing the data in its final destination. `Agents are configured to run a collection of particular sources and sinks, so using Flume is mainly a configuration exercise in wiring the pieces together`. In this chapter, we’ll see how to build Flume topologies for data ingestion that you can use as a part of your own Hadoop pipeline.
 
 ### Installing Flume
 Download a stable release of the Flume binary distribution from the [Flume Download Page], and unpack the tarball in a suitable location:  
@@ -4763,9 +4779,9 @@ agent1.channels.channel1.type = file
 ```
 Property names form a hierarchy with the agent name at the top level. In this example, we have a single agent, called agent1.
 In this case, agent1.sources.source1.type is set to `spooldir`, which is a spooling directory source that monitors a spooling directory for new files. The spooling directory source defines a spoolDir property.  
-The sink is a logger sink for logging events to the console. It too must be connected to the channel (with the `agent1.sinks.sink1.channel` property).1 The channel is a file channel, which means that events in the channel are persisted to disk for durability. 
+The sink is a logger sink for logging events to the console. It too must be connected to the channel (with the `agent1.sinks.sink1.channel` property).1 The channel is `a file channel, which means that events in the channel are persisted to disk for durability`. 
 
-Note that a source has a channels property (plural) but a sink has a channel property (singular). This is because `a source can feed more than one channel` (see “Fan Out” on page 388), but `a sink can only be fed by one channel`. It’s also possible for a channel to feed multiple sinks. This is covered in “Sink Groups” on page 395.  
+Note that a source has a channels property (plural) but a sink has a channel property (singular). This is because `a source can feed more than one channel` (see “Fan Out” on page 388), but `a sink can only be fed by one channel`. `It’s also possible for a channel to feed multiple sinks`. This is covered in “Sink Groups” on page 395.  
 ```shell
 $ flume-ng agent \
 --conf-file spool-to-logger.properties \
@@ -4792,20 +4808,20 @@ Event: { headers:{} body: 48 65 6C 6C 6F 20 46 6C 75 6D 65 Hello Flume }
 2017-11-22 15:00:14,135 (SinkRunner-PollingRunner-DefaultSinkProcessor) [INFO - org.apache.flume.sink.LoggerSink.process(LoggerSink.java:95)] Event: { headers:{} body: 48 65 6C 6C 6F 20 46 6C 75 6D 65                Hello Flume }
 2017-11-22 15:00:14,168 (SinkRunner-PollingRunner-DefaultSinkProcessor) [INFO - org.apache.flume.sink.LoggerSink.process(LoggerSink.java:95)] Event: { headers:{} body: 48 65 6C 6C 6F 20 46 6C 75 6D 65 20 32          Hello Flume 2 }
 ```
-The spooling directory source ingests the file by `splitting it into lines and creating a Flume event for each line`. Events have optional headers and a binary body, which is the UTF-8 representation of the line of text. The body is logged by the logger sink in both hexadecimal and string form. The file we placed in the spooling directory was only one line long, so only one event was logged in this case. We also see that the file was renamed to file1.txt.COMPLETED by the source, which indicates that Flume has completed processing it and won’t process it again.
+The spooling directory source ingests the file by `splitting it into lines and creating a Flume event for each line`. `Events have optional headers and a binary body, which is the UTF-8 representation of the line of text. The body is logged by the logger sink in both hexadecimal and string form`. The file we placed in the spooling directory was only one line long, so only one event was logged in this case. We also see that the file was renamed to file1.txt.COMPLETED by the source, which indicates that Flume has completed processing it and won’t process it again.
 
 ### Transactions and Reliability
-Flume uses separate transactions to guarantee delivery from the source to the channel and from the channel to the sink.  
+`Flume uses separate transactions to guarantee delivery from the source to the channel and from the channel to the sink`.  
 
-Similarly, a transaction is used for the delivery of the events from the channel to the sink. If for some unlikely reason the events could not be logged, the transaction would be rolled back and the events would remain in the channel for later redelivery.
+Similarly, a transaction is used for the delivery of the events from the channel to the sink. `If for some unlikely reason the events could not be logged, the transaction would be rolled back and the events would remain in the channel for later redelivery`.
 
-The source will only mark the file as completed once the transactions encapsulating the delivery of the events to the channel have been successfully committed.
+`The source will only mark the file as completed once the transactions encapsulating the delivery of the events to the channel have been successfully committed`.
 
-The channel we are using is a file channel, which has the property of being durable: once an event has been written to the channel, it will not be lost, even if the agent restarts. (Flume also provides a memory channel that does not have this property, since events are stored in memory. With this channel, events are lost if the agent restarts. Depending on the application, this might be acceptable. The trade-off is that the memory channel has higher throughput than the file channel.)
+`The channel we are using is a file channel, which has the property of being durable: once an event has been written to the channel, it will not be lost, even if the agent restarts`. (Flume also provides a memory channel that does not have this property, since events are stored in memory. With this channel, events are lost if the agent restarts. Depending on the application, this might be acceptable. The trade-off is that `the memory channel has higher throughput than the file channel`.)
 
 The major caveat here is that every event will reach the sink `at least once`—that is, duplicates are possible. Duplicates can be produced in sources or sinks: for example, after an agent restart, the spooling directory source will redeliver events for an uncompleted file, even if some or all of them had been committed to the channel before the restart. After a restart, the logger sink will re-log any event that was logged but not committed (which could happen if the agent was shut down between these two operations).  
 
-At-least-once semantics might seem like a limitation, but in practice it is an acceptable performance trade-off. The stronger semantics of **exactly once** `require a two-phase commit protocol`, which is expensive. `This choice is what differentiates Flume (at-leastonce semantics) as a high-volume parallel event ingest system from more traditional enterprise messaging systems (exactly-once semantics)`. With at-least-once semantics, duplicate events can be removed further down the processing pipeline. Usually this takes the form of `an application-specific deduplication job` written in MapReduce or Hive.
+At-least-once semantics might seem like a limitation, but in practice it is an acceptable performance trade-off. The stronger semantics of **exactly once** `require a two-phase commit protocol`, which is expensive. `This choice is what differentiates Flume (at-least-once semantics) as a high-volume parallel event ingest system from more traditional enterprise messaging systems (exactly-once semantics)`. With at-least-once semantics, duplicate events can be removed further down the processing pipeline. Usually this takes the form of `an application-specific deduplication job` written in MapReduce or Hive.
 
 #### Flume Batching
 For efficiency, Flume tries to process events in batches for each transaction, where possible, rather than one by one. Batching helps file channel performance in particular, since every transaction results in a local disk write and fsync call. (batchSize property)
@@ -4856,7 +4872,7 @@ It’s easy to change the example to store data in partitions by setting `hdfs.p
 agent1.sinks.sink1.hdfs.path = /tmp/flume/year=%Y/month=%m/day=%d
 ```
 
-The partition that a Flume event is written to is determined by the timestamp header on the event. Events don’t have this header by default, but it can be added using a Flume interceptor. Interceptors are components that can modify or drop events in the flow; they are attached to sources, and are run on events before the events have been placed in a channel. The following extra configuration lines add a timestamp interceptor to source1, which adds a timestamp header to every event produced by the source:  
+`The partition that a Flume event is written to is determined by the timestamp header on the event`. `Events don’t have this header by default, but it can be added using a Flume interceptor`. **Interceptor**s are components that can modify or drop events in the flow; they are `attached to sources, and are run on events before the events have been placed in a channel`. The following extra configuration lines add a timestamp interceptor to source1, which adds a timestamp header to every event produced by the source:  
 ```properties
 agent1.sources.source1.interceptors = interceptor1
 agent1.sources.source1.interceptors.interceptor1.type = timestamp
@@ -4867,7 +4883,7 @@ Using the timestamp interceptor ensures that the timestamps closely reflect the 
 #### HDFS Sink File Formats
 For the HDFS sink, the file format used is controlled using `hdfs.fileType` and a combination of a few other properties.  
 
-If unspecified, `hdfs.file`Type defaults to SequenceFile, which will write events to a sequence file with LongWritable keys that contain the event timestamp (or the current time if the timestamp header is not present) and BytesWritable values that contain the event body. It’s possible to use Text Writable values in the sequence file instead of BytesWritable by setting `hdfs.writeFormat` to Text.
+If unspecified, `hdfs.file`Type defaults to `SequenceFile`, which will write events to a sequence file with `LongWritable` keys that contain the event timestamp (or the current time if the timestamp header is not present) and `BytesWritable` values that contain the event body. It’s possible to use Text Writable values in the sequence file instead of BytesWritable by setting `hdfs.writeFormat` to Text.
 
 The configuration is a little different for Avro files. The hdfs.fileType property is set to DataStream, just like for plain text. Additionally, `serializer` (note the lack of an hdfs. prefix) must be set to `avro_event`. To enable compression, set the `serializer.compressionCodec` property. Here is an example of an HDFS sink configured to write Snappy-compressed Avro files:
 ```properties
@@ -4912,7 +4928,7 @@ agent1.channels.channel1a.type = file
 agent1.channels.channel1b.type = memory
 ```
 #### Delivery Guarantees
-Flume uses `a separate transaction` to deliver each batch of events from the spooling directory source `to each channel`.  
+Flume uses `a separate transaction` to deliver `each batch of events` from the spooling directory source `to each channel`.  
 
 If either of these transactions fails (if a channel is full, for example), then the events will not be removed from the source, and will be retried later.  
 
@@ -4934,11 +4950,11 @@ If there is one agent running on every node producing raw data, then with the se
 ![hadoop_flume_tier_img_1]  
 **Figure 14-3. Using a second agent tier to aggregate Flume events from the first tier**  
 
-Aggregating Flume events is achieved by having tiers of Flume agents. The first tier collects events from the original sources (such as web servers) and sends them to a smaller set of agents in the second tier, which aggregate events from the first tier before writing them to HDFS (see Figure 14-3). Further tiers may be warranted for very large numbers of source nodes.  
+`Aggregating Flume events is achieved by having tiers of Flume agents`. The first tier collects events from the original sources (such as web servers) and sends them to a smaller set of agents in the second tier, which aggregate events from the first tier before writing them to HDFS (see Figure 14-3). Further tiers may be warranted for very large numbers of source nodes.  
 
-Tiers are constructed by using a special sink that sends events over the network, and a corresponding source that receives events. The Avro sink sends events over Avro RPC to an Avro source running in another Flume agent. There is also a Thrift sink that does the same thing using Thrift RPC, and is paired with a Thrift source.
+`Tiers are constructed by using a special sink that sends events over the network, and a corresponding source that receives events`. The `Avro sink` sends events over `Avro RPC to an Avro source` running in another Flume agent. There is also a `Thrift sink` that does the same thing using `Thrift RPC`, and is paired with a `Thrift source`.
 
-Don’t be confused by the naming: Avro sinks and sources do not provide the ability to write (or read) Avro files. They are used only to distribute events between agent tiers, and to do so they use Avro RPC to communicate (hence the name). If you need to write events to Avro files, use the HDFS sink, described in “File Formats” on page 387.
+Don’t be confused by the naming: `Avro sinks and sources do not provide the ability to write (or read) Avro files. They are used only to distribute events between agent tiers, and to do so they use Avro RPC to communicate (hence the name)`. `If you need to write events to Avro files, use the HDFS sink`, described in “File Formats” on page 387.
 
 Example 14-4 shows a two-tier Flume configuration. Two agents are defined in the file, named agent1 and agent2. An agent of type agent1 runs in the first tier, and has a spooldir source and an Avro sink connected by a file channel. The agent2 agent runs in the second tier, and has an Avro source that listens on the port that agent1’s Avro sink sends events to. The sink for agent2 uses the same HDFS sink configuration from Example 14-2.
 
@@ -4996,7 +5012,7 @@ $ flume-ng agent --conf-file spool-to-hdfs-tiered.properties --name agent2 ...
 ```
 
 #### Delivery Guarantees
-In the context of the Avro sink-source connection, transactions ensure that events are reliably delivered from one agent to the next.  
+`In the context of the Avro sink-source connection, transactions ensure that events are reliably delivered from one agent to the next`.  
 The operation to read a batch of events from the file channel in agent1 by the Avro sink will be wrapped in a transaction. The transaction will only be committed once the Avro sink has received the (synchronous) confirmation that the write to the Avro source’s RPC endpoint was successful. This confirmation will only be sent once agent2’s transaction wrapping the operation to write the batch of events to its file channel has been successfully committed. Thus, the Avro sink-source pair guarantees that an event is delivered from one Flume agent’s channel to another Flume agent’s channel (at least once).
 
 If either agent is not running, then clearly events cannot be delivered to HDFS. For example, if agent1 stops running, then files will accumulate in the spooling directory, to be processed once agent1 starts up again. Also, any events in an agent’s own file channel at the point the agent stopped running will be available on restart, due to the durability guarantee that file channel provides.
@@ -5008,7 +5024,7 @@ Both these scenarios assume that the agent will eventually recover, but that is 
 An unrecoverable agent2 failure is more serious, however. Any events in the channels of upstream first-tier agents (agent1 instances) will be lost, and all new events generated by these agents will not be delivered either. The solution to this problem is for agent1 `to have multiple redundant Avro sinks`, arranged in a `sink group`,(PS: active standby agent2 node is not eligible here) so that if the destination agent2 Avro endpoint is unavailable, it can try another sink from the group. We’ll see how to do this in the next section.  
 
 ### Sink Groups
-A sink group allows multiple sinks to be treated as one, for failover or load-balancing purposes (see Figure 14-5). If a second-tier agent is unavailable, then events will be delivered to another second-tier agent and on to HDFS without disruption.
+A sink group allows multiple sinks to be `treated as one, for failover or load-balancing purposes` (see Figure 14-5). If a second-tier agent is unavailable, then events will be delivered to another second-tier agent and on to HDFS without disruption.
 
 To configure a sink group, the agent’s sinkgroups property is set to define the sink group’s name; then the sink group lists the sinks in the group, and also the type of the **sink processor**, `which sets the policy for choosing a sink`. Example 14-5 shows the configuration for load balancing between two Avro endpoints.  
 
@@ -5041,9 +5057,9 @@ agent1.sinks.sink1b.port = 10001
 
 agent1.channels.channel1.type = file
 ```
-The processor type is set to **load_balance**, which attempts to distribute the event flow over both sinks in the group, using a round-robin selection mechanism (you can change this using the `processor.selector` property). By default, sink unavailability is not remembered by the sink processor, so failing sinks are retried for every batch of events being delivered. This can be inefficient, so we have set the processor.backoff property to change the behavior so that failing sinks are blacklisted for an exponentially increasing timeout period (up to a maximum period of 30 seconds, controlled by processor.selector.maxTimeOut).
+The processor type is set to **load_balance**, which attempts to distribute the event flow over both sinks in the group, using a `round-robin` selection mechanism (you can change this using the `processor.selector` property). `By default, sink unavailability is not remembered by the sink processor, so failing sinks are retried for every batch of events being delivered. This can be inefficient, so we have set the processor.backoff property to change the behavior so that failing sinks are blacklisted for an exponentially increasing timeout period` (up to a maximum period of 30 seconds, controlled by processor.selector.maxTimeOut).
 
-There is another type of processor, **failover**, that instead of load balancing events across sinks uses a preferred sink if it is available, and fails over to another sink in the case that the preferred sink is down. The failover sink processor maintains a priority order for sinks in the group, and attempts delivery in order of priority. If the sink with the highest priority is unavailable the one with the next highest priority is tried, and so on. Failed sinks are blacklisted for an increasing timeout period (up to a maximum period of 30 seconds, controlled by `processor.maxpenalty`).
+There is another type of processor, **failover**, that instead of load balancing events across sinks uses a preferred sink if it is available, and fails over to another sink in the case that the preferred sink is down. ``The failover sink processor maintains a priority order for sinks in the group``, and attempts delivery in order of priority. If the sink with the highest priority is unavailable the one with the next highest priority is tried, and so on. Failed sinks are blacklisted for an increasing timeout period (up to a maximum period of 30 seconds, controlled by `processor.maxpenalty`).
 
 **Example 14-6. Flume configuration for second-tier agent in a load balancing scenario**
 ```properties
@@ -5096,8 +5112,8 @@ agent2.sinks.sink2.hdfs.filePrefix = events-%{host}
 ```
 
 ###  Integrating Flume with Applications
-An Avro source is an RPC endpoint that accepts Flume events, making it possible to `write an RPC client` to send events to the endpoint, which can be embedded in any application that wants to introduce events into Flume. The Flume SDK is a module that provides a Java **RpcClient** class for sending Event objects to an Avro endpoint (an Avro source running in a Flume agent, usually in another tier).   
-Clients can be configured to fail over or load balance between endpoints, and Thrift endpoints (Thrift sources) are supported too.   
+An Avro source is an RPC endpoint that accepts Flume events, making it possible to `write an RPC client` to send events to the endpoint, which can be embedded in any application that wants to introduce events into Flume. The Flume SDK is a module that provides a Java **RpcClient** class for sending Event objects to an `Avro endpoint` (`an Avro source running in a Flume agent, usually in another tier`).   
+Clients can be configured to fail over or load balance between endpoints, and `Thrift endpoints (Thrift sources)` are supported too.   
 
 The Flume embedded agent offers similar functionality: it is a cut-down Flume agent that runs in a Java application. It has a single special source that your application sends Flume Event objects to by calling a method on the **EmbeddedAgent** object; the only sinks that are supported are Avro sinks, but it can be configured with multiple sinks for failover or load balancing. 
 
@@ -5111,7 +5127,7 @@ Often, valuable data in an organization is stored in structured data stores such
 >Latest stable release is 1.4.6 (download, documentation). Latest cut of Sqoop2 is 1.99.7 (download, documentation). Note that 1.99.7 is not compatible with 1.4.6 and not feature complete, it is not intended for production deployment.
 Last Published: 2017-03-16
 
-Installation:  
+**Installation**:    
 Unzip binary installation file (sqoop-x.y.z.bin_*) from [hadoop_sqoop_homepage_1] and set environment variable: SQOOP_HOME.    
 ```shell
 export SQOOP_HOME=/usr/local/sqoop
@@ -5143,11 +5159,11 @@ See 'sqoop help COMMAND' for information on a specific command.
 ```
 An alternate way of running a Sqoop tool is to use a tool-specific script. This script will be named sqoop-toolname (e.g., sqoop-help, sqoop-import, etc.). Running these scripts from the command line is identical to running sqoop help or sqoop import.
 
-`Sqoop 2` is a rewrite of Sqoop that addresses the architectural limitations of Sqoop 1. For example, Sqoop 1 is a command-line tool and does not provide a Java API, so it’s difficult to embed it in other programs. Also, `in Sqoop 1 every connector has to know about every output format, so it is a lot of work to write new connectors`. Sqoop 2 has a server component that runs jobs, as well as a range of clients: a command-line interface (CLI), `a web UI, a REST API, and a Java API`. Sqoop 2 also will be able to use alternative execution engines, such as Spark. Note that Sqoop 2’s CLI is not compatible with Sqoop 1’s CLI.   
+`Sqoop 2` is a `rewrite` of Sqoop that addresses the architectural limitations of Sqoop 1. For example, Sqoop 1 is a command-line tool and does not provide a Java API, so it’s difficult to embed it in other programs. Also, `in Sqoop 1 every connector has to know about every output format, so it is a lot of work to write new connectors`. Sqoop 2 has a server component that runs jobs, as well as a range of clients: `a command-line interface (CLI)`, `a web UI, a REST API, and a Java API`. Sqoop 2 also will be able to use `alternative execution engines`, such as Spark. Note that Sqoop 2’s CLI is not compatible with Sqoop 1’s CLI.   
 Sqoop 2 is under active development but does not yet have feature parity with Sqoop 1, whose latest release 1.99.7 (by 2017-03-16) is not compatible with 1.4.6 and not feature complete, it is not intended for production deployment.  
 
 ### Sqoop Connectors
-Sqoop has an extension framework that makes it possible to import data from—and export data to—any external storage system that has `bulk data transfer capabilities`. A Sqoop connector is a modular component that uses this framework to enable Sqoop imports and exports. Sqoop ships with connectors for working with a range of popular databases, including MySQL, PostgreSQL, Oracle, SQL Server, DB2, and Netezza. There is also a generic JDBC connector for connecting to any database that supports Java’s JDBC protocol. Sqoop provides `optimized MySQL, PostgreSQL, Oracle, and Netezza connectors` that use database-specific APIs to perform bulk transfers more efficiently (this is discussed more in “Direct-Mode Imports” on page 411).   
+Sqoop has `an extension framework` that makes it possible to import data from—and export data to—any external storage system that has `bulk data transfer capabilities`. A Sqoop connector is a modular component that uses this framework to enable Sqoop imports and exports. Sqoop ships with connectors for working with a range of popular databases, including MySQL, PostgreSQL, Oracle, SQL Server, DB2, and Netezza. There is also a generic JDBC connector for connecting to any database that supports Java’s JDBC protocol. Sqoop provides `optimized MySQL, PostgreSQL, Oracle, and Netezza connectors` that use database-specific APIs to perform bulk transfers more efficiently (this is discussed more in “Direct-Mode Imports” on page 411).   
 As well as the built-in Sqoop connectors, various third-party connectors are available for data stores, ranging from enterprise data warehouses (such as Teradata) to NoSQL stores (such as Couchbase). These connectors must be downloaded separately and can be added to an existing Sqoop installation by following the instructions that come with the connector.  
 
 ### A Sample Import from Mysql
@@ -5190,7 +5206,7 @@ successfully
 ...
 14/10/28 21:36:41 INFO mapreduce.ImportJobBase: Retrieved 3 records.
 ```
-Sqoop’s import tool will run a MapReduce job that connects to the MySQL database and reads the table. By default, this will use 4 map tasks in parallel to speed up the import process. Each task will write its imported results to a different file, but all in a common directory.  
+`Sqoop’s import tool will run a MapReduce job` that connects to the MySQL database and reads the table. By default, this will use 4 map tasks in parallel to speed up the import process. Each task will write its imported results to a different file, but all in a common directory.  
 ```shell
 $ hadoop fs -cat widgets/part-m-00000
 1,sprocket,0.25,2010-02-10,1,Connects two gizmos
@@ -5200,13 +5216,13 @@ $ hadoop fs -cat widgets/part-m-00000
 
 #### Text and Binary File Formats
 Sqoop is capable of importing into a few different file formats. Text files (the default) offer a human-readable representation of data, platform independence, and the simplest structure. However, they cannot hold binary fields (such as database columns of type VARBINARY), and distinguishing between null values and String-based fields containing the value "null" can be problematic (although using the --null-string import option allows you to control the representation of null values).  
-To handle these conditions, `Sqoop also supports SequenceFiles, Avro datafiles, and Parquet files`. `These binary formats provide the most precise representation possible of the imported data`. They also allow data to be compressed while retaining MapReduce’s ability to process different sections of the same file in parallel. However, `current versions of Sqoop cannot load Avro datafiles or SequenceFiles into Hive` (`although you can load Avro into Hive manually, and Parquet can be loaded directly into Hive by Sqoop`). Another disadvantage of SequenceFiles is that they are Java specific, whereas Avro and Parquet files can be processed by a wide range of languages.  
+To handle these conditions, `Sqoop also supports SequenceFiles, Avro datafiles, and Parquet files`. `These binary formats provide the most precise representation possible of the imported data`. They also allow data to be compressed while retaining MapReduce’s ability to process different sections of the same file in parallel. However, `current versions of Sqoop cannot load Avro datafiles or SequenceFiles into Hive` (`although you can load Avro into Hive manually, and Parquet can be loaded directly into Hive by Sqoop`). `Another disadvantage of SequenceFiles is that they are Java specific`, whereas Avro and Parquet files can be processed by a wide range of languages.  
 
 ### Generated Code
 In addition to writing the contents of the database table to HDFS, Sqoop also provides you with a generated Java source file (widgets.java) written to the current local directory. 
 Sqoop can use generated code to handle the deserialization of table-specific data from the database source before writing it to HDFS.  
 
-The generated class (widgets) is capable of holding a single record retrieved from the imported table(each instance of the class refers to only a single record).   It can manipulate such a record in MapReduce or store it in a SequenceFile in HDFS. (SequenceFiles written by Sqoop during the import process will store each imported row in the “value” element of the SequenceFile’s key-value pair format, using the generated class.)
+`The generated class (widgets) is capable of holding a single record retrieved from the imported table`(each instance of the class refers to only a single record).   It can manipulate such a record in MapReduce or store it in a SequenceFile in HDFS. (SequenceFiles written by Sqoop during the import process will store each imported row in the “value” element of the SequenceFile’s key-value pair format, using the generated class.)
 
 We can use a different Sqoop tool to generate source code without performing an import; this generated code will still examine the database table to determine the appropriate data types for each field:  
 ```shell
@@ -5222,7 +5238,7 @@ Recent versions of Sqoop support Avro-based serialization and schema generation 
 
 ### Imports: A Deeper Look
 
-You still need to download the JDBC driver itself and install it on your Sqoop client. For cases where Sqoop does not know which JDBC driver is appropriate, users can specify the JDBC driver explicitly with the `--driver` argument.
+You still need to download `the JDBC driver` itself and install it on your Sqoop client. For cases where Sqoop does not know which JDBC driver is appropriate, users can specify the JDBC driver explicitly with the `--driver` argument.
 
 Before the import can start, Sqoop uses JDBC to examine the table it is to import. It retrieves a list of all the columns and their SQL data types. These SQL types (VARCHAR, INTEGER, etc.) can then be mapped to Java data types (String, Integer, etc.), which will hold the field values in MapReduce applications. Sqoop’s code generator will use this information to create a table-specific class to hold a record extracted from the table.
 ```java
@@ -5231,7 +5247,7 @@ public String get_widget_name();
 public java.math.BigDecimal get_price();
 ...
 ```
-The generated class also implements DBWritable interface  
+The generated class also implements **DBWritable** interface  
 ```java
 public void readFields(ResultSet __dbResults) throws SQLException;
 public void write(PreparedStatement __dbStmt) throws SQLException;
@@ -5243,7 +5259,7 @@ Reading a table is typically done with a simple query such as:
 ```sql
 SELECT col1,col2,col3,... FROM tableName WHERE...
 ```
-Using metadata about the table, Sqoop will guess a good column to use for splitting the table (typically the primary key for the table, if one exists), this is splitting column. DataDrivenDBInputFormat at first queries the range of splitting column, by `select min(splitting_column), max(splitting_column) from source_table`, then split evenly the range of table rows to several sections, the number of which equals to the number of map tasks.  
+Using metadata about the table, Sqoop will guess a good column to use for splitting the table (`typically the primary key for the table, if one exists`), this is `splitting column`. DataDrivenDBInputFormat at first queries the range of splitting column, by `select min(splitting_column), max(splitting_column) from source_table`, then split evenly the range of table rows to several sections, the number of which equals to the number of map tasks.  
 The primary key column may not be uniformly distributed, so users can specify a particular splitting column when running an import job (via the `--split-by` argument), to tune the job to the data’s actual distribution.
 
 After generating the deserialization code(the genearted class) and configuring the InputFormat(DataDrivenDBInputFormat), Sqoop sends the job to the MapReduce cluster. Map tasks execute the queries and deserialize rows from the ResultSet into instances of the generated class, which are either stored directly in SequenceFiles or transformed into delimited text before being written to HDFS.  
@@ -5261,12 +5277,12 @@ The value specified as --last-value can be a row ID that is strictly increasing,
 * --incremental lastmodified  
 Another option is timebased incremental imports (specified by `--incremental lastmodified`), which is appropriate when existing rows may be updated, and there is a column (the check column) that records the last modified time of the update.  
 
-At the end of an incremental import, Sqoop will print out the value to be specified as --last-value on the next import. This is useful when running incremental imports manually, but for running periodic imports it is better to use `Sqoop’s saved job facility, which automatically stores the last value and uses it on the next job run`. Type `sqoop job --help` for usage instructions for saved jobs.
+`At the end of an incremental import, Sqoop will print out the value to be specified as --last-value on the next import`. This is useful when running incremental imports manually, but for running periodic imports it is better to use `Sqoop’s saved job facility, which automatically stores the last value and uses it on the next job run`. Type `sqoop job --help` for usage instructions for saved jobs.
 
 #### Direct-Mode Imports
-Some databases, however, offer specific tools designed to extract data quickly. For example, MySQL’s mysqldump application can read from a table with `greater throughput than a JDBC channel`. The use of these external tools is referred to as direct mode in Sqoop’s documentation. Direct mode must be specifically enabled by the user (via the `--direct` argument), as it is not as general purpose as the JDBC approach. (For example, MySQL’s direct mode cannot handle large objects, such as CLOB or BLOB columns, and that’s why Sqoop needs to use a JDBC-specific API to load these columns into HDFS.)  
+Some databases, however, offer specific tools designed to extract data quickly. For example, MySQL’s **mysqldump** application can read from a table with `greater throughput than a JDBC channel`. The use of these external tools is referred to as direct mode in Sqoop’s documentation. Direct mode must be specifically enabled by the user (via the `--direct` argument), as it is not as general purpose as the JDBC approach. (For example, MySQL’s direct mode cannot handle large objects, such as CLOB or BLOB columns, and that’s why Sqoop needs to use a JDBC-specific API to load these columns into HDFS.)  
 
-For databases that provide such tools, Sqoop can use these to great effect. A direct-mode import from MySQL is usually much more efficient (in terms of map tasks and time required) than a comparable JDBC-based import. Sqoop will still launch multiple map tasks in parallel. These tasks will then spawn instances of the mysqldump program and read its output. `Sqoop can also perform direct-mode imports from PostgreSQL, Oracle, and Netezza`. 
+For databases that provide such tools, Sqoop can use these to great effect. A direct-mode import from MySQL is usually much more efficient (in terms of map tasks and time required) than a comparable JDBC-based import. Sqoop will still launch multiple map tasks in parallel. These tasks will then `spawn instances of the mysqldump program and read its output`. `Sqoop can also perform direct-mode imports from PostgreSQL, Oracle, and Netezza`. 
 
 Even when direct mode is used to access the contents of a database, `the metadata is still queried through JDBC`.
 
@@ -5310,11 +5326,11 @@ In particular, most tables are physically laid out on disk as in Figure 15-2. Wh
 ![hadoop_clob_blob_storage_img_1]  
 **Figure 15-3. Large objects are usually held in a separate area of storage; the main row storage contains indirect references to the large objects**  
 
-The difficulty of working with large objects in a database suggests that a system such as `Hadoop`, which is much better suited to storing and processing large, complex data objects, is `an ideal repository for such information.` Sqoop can extract large objects from tables and store them in HDFS for further processing.
+The difficulty of working with large objects in a database suggests that a system such as `Hadoop`, which is much better suited to storing and processing large, complex data objects, is `an ideal repository for such information.` `Sqoop can extract large objects from tables and store them in HDFS for further processing`.
 
 As in a database, MapReduce typically materializes every record before passing it along to the mapper. If individual records are truly large, this can be very inefficient. If the contents of a large object field are relevant only for a small subset of the total number of records used as input to a MapReduce program, it would be inefficient to fully materialize all these records. Furthermore, depending on the size of the large object, full materialization in memory may be impossible.  
 
-To overcome these difficulties, Sqoop will store imported large objects in a separate file called a **LobFile**, if they are larger than a threshold size of 16 MB (configurable via the `sqoop.inline.lob.length.max setting`, in bytes). Each record in a LobFile holds a single large object. The LobFile format allows clients to hold a reference to a record without accessing the record contents. When records are accessed, this is done through a java.io.InputStream (for binary objects) or java.io.Reader (for character-based objects).  
+To overcome these difficulties, Sqoop will store imported large objects in a separate file called a **LobFile**, if they are larger than a threshold size of 16 MB (configurable via the `sqoop.inline.lob.length.max setting`, in bytes). Each record in a LobFile holds a single large object. `The LobFile format allows clients to hold a reference to a record without accessing the record contents`. When records are accessed, this is done through a java.io.InputStream (for binary objects) or java.io.Reader (for character-based objects).  
 
 When a record is imported, the “normal” fields will be materialized together in a text file, along with a reference to the LobFile where a CLOB or BLOB column is stored.  
 ```html
@@ -5344,10 +5360,10 @@ seconds (13.0011 bytes/sec)
 14/10/29 12:05:08 INFO mapreduce.ExportJobBase: Exported 3 records.
 ```
 Hive used its default delimiters: a Ctrl-A character (Unicode 0x0001) between fields and a newline at the end of each record.  
-In the example syntax, the escape sequence is enclosed in single quotes to ensure that the shell processes it literally. Without the quotes, the leading backslash itself may need to be escaped (e.g., --input-fields-terminated-by \\0001).
+In the example syntax, the escape sequence is enclosed in single quotes to ensure that the shell processes it literally. Without the quotes, the leading backslash itself may need to be escaped (e.g., `--input-fields-terminated-by \\0001`).
 
 ### Exports: A Deeper Look
-`The Sqoop performs exports is very similar in nature to how Sqoop performs imports` (see Figure 15-4). Before performing the export, `Sqoop picks a strategy based on the database connect string`. For most systems, Sqoop uses JDBC. Sqoop then generates a Java class based on the target table definition. This generated class has the ability to parse records from text files and insert values of the appropriate types into a table (in addition to the ability to read the columns from a ResultSet). A MapReduce job is then launched that reads the source datafiles from HDFS, parses the records using the generated class, and executes the chosen export strategy.  
+`The Sqoop performs exports is very similar in nature to how Sqoop performs imports` (see Figure 15-4). Before performing the export, `Sqoop picks a strategy based on the database connect string`. `For most systems, Sqoop uses JDBC`. Sqoop then `generates a Java class` based on the target table definition. This generated class has the ability to parse records from text files and insert values of the appropriate types into a table (in addition to the ability to read the columns from a ResultSet). `A MapReduce job is then launched` that reads the source datafiles from HDFS, parses the records using the generated class, and executes the chosen export strategy.  
 
 The JDBC-based export strategy builds up `batch INSERT` statements that will each add multiple records to the target table.  
 
@@ -5358,17 +5374,17 @@ Sqoop uses the CombineFileInputFormat class to group the input files into a smal
 #### Exports and Transactionality
 Due to the parallel nature of the process, often an export is not an atomic operation.  
 
-To solve this problem, Sqoop can export to a temporary staging table and then, at the end of the job—if the export has succeeded—move the staged data into the destination table in a single transaction. You can specify a staging table with the `--staging-table` option. The staging table must already exist and have the same schema as the destination. It must also be empty, unless the `--clear-staging-table` option is also supplied.  
-Using a staging table is slower, since the data must be written twice: first to the staging table, then to the destination table. The export process also uses more space while it is running, since there are two copies of the data while the staged data is being copied to the destination.  
+To solve this problem, `Sqoop can export to a temporary staging table and then, at the end of the job—if the export has succeeded—move the staged data into the destination table in a single transaction`. You can specify a staging table with the `--staging-table` option. The staging table must already exist and have the same schema as the destination. It must also be empty, unless the `--clear-staging-table` option is also supplied.  
+Using a staging table is `slower`, since the data must be written twice: first to the staging table, then to the destination table. The export process also uses `more space` while it is running, since there are two copies of the data while the staged data is being copied to the destination.  
 
 #### Exports and SequenceFiles
 Sqoop can also export delimited text files that were not Hive tables.  
 
-Sqoop can export records stored in SequenceFiles to an output table too, although some restrictions apply. A SequenceFile cannot contain arbitrary record types. Sqoop’s export tool will read objects from SequenceFiles and send them directly to the OutputCollector, which passes the objects to the database export OutputFormat. To work with Sqoop, `the record must be stored in the “value” portion of the SequenceFile’s key-value pair format` and must subclass the `org.apache.sqoop.lib.SqoopRecord` abstract class (as is done by all classes generated by Sqoop).
+`Sqoop can export records stored in SequenceFiles to an output table too`, although some restrictions apply. A SequenceFile cannot contain arbitrary record types. Sqoop’s export tool will read objects from SequenceFiles and send them directly to the OutputCollector, which passes the objects to the database export OutputFormat. To work with Sqoop, `the record must be stored in the “value” portion of the SequenceFile’s key-value pair format` and must subclass the `org.apache.sqoop.lib.SqoopRecord` abstract class (as is done by all classes generated by Sqoop).
 
 If you use the codegen tool (sqoop-codegen) to generate a SqoopRecord implementation for a record based on your export target table, you can write a MapReduce program that populates instances of this class and writes them to SequenceFiles. sqoop-export can then export these SequenceFiles to the table.  
 
-You can suppress code generation and instead use an existing record class and JAR by providing the `--class-name` and `--jar-file` arguments to Sqoop. Sqoop will use the specified class, loaded from the specified JAR, when exporting records.
+`You can suppress code generation and instead use an existing record class and JAR` by providing the `--class-name` and `--jar-file` arguments to Sqoop. Sqoop will use the specified class, loaded from the specified JAR, when exporting records.
 
 In the following example, we reimport the widgets table as SequenceFiles, and then export it back to the database in a different table:  
 ```shell
@@ -5400,12 +5416,12 @@ $ sqoop export --connect jdbc:mysql://localhost/hadoopguide \
 For more information about Hive, see [Programming Hive] by Edward Capriolo, Dean Wampler, and Jason Rutherglen (O’Reilly, 2012).
 
 ### Installing Hive
-In normal use, Hive runs on your workstation and converts your SQL query into a series of jobs for execution on a Hadoop cluster. Hive organizes data into tables, which provide a means for attaching structure to data stored in HDFS. Metadata—such as table schemas— is stored in a database called the **metastore**.
+In normal use, Hive runs on your workstation and `converts your SQL query into a series of jobs for execution on a Hadoop cluster`. Hive organizes data into tables, which provide a means for attaching structure to data stored in HDFS. Metadata—such as table schemas— is stored in a database called the **metastore**.
 
 When starting out with Hive, it is convenient to run the metastore on your local machine. In this configuration, which is the default, the Hive table definitions that you create will be local to your machine, so you can’t share them with other users. We’ll see how to configure a shared remote metastore, which is the norm in production environments, in “The Metastore” on page 480.
 
 **Prerequisite**:   
-1. version compatible as per release notes  
+1. version compatible as per release notes with Hadoop
 2. making sure that the hadoop executable is on the path or setting the HADOOP_HOME environment variable.
 
 **Installation**:  
@@ -5415,7 +5431,8 @@ $ tar xzf apache-hive-x.y.z-bin.tar.gz
 ```
 2. It’s handy to put Hive on your path to make it easy to launch:   
 ```shell
-$ export HIVE_HOME=~/sw/apache-hive-x.y.z-bin % export PATH=$PATH:$HIVE_HOME/bin
+$ export HIVE_HOME=~/sw/apache-hive-x.y.z-bin 
+$ export PATH=$PATH:$HIVE_HOME/bin
 ```
 3. initiate metastore per Hive2  
 Running hive, even though it fails, creates a metastore_db directory `in the directory from which you ran hive`:  
@@ -5451,7 +5468,7 @@ PS: Maybe following materials are based on Hive 1.X releases.
 
 #### The Hive Shell
 
-The Hive shell is the primary way that we will interact with Hive, by issuing commands in HiveQL. HiveQL is Hive’s query language, a dialect of SQL. It is heavily influenced by MySQL, so if you are familiar with MySQL, you should feel at home using Hive.
+The Hive shell is the primary way that we will interact with Hive, by issuing commands in HiveQL. HiveQL is Hive’s query language, a dialect of SQL. It is `heavily influenced by MySQL`, so if you are familiar with MySQL, you should feel at home using Hive.
 
 Like SQL, HiveQL is generally `case insensitive` (except for string comparisons).  
 
@@ -5481,7 +5498,7 @@ LOAD DATA LOCAL INPATH '/tmp/dummy.txt' \
 OVERWRITE INTO TABLE dummy"
 ```
 
-Other useful Hive shell features include the ability to run commands on the host operating system by using a ! prefix to the command and the ability to access Hadoop filesystems using the dfs command.
+Other useful Hive shell features include the ability to `run commands on the host operating system by using a ! prefix to the command` and the ability to `access Hadoop filesystems using the dfs command`.
 
 ### An Hive Example
 Just like an RDBMS, Hive organizes its data into tables.
@@ -5495,14 +5512,14 @@ Hive expects there to be three fields in each row, corresponding to the table co
 ```sql
 hive> LOAD DATA LOCAL INPATH 'tmp/data.txt' OVERWRITE INTO TABLE records;
 ```
-Running this command tells Hive to put the specified local file in its warehouse directory. `This is a simple filesystem operation`. `There is no attempt, for example, to parse the file and store it in an internal database format`, because Hive does not mandate any particular file format. Files are stored verbatim; they are not modified by Hive.
+Running this command tells Hive to put the specified local file in its warehouse directory. `This is a simple filesystem operation`. `There is no attempt, for example, to parse the file and store it in an internal database format`, because `Hive does not mandate any particular file format. Files are stored verbatim; they are not modified by Hive`.
 
-In this example, we are storing Hive tables on the local filesystem (fs.defaultFS is set to its default value of file:///). Tables are stored as directories under Hive’s warehouse directory, which is controlled by the `hive.metastore.warehouse.dir` property and defaults to /user/hive/warehouse. Thus, the files for the records table are found in the /user/hive/warehouse/records directory on the local filesystem:   
+In this example, we are storing Hive tables on the local filesystem (fs.defaultFS is set to its default value of file:///). Tables are stored as directories under Hive’s warehouse directory, which is controlled by the `hive.metastore.warehouse.dir` property and defaults to /user/hive/warehouse. Thus, the files for the records table are found in the /user/hive/warehouse/records directory on the local filesystem(PS: the table name in this example happens to be records):   
 ```shell
 $ ls /user/hive/warehouse/records/ 
 data.txt
 ```
-The OVERWRITE keyword in the LOAD DATA statement tells Hive to delete any existing files in the directory for the table. If it is omitted, the new files are simply added to the table’s directory (unless they have the same names, in which case they replace the old files).
+The OVERWRITE keyword in the LOAD DATA statement tells Hive to delete any existing files in the directory for the table. If it is omitted, the new files are simply added to the table’s directory (`unless they have the same names, in which case they replace the old files`).
 
 Now that the data is in Hive, we can run a query against it:
 ```sql
@@ -5520,16 +5537,16 @@ $ hive --config /Users/tom/dev/hive-conf
 ```
 Alternatively, you can set the `HIVE_CONF_DIR` environment variable to the configuration directory for the same effect.
 
-The hive-site.xml file is a natural place to put the cluster connection details: you can specify the filesystem and resource manager using the usual Hadoop properties, fs.defaultFS and yarn.resourcemanager.address. Metastore configuration settings (covered in “The Metastore” on page 480) are commonly found in hive-site.xml, too.
+The hive-site.xml file is a natural place to put the cluster connection details: you can specify the filesystem and resource manager using the usual Hadoop properties, `fs.defaultFS` and `yarn.resourcemanager.address`. Metastore configuration settings (covered in “The Metastore” on page 480) are commonly found in hive-site.xml, too.
 
-Hive also permits you to set properties on a per-session basis, by passing the `-hiveconf` option to the hive command. For example, the following command sets the cluster (in this case, to a pseudodistributed cluster) for the duration of the session:  
+`Hive also permits you to set properties on a per-session basis`, by passing the `-hiveconf` option to the hive command. For example, the following command sets the cluster (in this case, to a pseudodistributed cluster) for the duration of the session:  
 ```shell
 $ hive -hiveconf fs.defaultFS=hdfs://localhost \  
 -hiveconf mapreduce.framework.name=yarn \  
 -hiveconf yarn.resourcemanager.address=localhost:8032
 ```
 
-You can change settings from within a session, too, using the SET command. This is useful for changing Hive settings for a particular query. For example, the following command ensures buckets are populated according to the table definition (see “Buckets” on page 493):  
+`You can change settings from within a session, too, using the SET command`. This is useful for changing Hive settings for a particular query. For example, the following command ensures buckets are populated according to the table definition (see “Buckets” on page 493):  
 ```sql
 hive> SET hive.enforce.bucketing=true;
 ```
@@ -6958,6 +6975,7 @@ At StumbleUpon, the first production feature deployed on HBase was keeping count
 [hadoop_data_flow_img_1]:/resources/img/java/hadoop_data_flow_1.png "Figure 2-4. MapReduce data flow with multiple reduce tasks"
 [hadoop_data_flow_img_2]:/resources/img/java/hadoop_data_flow_2.png "Figure 3-2. A client reading data from HDFS"
 [hadoop_data_flow_img_3]:/resources/img/java/hadoop_data_flow_3.png "Figure 3-4. A client writing data to HDFS"
+[hadoop_yarn_layout_img_1]:/resources/img/java/hadoop_yarn_layout_1.png "Figure 4-1. YARN applications"
 [hadoop_data_flow_img_4]:/resources/img/java/hadoop_data_flow_4.png "Figure 4-2. How YARN runs an application"
 [hadoop-jvm-compressor-benchmark-1]:https://github.com/ning/jvm-compressor-benchmark "jvm compressor benchmark"
 [hadoop_writable_class_hierarchy_img_1]:/resources/img/java/hadoop_writable_class_hierarchy_1.png "Figure 5-1. Writable class hierarchy"
