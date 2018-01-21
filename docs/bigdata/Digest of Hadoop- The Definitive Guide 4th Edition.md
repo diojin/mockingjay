@@ -296,6 +296,10 @@ For more information on using Sqoop, consult the [Apache Sqoop Cookbook] by Kath
 
 For more information about Hive, see [Programming Hive] by Edward Capriolo, Dean Wampler, and Jason Rutherglen (O’Reilly, 2012).
 
+In this chapter, we only scratched the surface of what’s possible with HBase. For more in-depth information, consult the project’s Reference Guide([Apache HBase ™ Reference Guide]), [HBase: The Definitive Guide] by Lars George (O’Reilly, 2011, new edition forthcoming), or [HBase in Action] by Nick Dimiduk and Amandeep Khurana (Manning, 2012).
+
+The HBase project was started toward the end of 2006 by Chad Walters and Jim Kellerman at Powerset. It was modeled after Google’s Bigtable, which had just been published. Fay Chang et al., “Bigtable: A Distributed Storage System for Structured Data,” November 2006. [Bigtable: A Distributed Storage System for Structured Data,]  
+
 ## 1. Meet Hadoop
 The approach taken by MapReduce may seem like a brute-force approach. The premise is that the `entire dataset—or at least a good portion of it—`can be processed for each query. But this is its power. MapReduce is a batch query processor, and the ability to run an ad hoc query against your whole dataset and get the results in a reasonable time is transformative.
 
@@ -5601,7 +5605,7 @@ The Beeline CLI uses the JDBC driver to communicate with Hive.
 An ODBC driver allows applications that support the ODBC protocol (such as `business intelligence software`) to connect to Hive. The Apache Hive distribution does not ship with an ODBC driver, but several vendors make one freely available. (Like the JDBC driver, ODBC drivers use Thrift to communicate with the Hive server.) 
 
 ### The Hive Metastore
-The metastore is the central repository of Hive metadata. The metastore is divided into two pieces: a service and the backing store for the data. By default, the metastore service runs in the same JVM as the Hive service and contains an embedded Derby database instance backed by the local disk. This is called the embedded metastore configuration (see Figure 17-2). 
+The metastore is the central repository of Hive metadata. `The metastore is divided into two pieces: a service and the backing store for the data`. By default, the metastore service runs in the same JVM as the Hive service and contains an embedded Derby database instance backed by the local disk. This is called the embedded metastore configuration (see Figure 17-2). 
 
 Using an `embedded metastore` is a simple way to get started with Hive; however, only `one embedded Derby database can access the database files on disk at any one time`, which means you can have only one Hive session open at a time that accesses the same metastore. Trying to start a second session produces an error when it attempts to open a connection to the metastore.
 
@@ -5628,47 +5632,44 @@ Updates, transactions, and indexes are mainstays of traditional databases. Yet, 
 
 Hive has long supported `adding new rows in bulk` to an existing table by using INSERT INTO to add new data files to a table. From release 0.14.0, finer-grained changes are possible, so you can call INSERT INTO TABLE...VALUES to `insert small batches of values` computed in SQL. In addition, it is possible to `UPDATE and DELETE rows` in a table.  
 
-`HDFS does not provide in-place file updates`, so changes resulting from inserts, updates, and deletes are stored in small delta files. Delta files are periodically merged into the base table files by MapReduce jobs that are run in the background by the metastore. These features only work `in the context of transactions` (introduced in Hive 0.13.0), so the table they are being used on needs to have transactions enabled on it. Queries reading the table are guaranteed to see a consistent snapshot of the table.  
+`HDFS does not provide in-place file updates`, so changes resulting from inserts, updates, and deletes are stored in small delta files. Delta files are periodically merged into the base table files by MapReduce jobs that are run in the background `by the metastore`. These features only work `in the context of transactions` (introduced in Hive 0.13.0), so the table they are being used on needs to have transactions enabled on it. Queries reading the table are guaranteed to see a consistent snapshot of the table.  
 
 `Hive also has support for table- and partition-level locking.` Locks prevent, for example, one process from dropping a table while another is reading from it. `Locks are managed transparently using ZooKeeper,` so the user doesn’t have to acquire or release them, although it is possible to get information about which locks are being held via the SHOW LOCKS statement. By default, locks are not enabled.  
 
-There are currently two index types: `compact and bitmap`. (The index implementation was designed to be pluggable, so it’s expected that a variety of implementations will emerge for different use cases.)   
+There are currently two index types: `compact and bitmap`. (`The index implementation was designed to be pluggable`, so it’s expected that a variety of implementations will emerge for different use cases.)   
 
-Compact indexes store the HDFS block numbers of each value, rather than each file offset, so they don’t take up much disk space but are still effective for the case where values are clustered together in nearby rows. Bitmap indexes use compressed bitsets to efficiently store the rows that a particular value appears in, and they are usually appropriate for low-cardinality columns (such as gender or country).
-
-Compact indexes store the `HDFS block numbers of each value`, rather than each file offset, so they don’t take up much disk space but are still effective for the case where values are clustered together in nearby rows.  
-
-Bitmap indexes use compressed bitsets to efficiently store the rows that a particular value appears in, and they are usually appropriate for low-cardinality columns (such as gender or country).
+Compact indexes store the HDFS `block numbers of each value`, rather than each file offset, so they don’t take up much disk space but are still effective for the case where values are clustered together in nearby rows. Bitmap indexes use compressed bitsets to efficiently store the rows that a particular value appears in, and they are usually appropriate for low-cardinality columns (such as gender or country).
 
 #### SQL-on-Hadoop Alternatives
 In the years since Hive was created, many other SQL-on-Hadoop engines have emerged to address some of Hive’s limitations.  
 
-Cloudera Impala, [Apache Impala] an open source interactive SQL engine, was one of the first, giving `an order of magnitude performance boost compared to Hive running on MapReduce`.  Impala `uses a dedicated daemon that runs on each datanode` in the cluster. When a client runs a query it contacts an arbitrary node running an Impala daemon, which acts as a coordinator node for the query. The coordinator sends work to other Impala daemons in the cluster and combines their results into the full result set for the query. `Impala uses the Hive metastore and supports Hive formats and most HiveQL constructs (plus SQL-92), so in practice it is straightforward to migrate between the two systems, or to run both on the same cluster.`
+Cloudera Impala, [Apache Impala] an open source interactive SQL engine, was one of the first, giving `an order of magnitude performance boost compared to Hive running on MapReduce`.  Impala `uses a dedicated daemon that runs on each datanode` in the cluster. When a client runs a query it contacts an arbitrary node running an Impala daemon, which acts as `a coordinator node` for the query. The coordinator sends work to other Impala daemons in the cluster and combines their results into the full result set for the query. `Impala uses the Hive metastore and supports Hive formats and most HiveQL constructs (plus SQL-92), so in practice it is straightforward to migrate between the two systems, or to run both on the same cluster.`
 
 Other prominent open source Hive alternatives include `Presto from Facebook`, `Apache Drill`, and `Spark SQL`. `Presto and Drill have similar architectures to Impala`, although Drill targets SQL:2011 rather than HiveQL. Spark SQL uses Spark as its underlying engine, and lets you embed SQL queries in Spark programs.
 
-Spark SQL is different to using the Spark execution engine from within Hive (“Hive on Spark,” see “Execution engines” on page 477). Hive on Spark provides all the features of Hive since it is a part of the Hive project. Spark SQL, on the other hand, is a new SQL engine that offers some level of Hive compatibility.
+`Spark SQL` is different to using the Spark execution engine from within Hive (“Hive on Spark,” see “Execution engines” on page 477). `Hive on Spark provides all the features of Hive` since it is a part of the Hive project. `Spark SQL`, on the other hand, is a new SQL engine that `offers some level of Hive compatibility`.
 
-Apache Phoenix takes a different approach entirely: it provides SQL on HBase. SQL access is through a JDBC driver that turns queries into HBase scans and takes advantage of HBase coprocessors to perform server-side aggregation. Metadata is stored in HBase, too.
+`Apache Phoenix` takes a different approach entirely: it provides `SQL on HBase`. SQL access is through a JDBC driver that `turns queries into HBase scans` and `takes advantage of HBase coprocessors to perform server-side aggregation`. Metadata is stored in HBase, too.
 
 ### HiveQL
-Hive’s SQL dialect, called HiveQL, is a mixture of `SQL-92, MySQL, and Oracle’s SQL dialect`. The level of SQL-92 support has improved over time, and will likely continue to get better. HiveQL also provides features from later SQL standards, such as window functions (also known as analytic functions) from SQL:2003. Some of Hive’s nonstandard extensions to SQL were inspired by MapReduce, such as multitable inserts (see “Multitable insert” on page 501) and the TRANSFORM, MAP, and REDUCE clauses (see “MapReduce Scripts” on page 503).
+Hive’s SQL dialect, called HiveQL, is a mixture of `SQL-92, MySQL, and Oracle’s SQL dialect`. The level of SQL-92 support has improved over time, and will likely continue to get better. `HiveQL also provides features from later SQL standards, such as window functions (also known as analytic functions) from SQL:2003`. Some of Hive’s nonstandard extensions to SQL were inspired by MapReduce, such as multitable inserts (see “Multitable insert” on page 501) and the TRANSFORM, MAP, and REDUCE clauses (see “MapReduce Scripts” on page 503).
 
 **Table 17-2. A high-level comparison of SQL and HiveQL**   
+
 Feature                 |SQL                                                            |HiveQL 
 ---------------------|------------------------------------------------|------------------------------------------------------------------------------
 Updates                |UPDATE, INSERT, DELETE                        |UPDATE, INSERT, DELETE
 Transactions         |Supported                                                   |Limited support
 Indexes                |Supported                                                   |Supported
-Data types            |Integral, floating-point, fixedpoint, text and binary strings, temporal      |Boolean, integral, floatingpoint, fixed-point, text and binary strings, temporal, array, map, struct
+Data types            |Integral, floating-point, fixed-point, text and binary strings, temporal      |Boolean, integral, floating-point, fixed-point, text and binary strings, temporal, array, map, struct
 Functions              |Hundreds of built-in functions                    |Hundreds of built-in functions  
 Multitable inserts |Not supported                                            |Supported
 CREATE TABLE...AS SELECT    |Not valid SQL-92, but found in some databases      |Supported 
-SELECT                |SQL-92                                                      |SQL-92. SORT BY for partial ordering, LIMIT to limit
+SELECT                |SQL-92                                                      |SQL-92. `SORT BY for partial ordering`, LIMIT to limit
 number of rows returned
-Joins                    |SQL-92, or variants (join tables in the FROM clause, join condition in the WHERE clause)  |Inner joins, outer joins, semi joins, map joins, cross joins
+Joins                    |SQL-92, or variants (join tables in the FROM clause, join condition in the WHERE clause)  |Inner joins, outer joins, `semi joins`, map joins, cross joins
 Subqueries           |In any clause (correlated or noncorrelated)       |In the FROM, WHERE, or HAVING clauses (uncorrelated
-subqueries not supported)
+subqueries not supported)(PS: should only support uncorrelated subqueries)
 Views                   |Updatable (materialized or nonmaterialized)      |Read-only (materialized views not supported)
 Extension points  |User-defined functions, stored procedures        |User-defined functions, MapReduce scripts
 
@@ -5690,7 +5691,7 @@ Hive’s primitive types correspond roughly to Java’s, although some names are
 
 The DECIMAL data type is used to represent arbitrary-precision decimals, like Java’s BigDecimal. DECIMAL(5,2) stores numbers between −999.99 and 999.99.
 
-Complex types permit an arbitrary level of nesting.  
+Complex types `permit an arbitrary level of nesting`.  
 ```sql
 CREATE TABLE complex (
     c1 ARRAY<INT>,
@@ -5703,7 +5704,7 @@ hive> SELECT c1[0], c2['b'], c3.c, c4 FROM complex;
 1 2 1.0 {1:63}
 ```
 
-Hive comes with a large number of built-in functions—too many to list here—divided into categories that include mathematical and statistical functions, string functions, date functions (for operating on string representations of dates), conditional functions, aggregate functions, and functions for working with XML (using the xpath function) and JSON.  
+Hive comes with a large number of built-in functions—too many to list here—divided into categories that include mathematical and statistical functions, string functions, date functions (for operating on string representations of dates), conditional functions, aggregate functions, and `functions for working with XML (using the xpath function) and JSON`.  
 
 You can retrieve a list of functions from the Hive shell by typing `SHOW FUNCTIONS`. To get brief usage instructions for a particular function, use the DESCRIBE command:  
 ```sql
@@ -5714,13 +5715,13 @@ data
 
 The implicit conversion rules can be summarized as follows. Any numeric type can be implicitly converted to a wider type, or to a text type (STRING, VARCHAR, CHAR). `All the text types can be implicitly converted to another text type. Perhaps surprisingly, they can also be converted to DOUBLE or DECIMAL`. BOOLEAN types cannot be converted to any other type, and they cannot be implicitly converted to any other type in expressions. TIMESTAMP and DATE can be implicitly converted to a text type.  
 
-You can perform explicit type conversion using CAST. For example, CAST('1' AS INT) will convert the string '1' to the integer value 1. If the cast fails—as it does in CAST('X' AS INT), for example—the expression returns NULL.
+You can perform explicit type conversion using `CAST`. For example, CAST('1' AS INT) will convert the string '1' to the integer value 1. If the cast fails—as it does in CAST('X' AS INT), for example—the expression returns NULL.
 
 ### Hive Tables
 A Hive table is logically made up of the data being stored and the associated metadata describing the layout of the data in the table. The data typically resides in HDFS, although it may reside in any Hadoop filesystem, including the local filesystem or S3. Hive stores the metadata in a relational database and not in, say, HDFS.
 
 #### Managed Tables and External Tables
-When you create a table in Hive, by default Hive will manage the data, which means that Hive `moves the data` into its warehouse directory(managed tables). Alternatively, you may create an external table, which tells Hive to refer to the data that is at an existing location outside the warehouse directory.  
+When you create a table in Hive, by default Hive will manage the data, which means that Hive `moves the data` into its warehouse directory(managed tables). Alternatively, you may create an external table, which tells Hive to `refer to` the data that is at an existing location outside the warehouse directory.  
 
 The difference between the two table types is seen in the LOAD and DROP semantics.
 
@@ -5731,7 +5732,7 @@ LOAD DATA INPATH '/user/tom/data.txt' INTO table certain_managed_table;
 ```
 will move the file hdfs://user/tom/data.txt into Hive’s warehouse directory for the certain_managed_table table, which is hdfs://user/hive/warehouse/certain_managed_table. 
 
-The load operation is very fast because it is just a move or rename within a filesystem. However, bear in mind that Hive does not check that the files in the table directory conform to the schema declared for the table, even for managed tables.
+The load operation is very fast because it is just a move or rename within a filesystem. However, bear in mind that `Hive does not check that the files in the table directory conform to the schema declared for the table, even for managed tables`.
 
 If the table is later dropped, using:
 ```sql
@@ -5739,19 +5740,19 @@ DROP TABLE certain_managed_table;
 ```
 the table, including its metadata and its data, is deleted.  It bears repeating that since the` initial LOAD performed a move operation`, and the DROP performed a delete operation, the data no longer exists anywhere.
 
-An external table behaves differently. You control the creation and deletion of the data.  The location of the external data is specified at table creation time:  
+An external table behaves differently. `You control the creation and deletion of the data`.  The location of the external data is specified at table creation time:  
 ```sql
 CREATE EXTERNAL TABLE certain_external_table (dummy STRING)
 LOCATION '/user/tom/certain_external_table';
 LOAD DATA INPATH '/user/tom/data.txt' INTO TABLE certain_external_table;
 ```
-With the EXTERNAL keyword, Hive knows that it is not managing the data, so it doesn’t move it to its warehouse directory. Indeed, `it doesn’t even check whether the external location exists at the time it is defined`. This is a useful feature because it means you can create the data lazily after creating the table. 
+With the EXTERNAL keyword, Hive knows that it is not managing the data, so it `doesn’t move it to its warehouse directory`. Indeed, `it doesn’t even check whether the external location exists at the time it is defined`. This is a useful feature because it means you can create the data lazily after creating the table. 
 
-When you drop an external table, Hive will leave the data untouched and only delete the metadata.
+When you drop an external table, Hive will leave the data untouched and `only delete the metadata`.
 
 **So how do you choose which type of table to use?**   
-`In most cases, there is not much difference between the two (except of course for the difference in DROP semantics), so it is a just a matter of preference.` `As a rule of thumb, if you are doing all your processing with Hive, then use managed tables, but if you wish to use Hive and other tools on the same dataset, then use external tables`. A common pattern is to use an external table to access an initial dataset stored in HDFS (created by another process), then use a Hive transform to move the data into a managed Hive table. This works the other way around, too; an external table (not necessarily on HDFS) can be used to `export data from Hive` for other applications to use.  
-Another reason for using external tables is when you wish to associate multiple schemas with the same dataset.
+`In most cases, there is not much difference between the two (except of course for the difference in DROP semantics), so it is a just a matter of preference.` `As a rule of thumb, if you are doing all your processing with Hive, then use managed tables, but if you wish to use Hive and other tools on the same dataset, then use external tables`. A common pattern is to use an external table to access an initial dataset stored in HDFS (created by another process), then use a Hive transform to move the data into a managed Hive table. This works the other way around, too; `an external table (not necessarily on HDFS)` can be used to `export data from Hive` for other applications to use.  
+Another reason for using external tables is when you wish to `associate multiple schemas with the same dataset`.
 
 #### Partitions and Buckets
 Hive organizes tables into partitions—a way of dividing a table into coarse-grained parts based on the value of a partition column, such as a date.  
@@ -5767,7 +5768,7 @@ INTO TABLE logs
 PARTITION (dt='2001-01-01', country='GB');
 ```
 
-At the filesystem level, partitions are simply nested subdirectories of the table directory.
+At the filesystem level, partitions are `simply nested subdirectories of the table directory`.
 After loading a few more files into the logs table, the directory structure might look like this:
 ```html
 /user/hive/warehouse/logs
@@ -5793,7 +5794,7 @@ dt=2001-01-02/country=GB
 dt=2001-01-02/country=US
 ```
 
-One thing to bear in mind is that the column definitions in the PARTITIONED BY clause are full-fledged table columns, called `partition columns`; however, the datafiles do not contain values for these columns, since they are derived from the directory names.
+One thing to bear in mind is that the column definitions in the PARTITIONED BY clause are full-fledged table columns, called `partition columns`; however, `the datafiles do not contain values for these columns`, since they are derived from the directory names.
 You can use partition columns in SELECT statements in the usual way. Hive performs input pruning to scan only the relevant partitions. For example:
 ```sql
 SELECT ts, dt, line
@@ -5802,7 +5803,7 @@ WHERE country='GB';
 ```
 will only scan file1, file2, and file4. Notice, too, that the query returns the values of the dt partition column, which Hive reads from the directory names since they are not in the datafiles.
 
-There are two reasons why you might want to organize your tables (or partitions) into buckets.   
+There are two reasons why you might want to organize your tables (or partitions) into **bucket**s.   
 * The first is to enable more efficient queries.  
 Bucketing imposes extra structure on the table, which Hive can take advantage of when performing certain queries. In particular, a join of two tables that are bucketed on the same columns—which include the join columns—can be efficiently `implemented as a map-side join`.   
 * The second reason to bucket a table is to make sampling more efficient.  
@@ -5813,11 +5814,11 @@ First, let’s see how to tell Hive that a table should be bucketed. We use the 
 CREATE TABLE bucketed_users (id INT, name STRING)
 CLUSTERED BY (id) INTO 4 BUCKETS;
 ```
-Here we are using the user ID to determine the bucket (which Hive does by hashing the value and reducing modulo the number of buckets), so any particular bucket will effectively have a random set of users in it.
+Here we are using the user ID to determine the bucket (which Hive does by `hashing the value and reducing modulo the number of buckets`), so any particular bucket will effectively have a random set of users in it.
 
-This optimization (map-side join) also works when the number of buckets in the two tables are multiples of each other; they do not have to have exactly the same number of buckets.
+This optimization (map-side join) also works when `the number of buckets in the two tables are multiples of each other; they do not have to have exactly the same number of buckets`.
 
-The data within a bucket may additionally be sorted by one or more columns. This allows even more efficient map-side joins, since the join of each bucket becomes an efficient merge sort. The syntax for declaring that a table has sorted buckets is:  
+`The data within a bucket may additionally be sorted by one or more columns. This allows even more efficient map-side joins, since the join of each bucket becomes an efficient merge sort`. The syntax for declaring that a table has sorted buckets is:  
 ```sql
 CREATE TABLE bucketed_users (id INT, name STRING) 
 CLUSTERED BY (id) SORTED BY (id ASC) INTO 4 BUCKETS;
@@ -5834,7 +5835,7 @@ hive> SELECT * FROM users;
 4 Ann
 ```
 
-To populate the bucketed table, we need to set the hive.enforce.bucketing property to true so that Hive knows to create the number of buckets declared in the table definition. Then it is just a matter of using the INSERT command:  
+`To populate the bucketed table, we need to set the hive.enforce.bucketing property to true so that Hive knows to create the number of buckets declared in the table definition. Then it is just a matter of using the INSERT command`:  
 ```sql
 INSERT OVERWRITE TABLE bucketed_users
 SELECT * FROM users;
@@ -5880,7 +5881,8 @@ There are two dimensions that govern table storage in Hive: `the row format and 
 
 * The row format  
 The row format dictates how rows, and the fields in a particular row, are stored. In Hive parlance, the row format is defined by a **SerDe**, a portmanteau word for a Serializer-Deserializer.  
-When `acting as a deserializer, which is the case when querying a table`, a SerDe will deserialize a row of data from the bytes in the file to objects used internally by Hive to operate on that row of data. `When used as a serializer, which is the case when performing an INSERT or CTAS (see “Importing Data” on page 500)`, the table’s SerDe will serialize Hive’s internal representation of a row of data into the bytes that are written to the output file.
+When `acting as a deserializer, which is the case when querying a table`, a SerDe will deserialize a row of data from the bytes in the file to objects used internally by Hive to operate on that row of data. `When used as a serializer, which is the case when performing an INSERT or CTAS (see “Importing Data” on page 500)(PS: short for Creat Table As Select)`, the table’s SerDe will serialize Hive’s internal representation of a row of data into the bytes that are written to the output file.  
+The table’s SerDe is not used for the load operation.
 
 * The file format  
 The file format dictates the container format for fields in a row. The simplest format is a plain-text file, but there are row-oriented and column-oriented binary formats available, too.  
@@ -5916,7 +5918,7 @@ CREATE TABLE ...
     STORED AS TEXTFILE;
 ```
 
-Internally, Hive uses a SerDe called **LazySimpleSerDe** for this delimited format, along with the `line-oriented MapReduce text input and output formats` we saw in Chapter 8. The “lazy” prefix comes about because it deserializes fields lazily—only as they are accessed. However, it is not a compact format because fields are stored in a verbose textual format.
+Internally, Hive uses a SerDe called **LazySimpleSerDe** for this delimited format, along with the `line-oriented MapReduce text input and output formats` we saw in Chapter 8. The “lazy” prefix comes about because it deserializes fields lazily—only as they are accessed. However, `it is not a compact format` because fields are stored in a verbose textual format.
 
 `The simplicity of the format` has a lot going for it, such as making it easy to process with other tools, including MapReduce programs or `Streaming`, but `there are more compact and performant binary storage formats` that you might consider using.
 
@@ -5929,7 +5931,7 @@ SET avro.output.codec=snappy;
 CREATE TABLE ... STORED AS AVRO;
 ```
 
-Hive has native support for the Parquet (see Chapter 13), RCFile, and ORCFile columnoriented binary formats (see “Other File Formats and Column-Oriented Formats” on page 136). Here is an example of creating a copy of a table in Parquet format using CREATE TABLE...AS SELECT (see “CREATE TABLE...AS SELECT” on page 501):  
+Hive has native support for the Parquet (see Chapter 13), RCFile, and ORCFile column-oriented binary formats (see “Other File Formats and Column-Oriented Formats” on page 136). Here is an example of creating a copy of a table in Parquet format using CREATE TABLE...AS SELECT (see “CREATE TABLE...AS SELECT” on page 501):  
 ```sql
 CREATE TABLE users_parquet STORED AS PARQUET
 AS
@@ -5952,12 +5954,12 @@ To populate the table, we use a LOAD DATA statement as before:
 LOAD DATA LOCAL INPATH "input/ncdc/metadata/stations-fixed-width.txt"
 INTO TABLE stations;
 ```
-The table’s SerDe is not used for the load operation.
+`The table’s SerDe is not used for the load operation.`
 
 As this example demonstrates, **RegexSerDe** can be useful for getting data into Hive, but `due to its inefficiency` it should not be used for general-purpose storage. `Consider copying the data into a binary storage format instead`.
 
 ##### Storage handlers
-Storage handlers are used for storage systems that Hive cannot access natively, such as HBase. Storage handlers are specified using a STORED BY clause, instead of the ROW FORMAT and STORED AS clauses.
+`Storage handlers are used for storage systems that Hive cannot access natively, such as HBase`. Storage handlers are specified using a STORED BY clause, instead of the ROW FORMAT and STORED AS clauses.
 
 #### Hive Importing Data
 1. We’ve already seen how to use the LOAD DATA operation to import data into a Hive table (or partition) by copying or moving files to the table’s directory.   
@@ -6082,8 +6084,7 @@ if (temp != "9999" and re.match("[01459]", q)):
 
 We can use the script as follows:  
 ```sql
-hive> ADD FILE /Users/tom/book-workspace/hadoop-book/ch17-hive/
-src/main/python/is_good_quality.py;
+hive> ADD FILE /Users/tom/book-workspace/hadoop-book/ch17-hive/src/main/python/is_good_quality.py;
 hive> FROM records2
 > SELECT TRANSFORM(year, temperature, quality)
 > USING 'is_good_quality.py'
@@ -6135,15 +6136,14 @@ hive> SELECT sales.*, things.*
 FROM sales, things
 WHERE sales.id = things.id;
 ```
-`Hive only supports equijoins`.
-The order of the tables in the JOIN clauses is significant. `It’s generally best to have the largest table last`, but see the Hive wiki for more details, including how to give hints to the Hive planner.  
+`Hive only supports equijoins`.  
+`The order of the tables in the JOIN clauses is significant`. `It’s generally best to have the largest table last`(PS: internally, if both tables are not bucketed on the joined keys, reducer side join would be used, the first table will be cached for later joining with the second, hence the largest table should come last. If they are bucketed, it shouldn't matter.), but see the Hive wiki for more details, including how to `give hints to the Hive planner`.  
 A single join is implemented as a single MapReduce job, but multiple joins can be performed in less than one MapReduce job per join if the same column is used in the join condition. You can see how many MapReduce jobs Hive will use for any particular query by prefixing it with the EXPLAIN (EXPLAIN EXTENDED) keyword:  
 ```sql
 EXPLAIN
 SELECT sales.*, things.*
 FROM sales JOIN things ON (sales.id = things.id);
 ```
-The order of the tables in the JOIN clauses is significant. `It’s generally best to have the largest table last`, but see the Hive wiki for more details, including how to give hints to the Hive planner.  
 * Outer joins  
 LEFT OUTER JOIN, RIGHT OUTER JOIN, FULL OUTER JOIN
 * Semi joins  
@@ -6167,16 +6167,16 @@ SELECT sales.*, things.*
 FROM sales JOIN things ON (sales.id = things.id);
 ```
 If `one table is small enough to fit in memory`, as things is here, Hive can load it into memory to perform the join in each of the mappers. This is called a map join.   
-The job to execute this query has no reducers, so this query would not work for a RIGHT or FULL OUTER JOIN, since absence of matching can be detected only in `an aggregating (reduce) step` across all the inputs.   
+`The job to execute this query has no reducers`, so this query would not work for a RIGHT or FULL OUTER JOIN, since absence of matching can be detected only in `an aggregating (reduce) step` across all the inputs.   
 Map joins can take advantage of bucketed tables (see “Buckets” on page 493), since a mapper working on a bucket of the left table needs to load only the corresponding buckets of the right table to perform the join. The syntax for the join is the same as for the in-memory case shown earlier; however, you also need to enable the optimization with the following:  
 ```sql
 SET hive.optimize.bucketmapjoin=true;
 ```
 
 #### Hive Subqueries
-Hive has limited support for subqueries, permitting a subquery in the FROM clause of a SELECT statement, or in the WHERE clause in certain cases.  
+`Hive has limited support for subqueries, permitting a subquery in the FROM clause of a SELECT statement, or in the WHERE clause in certain cases`.  
 
-`Hive allows uncorrelated subqueries`, where the subquery is a self-contained query referenced by an IN or EXISTS statement in the WHERE clause. `Correlated subqueries, where the subquery references the outer query, are not currently supported`.  
+`Hive allows uncorrelated subqueries`(PS: contradict what is in Table 17-2. A high-level comparison of SQL and HiveQL), where the subquery is a self-contained query referenced by an IN or EXISTS statement in the WHERE clause. `Correlated subqueries, where the subquery references the outer query, are not currently supported`.  
 
 #### Hive Views
 In Hive, a view is not materialized to disk when it is created; rather, the view’s SELECT statement is executed when the statement that refers to the view is run.  
@@ -6240,7 +6240,8 @@ public class Strip extends UDF {
         }
         result.set(StringUtils.strip(str.toString()));
         return result;
-    } public Text evaluate(Text str, String stripChars) {
+    } 
+    public Text evaluate(Text str, String stripChars) {
         if (str == null) {
             return null;
         }
@@ -6253,7 +6254,7 @@ A UDF must satisfy the following two properties:
 * A UDF must be a subclass of org.apache.hadoop.hive.ql.exec.UDF.
 * A UDF must implement at least one evaluate() method.  
 
-The evaluate() method is not defined by an interface, since it may take an arbitrary number of arguments, of arbitrary types, and it may return a value of arbitrary type. Hive introspects the UDF to find the evaluate() method that matches the Hive function that was invoked.
+`The evaluate() method is not defined by an interface`, since it may take an arbitrary number of arguments, of arbitrary types, and it may return a value of arbitrary type. Hive introspects the UDF to find the evaluate() method that matches the Hive function that was invoked.
 
 Hive actually supports Java primitives in UDFs (and a few other types, such as java.util.List and java.util.Map), so a signature like:  
 ```java
@@ -6407,16 +6408,16 @@ Applications store data in labeled tables. Tables are made of rows and columns. 
 
 `HBase doesn’t support indexing of other columns in the table (also known as secondary indexes). However, there are several strategies for supporting the types of query that secondary indexes provide`, each with different trade-offs between storage space, processing load, and query execution time; see the [HBase Reference Guide] for a discussion.  
 
-Row columns are grouped into column families. All column family members have a common prefix, and the column family qualifier. The column family and the qualifier are always separated by a colon character (:).  For examlpe,  the columns info:format and info:geo are both members of the info column family. 
+Row columns are grouped into `column families`. All column family members have a common prefix, and the column family qualifier. The column family and the qualifier are always separated by a colon character (:).  For examlpe,  the columns info:format and info:geo are both members of the info column family. 
 
 A table’s column families must be specified up front as part of the table schema definition, but `new column family members can be added on demand`. For example, a new column info:camera can be offered by a client as part of an update, and its value persisted, as long as the column family info already exists on the table.  
 
 `Physically, all column family members are stored together on the filesystem.` So although earlier we described HBase as a column-oriented store, it would be more accurate if it were described as a `column-family-oriented store`. `Because tuning and storage specifications are done at the column family level`, `it is advised that all column family members have the same general access pattern and size characteristics`. For the photos table, the image data, which is large (megabytes), is stored in a separate column family from the metadata, which is much smaller in size (kilobytes).
 
-In synopsis, HBase tables are like those in an RDBMS, only cells are versioned, rows are sorted, and columns can be added on the fly by the client as long as the column family they belong to preexists.
+`In synopsis, HBase tables are like those in an RDBMS, only cells are versioned, rows are sorted, and columns can be added on the fly by the client as long as the column family they belong to preexists`.
 
 #### HBase Regions
-Tables are automatically partitioned horizontally by HBase into regions. Each region comprises a subset of a table’s rows. `A region is denoted by the table it belongs to, its first row (inclusive), and its last row (exclusive)`. Initially, a table comprises a single region, but as the region grows it eventually crosses a configurable size threshold, at which point it splits at a row boundary into two new regions of approximately equal size. Until this first split happens, all loading will be against the single server hosting the original region. As the table grows, the number of its regions grows. `Regions are the units that get distributed over an` **HBase cluster**. In this way, a table that is too big for any one server can be carried by a cluster of servers, with each node hosting a subset of the table’s total regions. This is also the means by which the loading on a table gets distributed. The online set of sorted regions comprises the table’s total content.
+Tables are automatically partitioned horizontally by HBase into regions. Each region comprises a subset of a table’s rows. `A region is denoted by the table it belongs to, its first row (inclusive), and its last row (exclusive)`. Initially, a table comprises a single region, but as the region grows it eventually crosses a configurable size threshold, at which point it `splits at a row boundary into two new regions of approximately equal size`. Until this first split happens, all loading will be against the single server hosting the original region. As the table grows, the number of its regions grows. `Regions are the units that get distributed over an` **HBase cluster**. In this way, a table that is too big for any one server can be carried by a cluster of servers, with each node hosting a subset of the table’s total regions. This is also the means by which the loading on a table gets distributed. The online set of sorted regions comprises the table’s total content.
 
 #### HBase Locking  
 `Row updates are atomic, no matter how many row columns constitute the row-level transaction`. This keeps the locking model simple.
@@ -6424,7 +6425,7 @@ Tables are automatically partitioned horizontally by HBase into regions. Each re
 ### HBase Implementation
 
 ![hadoop_hbase_implementation_img_1]  
-Figure 20-2. HBase cluster members
+**Figure 20-2. HBase cluster members**
 
 HBase is made up of `an HBase master node` orchestrating a cluster of one or more `regionserver workers` (see Figure 20-2). 
 
@@ -6442,22 +6443,22 @@ Where there is commonality to be found, whether in a service or type, `HBase typ
 
 `HBase persists data via the Hadoop filesystem API. Most people using HBase run it on HDFS for storage`, though by default, and unless told otherwise, HBase writes to the local filesystem. The local filesystem is fine for experimenting with your initial HBase install, but thereafter, the first configuration made in an HBase cluster usually involves pointing HBase at the HDFS cluster it should use.
 
-Internally, HBase keeps a special catalog table named `hbase:meta`, within which it maintains the current list, state, and locations of all user-space regions afloat on the cluster. Entries in hbase:meta are `keyed by region name`, where a region name is made up of the name of the table the region belongs to, the region’s start row, its time of creation, and finally, an MD5 hash of all of these (i.e., a hash of table name, start row, and creation timestamp). Here is an example region name for a region in the table TestTable whose start row is xyz:  
+Internally, HBase keeps a special catalog table named `hbase:meta`, within which it maintains the current list, state, and locations of `all user-space regions` afloat on the cluster. Entries in hbase:meta are `keyed by region name`, where a region name is made up of the name of the table the region belongs to, the region’s start row, its time of creation, and finally, an MD5 hash of all of these (i.e., a hash of table name, start row, and creation timestamp). Here is an example region name for a region in the table TestTable whose start row is xyz:  
 TestTable,xyz,1279729913622.1b6e176fb8d8aa88fd4ab6bc80247ece.  
 
 As noted previously, row keys are sorted, so finding the region that hosts a particular row is a matter of a lookup to find the largest entry whose key is less than or equal to that of the requested row key. As regions transition—are split, disabled, enabled, deleted, or redeployed by the region load balancer, or redeployed due to a regionserver crash— the catalog table is updated so the state of all regions on the cluster is kept current.
 
-Fresh clients connect to the ZooKeeper cluster first to learn the location of hbase:meta. The client then does a lookup against the appropriate hbase:meta region to figure out the hosting user-space region and its location. Thereafter, the client interacts directly with the hosting regionserver.
+Fresh clients `connect to the ZooKeeper cluster first` to learn the location of hbase:meta. The client then `does a lookup against the appropriate hbase:meta region` to figure out the hosting user-space region and its location. Thereafter, the client `interacts directly with the hosting regionserver`.
 
-To save on having to make three round-trips per row operation, `clients cache all they learn while doing lookups for hbase:meta.` They cache locations as well as user-space region start and stop rows, so they can figure out hosting regions themselves without having to go back to the hbase:meta table. `Clients continue to use the cached entries as they work, until there is a fault`. When this happens—i.e., when the region has moved— the client consults the hbase:meta table again to learn the new location. If the consulted hbase:meta region has moved, then ZooKeeper is reconsulted.
+To save on having to make `three round-trips per row operation`, `clients cache all they learn while doing lookups for hbase:meta.` They cache locations as well as user-space region start and stop rows, so they can figure out hosting regions themselves without having to go back to the hbase:meta table. `Clients continue to use the cached entries as they work, until there is a fault`. When this happens—i.e., when the region has moved— the client consults the hbase:meta table again to learn the new location. If the consulted hbase:meta region has moved, then ZooKeeper is reconsulted.
 
-Writes arriving at a regionserver are first appended to a `commit log` and then added to an `in-memory memstore`. When a memstore fills, its content is flushed to the filesystem.
+Writes arriving at a regionserver are first appended to a `commit log` and then added to an in-memory `memstore`. When a memstore fills, its content is flushed to the filesystem.
 
-`The commit log is hosted on HDFS`, so it remains available through a regionserver crash. When the master notices that a regionserver is no longer reachable, usually because the server’s znode has expired in ZooKeeper, it splits the dead regionserver’s commit log by region. On reassignment and before they reopen for business, regions that were on the dead regionserver will pick up their just-split files of not-yet-persisted edits and replay them to bring themselves up to date with the state they had just before the failure.
+`The commit log is hosted on HDFS`, `so it remains available through a regionserver crash`. When the master notices that a regionserver is no longer reachable, usually because the server’s znode has expired in ZooKeeper, it `splits the dead regionserver’s commit log by region. `On reassignment and before they reopen for business, regions that were on the dead regionserver will pick up their just-split files of not-yet-persisted edits and replay them to bring themselves up to date with the state they had just before the failure(PS: these surely aren't done by region itself, probably by region server).
 
-When reading, the region’s memstore is consulted first. If `sufficient versions` are found reading memstore alone, the query completes there. Otherwise, flush files are consulted in order, from newest to oldest, either until versions sufficient to satisfy the query are found or until we run out of flush files.
+`When reading, the region’s(PS: regionserver's) memstore is consulted first`. If `sufficient versions` are found reading memstore alone, the query completes there. Otherwise, `flush files are consulted in order, from newest to oldest`, either until versions sufficient to satisfy the query are found or until we run out of flush files.
 
-`A background process compacts flush files` once their number has exceeded a threshold, rewriting many files as one, because the fewer files a read consults, the more performant it will be. On compaction, the process cleans out versions beyond the schemaconfigured maximum and removes deleted and expired cells. `A separate process running in the regionserver monitors flush file sizes, splitting the region` when they grow in excess of the configured maximum.
+`A background process compacts flush files` once their number has exceeded a threshold, rewriting many files as one, because the fewer files a read consults, the more performant it will be. On compaction, the process `cleans out versions beyond the schema-configured maximum` and `removes deleted and expired cells`. `A separate process running in the regionserver monitors flush file sizes, splitting the region` when they grow in excess of the configured maximum.
 
 ### HBase Installation
 
@@ -6502,7 +6503,7 @@ $ start-hbase.sh
 ```
 By default, HBase writes to `/${java.io.tmpdir}/hbase-${user.name}`.  `hbase.tmp.dir` in hbase-site.xml. 
 
-In standalone mode, the HBase master, the regionserver, and a ZooKeeper instance are all run in the same JVM.  
+`In standalone mode, the HBase master, the regionserver, and a ZooKeeper instance are all run in the same JVM.`  
 
 To administer your HBase instance, launch the HBase shell as follows:
 ```html
@@ -6515,7 +6516,9 @@ hbase(main):001:0>
 ```
 This will bring up a JRuby IRB interpreter that has had some HBase-specific commands added to it.  
 
-To create a table, you must name your table and define its schema. `A table’s schema comprises table attributes and the list of table column families`. Column families themselves have attributes that you in turn set at schema definition time. Examples of column family attributes include whether the family content should be compressed on the filesystem and how many versions of a cell to keep. Schemas can be edited later by offlining the table using the shell disable command, making the necessary alterations using alter, then putting the table back online with enable.
+To create a table, you must name your table and define its schema. `A table’s schema comprises table attributes and the list of table column families`. `Column families themselves have attributes that you in turn set at schema definition time`. Examples of column family attributes include whether the family content should `be compressed on the filesystem` and `how many versions of a cell to keep`.  
+
+Schemas can be edited later by offlining the table using the shell `disable` command, making the necessary alterations using `alter`, then putting the table back online with `enable`.
 
 To create a table named test with a single column family named data using defaults for table and column family attributes, enter:  
 ```sql
@@ -6554,6 +6557,7 @@ ROW                                  COLUMN+CELL
 3 row(s) in 0.1780 seconds
 ```
 Notice how we added three new columns without changing the schema.  
+
 To remove the table, you must first disable it before dropping it:  
 ```shell
 hbase(main):006:0> disable 'test'
@@ -6634,13 +6638,13 @@ public class ExampleClient {
 ```
 Most of the HBase classes are found in the `org.apache.hadoop.hbase` and `org.apache.hadoop.hbase.client` packages.  
 
-From HBase 1.0, there is a new client API. In their place, clients should use the new ConnectionFactory class to create a Connection object, then call getAdmin() or getTable() to retrieve an Admin or Table instance, as appropriate.  
+From HBase 1.0, there is a new client API. In their place, clients should use the new **ConnectionFactory** class to create a **Connection** object, then call `getAdmin()` or `getTable()` to retrieve an **Admin** or **Table** instance, as appropriate.  
 
 HBase scanners are like cursors in a traditional database or Java iterators, except—unlike the latter—they have to be closed after use.  
 In the Scan instance, you can pass the row at which to start and stop the scan, which columns in a row to return in the row result, and a filter to run on the server side.  
-Scanners will, under the covers, fetch batches of 100 rows at a time, bringing them client-side and returning to the server to fetch the next batch only after the current batch has been exhausted. `hbase.client.scanner.caching`
+`Scanners will, under the covers, fetch batches of 100 rows at a time, bringing them client-side and returning to the server to fetch the next batch only after the current batch has been exhausted`. `hbase.client.scanner.caching`  
 Alternatively, you can set how many rows to cache on the Scan instance itself via the setCaching() method.   
-Higher caching values will enable faster scanning but will eat up more memory in the client. `Also, avoid setting the caching so high that the time spent processing the batch client-side exceeds the scanner timeout period`. `If a client fails to check back with the server before the scanner timeout expires, the server will go ahead and garbage collect resources consumed by the scanner server-side.` The default scanner timeout is 60 seconds, and can be changed by setting hbase.client.scanner.timeout.period. Clients will see an UnknownScannerException if the scanner timeout has expired.
+Higher caching values will enable faster scanning but will eat up more memory in the client. `Also, avoid setting the caching so high that the time spent processing the batch client-side exceeds the scanner timeout period`. `If a client fails to check back with the server before the scanner timeout expires, the server will go ahead and garbage collect resources consumed by the scanner server-side.` The default scanner timeout is 60 seconds, and can be changed by setting `hbase.client.scanner.timeout.period`. Clients will see an **UnknownScannerException** if the scanner timeout has expired.
 
 ```shell
 $ mvn package
@@ -6653,7 +6657,7 @@ Scan: keyvalues={row3/data:3/1414932826566/Put/vlen=6/mvcc=0}
 ```
 
 #### HBase Clients: MapReduce
-HBase classes and utilities in the org.apache.hadoop.hbase.mapreduce package facilitate using HBase as a source and/or sink in MapReduce jobs. The **TableInputFormat** class makes splits on region boundaries so maps are handed a single region to work on. The **TableOutputFormat** will write the result of the reduce into HBase.  
+HBase classes and utilities in the `org.apache.hadoop.hbase.mapreduce` package facilitate using HBase as a source and/or sink in MapReduce jobs. The **TableInputFormat** class makes splits on region boundaries so maps are handed a single region to work on. The **TableOutputFormat** will write the result of the reduce into HBase.  
 
 ```java
 public class SimpleRowCounter extends Configured implements Tool {
@@ -6689,12 +6693,12 @@ public class SimpleRowCounter extends Configured implements Tool {
 }
 ```
 
-The RowCounterMapper nested class is a subclass of the HBase TableMapper abstract class, a specialization of org.apache.hadoop.mapreduce.Mapper that sets the map input types passed by `TableInputFormat`. Input keys are ImmutableBytesWritable objects (row keys), and values are Result objects (row results from a scan).   
+The RowCounterMapper nested class is a subclass of the HBase **TableMapper** abstract class, a specialization of org.apache.hadoop.mapreduce.Mapper that sets the map input types passed by `TableInputFormat`. Input keys are ImmutableBytesWritable objects (row keys), and values are Result objects (row results from a scan).   
 
 For large tables the MapReduce program is preferable.  
 
 #### HBase Clients: REST and Thrift
-HBase ships with REST and Thrift interfaces. These are useful when the interacting application is written in a language other than Java. In both cases, `a Java server hosts an instance of the HBase client brokering REST and Thrift application requests` into and out of the HBase cluster. Consult the Reference Guide for information on running the services, and the client interfaces.  
+`HBase ships with REST and Thrift interfaces`. These are useful when the interacting application is written in a language other than Java. In both cases, `a Java server hosts an instance of the HBase client brokering REST and Thrift application requests` into and out of the HBase cluster. Consult the Reference Guide for information on running the services, and the client interfaces.  
 
 ### Building an Online Query Application
 The existing weather dataset described in previous chapters contains observations for tens of thousands of stations over 100 years, and this data is growing without bound.
@@ -6709,7 +6713,7 @@ This table holds station data. Let the `row key be the stationid`. Let this tabl
 * observations  
 This table holds temperature observations. Let the `row key be a composite key of stationid plus a reverse-order timestamp`(Long.MAX_VALUE - timestamp). Give this table `a column family data` that will contain `one column, airtemp`, with the observed temperature as the column value.
 
-We rely on the fact that station IDs are a fixed length. In some cases, you will need to zero-pad number components so row keys sort properly. Otherwise, you will run into the issue where 10 sorts before 2, say, when only the byte order is considered (02 sorts before 10). Also, if your keys are integers, use a binary representation rather than persisting the string version of a number. The former consumes less space.
+We rely on the fact that station IDs are a fixed length. In some cases, you will need to `zero-pad number` components so row keys sort properly. Otherwise, you will run into the issue where 10 sorts before 2, say, when only the byte order is considered (02 sorts before 10). Also, `if your keys are integers, use a binary representation rather than persisting the string version of a number. The former consumes less space`.
 
 In the shell, define the tables as follows:  
 ```shell
@@ -6724,7 +6728,7 @@ All access in HBase is via primary key, so the key design should lend itself to 
 
 `See Daniel J. Abadi, “Column-Stores for Wide and Sparse Data,” January 2007`.
 
-There is no native database join facility in HBase, but wide tables can make it so that there is no need for database joins to pull from secondary or tertiary tables. A wide row can sometimes be made to hold all data that pertains to a particular primary key.
+`There is no native database join facility in HBase`, but wide tables can make it so that there is no need for database joins to pull from secondary or tertiary tables. A wide row can sometimes be made to hold all data that pertains to a particular primary key.
 
 `There are a relatively small number of stations, so their static data is easily inserted using any of the available interfaces`. The example code includes a Java application for doing this, which is run as follows:  
 ```shell
@@ -6792,7 +6796,7 @@ public class RowKeyConverter {
     }
 }
 ```
-It’s convenient to use **TableOutputFormat** since it manages the creation of an HTable instance for us, which otherwise we would do in the mapper’s setup() method (along with a call to close() in the cleanup() method). TableOutputFormat also disables the HTable auto-flush feature, so that `calls to put() are buffered for greater efficiency`.
+It’s convenient to use **TableOutputFormat** since it manages the creation of an HTable instance for us, which otherwise we would do in the `mapper’s setup()` method (along with a call to close() in the `cleanup()` method). `TableOutputFormat also disables the HTable auto-flush feature`, so that `calls to put() are buffered for greater efficiency`.
 
 ```shell
 $ hbase HBaseTemperatureImporter input/ncdc/all
@@ -6800,16 +6804,16 @@ $ hbase HBaseTemperatureImporter input/ncdc/all
 
 #### Load distribution
 
-Watch for the phenomenon where an import walks in lockstep through the table, with all clients in concert pounding one of the table’s regions (and thus, a single node), then moving on to the next, and so on, rather than evenly distributing the load over all regions. This is usually brought on by some interaction between sorted input and how the splitter works. `Randomizing the ordering of your row keys prior to insertion may help`. In our example, given the distribution of stationid values and how TextInput Format makes splits, the upload should be sufficiently distributed.  
+Watch for the phenomenon where an import walks in lockstep through the table, with all clients(PS: as in Example 20-3, the Mappers) in concert pounding one of the table’s regions (and thus, a single node), then moving on to the next, and so on, rather than evenly distributing the load over all regions. This is usually brought on by some interaction between sorted input and how the splitter works. `Randomizing the ordering of your row keys prior to insertion may help`. In our example, given the distribution of stationid values and how TextInputFormat makes splits(PS: as in Example 20-3, HashPartitioner is used by default, hence results in even distributed insertion), the upload should be sufficiently distributed.  
 
-If a table is new, it will have only one region, and all updates will be to this single region until it splits. This will happen even if row keys are randomly distributed. This startup phenomenon means uploads run slowly at first, until there are sufficient regions distributed so all cluster members are able to participate in the uploads. Do not confuse this phenomenon with that noted in the previous paragraph. Both of these problems can be avoided by using bulk loads.
+`If a table is new, it will have only one region, and all updates will be to this single region until it splits. This will happen even if row keys are randomly distributed.` This startup phenomenon means uploads run slowly at first, until there are sufficient regions distributed so all cluster members are able to participate in the uploads. `Do not confuse this phenomenon with that noted in the previous paragraph. Both of these problems can be avoided by using bulk loads.`
 
 #### HBase Bulk load
 HBase has an efficient facility for bulk loading HBase by writing its internal data format directly into the filesystem from MapReduce. Going this route, it’s possible to load an HBase instance `at rates that are an order of magnitude or more beyond those attainable by writing via the HBase client API`.
 
 Bulk loading is a two-step process.  
-* The first step uses **HFileOutputFormat2** to write HFiles to an HDFS directory using a MapReduce job.  
-Since rows have to be written in order, the job must perform a total sort (see “Total Sort” on page 259) of the row keys. The configureIncrementalLoad() method of HFileOutputFormat2 does all the necessary configuration for you.  
+* The first step uses **HFileOutputFormat2** to `write HFiles to an HDFS directory using a MapReduce job`.  
+Since rows have to be written in order, the job must perform `a total sort` (see “Total Sort” on page 259) of the row keys. The `configureIncrementalLoad()` method of HFileOutputFormat2 does all the necessary configuration for you.  
 * The second step of the bulk load involves moving the HFiles from HDFS into an existing HBase table.  
 The table can be live during this process. The example code includes a class called HBaseTemperatureBulkImporter for loading the observation data using a bulk load.
 
@@ -6843,7 +6847,7 @@ private static String getValue(Result res, byte[] cf, byte[] qualifier) {
     return value == null? "": Bytes.toString(value);
 }
 ```
-We can already see how there is a need for utility functions when using HBase. `There are an increasing number of abstractions being built atop HBase to deal with this lowlevel interaction`, but it’s important to understand how this works and how storage choices make a difference.
+We can already see how there is a need for utility functions when using HBase. `There are an increasing number of abstractions being built atop HBase to deal with this low-level interaction`, but it’s important to understand how this works and how storage choices make a difference.
 
 `One of the strengths of HBase over a relational database is that you don’t have to specify all the columns up front`. So, if each station now has at least these three attributes but there are hundreds of optional ones, `in the future we can just insert them without modifying the schema`. (Our application’s reading and writing code would, of course, need to be changed. The example code might change in this case to looping through Result rather than grabbing each value explicitly.)
 
@@ -6913,7 +6917,7 @@ $ hbase HBaseTemperatureQuery 011990-99999
 
 If the observations were stored with the actual timestamps(not in reverse order), we would be able to get only the oldest observations for a given offset and limit efficiently. Getting the newest would mean getting all of the rows and then grabbing the newest off the end. It’s much more efficient to get the first n rows, then exit the scanner (this is sometimes called an “earlyout” scenario).
 
-HBase 0.98 added the ability to do reverse scans, which means it is now possible to store observations in chronological order and scan backward from a given starting row. `Reverse scans are a few percent slower than forward scans`. To reverse a scan, call setRe versed(true) on the Scan object before starting the scan.
+HBase 0.98 added the ability to do reverse scans, which means it is now possible to store observations in chronological order and scan backward from a given starting row. `Reverse scans are a few percent slower than forward scans`. To reverse a scan, call setReversed(true) on the Scan object before starting the scan.
 
 ### HBase Versus RDBMS
 Strictly speaking, an RDBMS is a database that follows [Codd’s 12 rules].
@@ -6934,9 +6938,9 @@ Periodically prematerialize the most complex queries, and try to stop joining in
 * Reads are OK, but writes are getting slower and slower  
 Drop secondary indexes and triggers (no indexes?).   
 
-At this point, there are no clear solutions for how to solve your scaling problems. In any case, `you’ll need to begin to scale horizontally`. You can attempt to build some type of partitioning on your largest tables, or look into some of the commercial solutions that provide multiple master capabilities.  
+At this point, there are no clear solutions for how to solve your scaling problems. In any case, `you’ll need to begin to scale horizontally`. You can attempt to build some type of `partitioning on your largest tables`, or look into some of the commercial solutions that provide `multiple master capabilities`.  
 
-Countless applications, businesses, and websites have successfully achieved scalable, fault-tolerant, and distributed data systems built on top of RDBMSs and are likely using many of the previous strategies. But what you end up with is something that is no longer a true RDBMS, sacrificing features and conveniences for compromises and complexities. `Any form of slave replication or external caching introduces weak consistency into your now denormalized data`. `The inefficiency of joins and secondary indexes means almost all queries become primary key lookups`. `A multiwriter setup likely means no real joins at all`, and `distributed transactions are a nightmare`. There’s now an incredibly complex network topology to manage with an entirely separate cluster for caching. Even with this system and the compromises made, you will still worry about your primary master crashing and the daunting possibility of having 10 times the data and 10 times the load in a few months.
+Countless applications, businesses, and websites have successfully achieved scalable, fault-tolerant, and distributed data systems built on top of RDBMSs and are likely using many of the previous strategies. But what you end up with is something that is no longer a true RDBMS, sacrificing features and conveniences for compromises and complexities. `Any form of slave replication or external caching introduces weak consistency into your now denormalized data`. `The inefficiency of joins and secondary indexes means almost all queries become primary key lookups`. `A multiwriter setup likely means no real joins at all`, and `distributed transactions are a nightmare`. There’s now `an incredibly complex network topology to manage with an entirely separate cluster for caching`. Even with this system and the compromises made, you will still worry about your primary master crashing and the daunting possibility of having 10 times the data and 10 times the load in a few months.
 
 **Enter HBase, which has the following characteristics**:  
 * No real indexes  
@@ -6958,15 +6962,13 @@ HBase’s use of HDFS is very different from how it’s used by MapReduce. In Ma
 Because we keep files open, on a loaded cluster it doesn’t take long before we run into system- and Hadoop-imposed limits.  
 `The default limit on the number of file descriptors per process is 1,024. When we exceed the filesystem ulimit, we’ll see the complaint about “Too many open files” in logs`, but often we’ll first see indeterminate behavior in HBase. The fix requires increasing the file descriptor ulimit count; 10,240 is a common setting. Consult the HBase Reference Guide for how to increase the ulimit on your cluster.
 * Running out of datanode threads  
-Similarly, the Hadoop datanode has an upper bound on the number of threads it can run at any one time. Hadoop 1 had a low default of 256 for this setting (dfs.da tanode.max.xcievers), which would cause HBase to behave erratically. Hadoop 2 increased the default to 4,096, so you are much less likely to see a problem for recent versions of HBase (which only run on Hadoop 2 and later). You can change the setting by configuring `dfs.datanode.max.transfer.threads` (the new name for this property) in hdfs-site.xml
+Similarly, the Hadoop datanode has an upper bound on the number of threads it can run at any one time. Hadoop 1 had a low default of 256 for this setting (dfs.datanode.max.xcievers), which would cause HBase to behave erratically. Hadoop 2 increased the default to 4,096, so you are much less likely to see a problem for recent versions of HBase (which only run on Hadoop 2 and later). You can change the setting by configuring `dfs.datanode.max.transfer.threads` (the new name for this property) in hdfs-site.xml
 
 HBase runs a web server on the master to present a view on the state of your running cluster. By default, it listens on port 60010.  
 
 Hadoop has a metrics system that can be used to emit vitals over a period to a context (this is covered in “Metrics and JMX” on page 331). Enabling Hadoop metrics, and in particular tying them to Ganglia or emitting them via JMX, will give you views on what is happening on your cluster, both currently and in the recent past. HBase also adds metrics of its own—request rates, counts of vitals, resources used. See the file hadoopmetrics2- hbase.properties under the HBase conf directory.
 
 At StumbleUpon, the first production feature deployed on HBase was keeping counters for the stumbleupon.com frontend. Counters were previously kept in MySQL, but the rate of change was such that drops were frequent, and the load imposed by the counter writes was such that web designers self imposed limits on what was counted. Using the incrementColumnValue() method on HTable, counters can be incremented many thousands of times a second.  
-
-
 
 ## Miscellaneous
 
