@@ -23,8 +23,9 @@ ___
 
 - [ ] :heart_eyes_cat: go over session from 2018-01-11:  CHANGE!!!
     - [ ] :arrow_right_hook: :one: very compacted game time
-    - [ ] :arrow_right_hook: :two: combined learning subjects
+    - [ ] :arrow_right_hook: :two: mixture of multiple learning subjects per day
     - [ ] :arrow_right_hook: :two: 有没有内推网, 或者朋友可以帮忙内推
+    - [ ] :arrow_right_hook: :two: install jupiter notebook
 
 - [ ] :heart_eyes_cat: go over session from 2017-09-17
     - [ ] :arrow_right_hook: :one: Browse IT market news every day
@@ -61,17 +62,18 @@ ___
     - [x] :arrow_right_hook: :one: ~~HDFS~~
     - [x] :arrow_right_hook: :one: ~~YARN~~
     - [x] :arrow_right_hook: :ten: ~~Python~~
-    - [ ] :arrow_right_hook: :one: Spark
-        - [ ] :arrow_right_hook: :one: Spark Basic
-        - [ ] :arrow_right_hook: :one: Spark SQL
-        - [ ] :arrow_right_hook: :one: Spark Stream
+    - [x] :arrow_right_hook: :one: ~~Spark~~
+        - [x] :arrow_right_hook: :one: ~~Spark Basic~~
+        - [x] :arrow_right_hook: :one: ~~Spark SQL~~
+        - [x] :arrow_right_hook: :one: ~~Spark Stream~~
+    - [ ] :arrow_right_hook: :one: zookeeper
+    - [ ] :arrow_right_hook: :eleven: Lambda
     - [ ] :arrow_right_hook: :one: Kafka 
     - [x] :arrow_right_hook: :one: ~~Sqoop & Flume~~  
     - [x] :arrow_right_hook: :one: ~~MAP/REDUCE(principle only)~~  
     - [ ] :arrow_right_hook: :ten: Storm
     - [x] :arrow_right_hook: :ten: ~~Hive & HBase~~
     - [ ] :arrow_right_hook: :ten: Pig
-    - [ ] :arrow_right_hook: :eleven: Lambda
     
 
 - [ ] :heart_eyes_cat: Plan as of now

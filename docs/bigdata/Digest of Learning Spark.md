@@ -3157,8 +3157,7 @@ Figure 10-7. Difference between naive reduceByWindow() and incremental reduceByW
 PS: I think Figure 10-7 is wrong, here is the correct one per my understanding  
 ![spark_stream_window_incremental_img_2]  
 
-In our log processing example, we can use these two functions to count visits by each IP
-address more efficiently, as you can see in Examples 10-19 and 10-20.
+In our log processing example, we can use these two functions to count visits by each IP address more efficiently, as you can see in Examples 10-19 and 10-20.  
 Example 10-19. Scala visit counts per IP address
 ```scala
 val ipDStream = accessLogsDStream.map(logEntry => (logEntry.getIpAddress(), 1))
@@ -3169,7 +3168,7 @@ val ipCountDStream = ipDStream.reduceByKeyAndWindow(
     Seconds(10)) // Slide duration
 ```
 
-Finally, for counting data, DStreams offer countByWindow() and countByValueAndWindow() as shorthands. countByWindow() gives us a DStream representing the number of elements in each window. countByValueAndWindow() gives us a DStream with the counts for each value. See Examples 10-21 and 10-22.  
+Finally, `for counting data, DStreams offer countByWindow() and countByValueAndWindow() as shorthands`. countByWindow() gives us a DStream representing the number of elements in each window. countByValueAndWindow() gives us a DStream with the counts for each value. See Examples 10-21 and 10-22.  
 **Example 10-21. Windowed count operations in Scala**  
 ```scala
 val ipDStream = accessLogsDStream.map{entry => entry.getIpAddress()}
@@ -3178,14 +3177,14 @@ val requestCount = accessLogsDStream.countByWindow(Seconds(30), Seconds(10))
 ```
 
 ##### UpdateStateByKey transformation
-Sometimes it’s useful to maintain state across the batches in a DStream (e.g., to track sessions as users visit a site). updateStateByKey() enables this by providing access to a state variable for DStreams of key/value pairs. Given a DStream of (key, event) pairs, it lets you construct a new DStream of (key, state) pairs by taking a function that specifies how to update the state for each key given new events. For example, in a web server log, our events might be visits to the site, where the key is the user ID. Using updateStateByKey(), we could track the last 10 pages each user visited. This list would be our “state” object, and we’d update it as each event arrives.  
+Sometimes it’s useful to maintain state across the batches in a DStream (e.g., to track sessions as users visit a site). updateStateByKey() enables this by providing access to a state variable for `DStreams of key/value pairs`. Given a DStream of (key, event) pairs, it lets you construct a new DStream of (key, state) pairs by taking a function that specifies how to update the state for each key given new events. For example, in a web server log, our events might be visits to the site, where the key is the user ID. Using updateStateByKey(), we could track the last 10 pages each user visited. This list would be our “state” object, and we’d update it as each event arrives.  
 
 To use updateStateByKey(), we provide a function `update(events, oldState)` that takes in the events that have arrived for a key and its previous state, and returns a newState to store for it. This function’s signature is as follows:
 * events is a list of events that arrived in the current batch (may be empty).
 * oldState is an optional state object, stored within an Option; it might be missing if there was no previous state for the key.
 * newState, returned by the function, is also an Option; we can return an empty Option to specify that we want to delete the state.
 
-The result of updateStateByKey() will be `a new DStream` that contains an RDD of (key, state) pairs on each time step.
+The result of updateStateByKey() will be `a new DStream` that contains an RDD of (key, **state**) pairs on each time step.
 
 As a simple example, we’ll use updateStateByKey() to keep a running count of the number of log messages with each HTTP response code. Our keys here are the response codes, our state is an integer representing each count, and our events are page views. Note that unlike our window examples earlier, Examples 10-23 and 10-24 keep an “infinitely growing” count since the beginning of the program.
 
@@ -3201,10 +3200,16 @@ val responseCodeCountDStream = responseCodeDStream.updateStateByKey(updateRunnin
 #### Stream Output Operations
 Much like lazy evaluation in RDDs, if no output operation is applied on a DStream and any of its descendants, then those DStreams will not be evaluated. And if there are no output operations set in a StreamingContext, then the context will not start.
 
-A common debugging output operation that we have used already is print(). This grabs the first 10 elements from each batch of the DStream and prints the results.
+A common debugging output operation that we have used already is `print()`. This grabs the first 10 elements from each batch of the DStream and prints the results.
 
-Once we’ve debugged our program, we can also use output operations to save results. Spark Streaming has similar save() operations for DStreams, each of which takes a directory to save files into and an optional suffix. The results of each batch are saved as subdirectories in the given directory, with the time and the suffix in the filename.
+Once we’ve debugged our program, we can also use output operations to save results. Spark Streaming has similar `save()` operations for DStreams, each of which takes a directory to save files into and an optional suffix. The results of each batch are saved as subdirectories in the given directory, with the time and the suffix in the filename.
 
+**Example 10-25. Saving DStream to text files in Scala**
+```scala
+ipAddressRequestCount.saveAsTextFiles(“outputDir”, “txt”)
+```
+
+The more general saveAsHadoopFiles() takes a Hadoop OutputFormat. For instance, Spark Streaming doesn’t have a built-in saveAsSequenceFile() function, but we can save SequenceFiles as shown in Examples 10-26 and 10-27.   
 **Example 10-26. Saving SequenceFiles from a DStream in Scala**
 ```scala
 val writableIpAddressRequestCount = ipAddressRequestCount.map {
@@ -3213,7 +3218,7 @@ writableIpAddressRequestCount.saveAsHadoopFiles[
     SequenceFileOutputFormat[Text, LongWritable]](“outputDir”, “txt”)
 ```
 
-Finally, foreachRDD() is a generic output operation that lets us run arbitrary computations on the RDDs on the DStream. It is similar to transform() in that it gives you access to each RDD. Within foreachRDD(), we can reuse all the actions we have in Spark. For example, a common use case is to write data to an external database such as MySQL, where Spark may not have a saveAs() function, but we might use for eachPartition() on the RDD to write it out. For convenience, foreachRDD() can also give us the time of the current batch, allowing us to output each time period to a different location. See Example 10-28.  
+Finally, `foreachRDD()` is a generic output operation that lets us run arbitrary computations on the RDDs on the DStream. It is similar to transform() in that it gives you access to each RDD. Within foreachRDD(), we can reuse all the actions we have in Spark. For example, a common use case is to write data to an external database such as MySQL, where Spark may not have a saveAs() function, but we might use for eachPartition() on the RDD to write it out. For convenience, foreachRDD() can also give us the time of the current batch, allowing us to output each time period to a different location. See Example 10-28.  
 
 **Example 10-28. Saving data to external systems with foreachRDD() in Scala**
 ```scala
@@ -3237,7 +3242,7 @@ If you are designing a new application, we recommend trying HDFS or Kafka as sim
 The methods to create DStream from the core sources are all available on the StreamingContext. We have already explored one of these sources in the example: `sockets`. Here we discuss two more, `files` and `Akka actors`.
 
 ##### Stream of files
-Since Spark supports reading from any Hadoop-compatible filesystem, Spark Streaming naturally allows a stream to be created from files written in a directory of a Hadoopcompatible filesystem.
+Since Spark supports reading from `any Hadoop-compatible filesystem`, Spark Streaming naturally allows a stream to be created from files written in a directory of a Hadoop-compatible filesystem.
 
 For Spark Streaming to work with the data, it needs to have a `consistent date format for the directory names` and `the files have to be created atomically` (e.g., by moving the file into the directory Spark is monitoring).
 
@@ -3255,13 +3260,13 @@ ssc.fileStream[LongWritable, IntWritable,
 ```
 
 ##### Akka actor stream
-The second core receiver is actorStream, which allows using Akka actors as a source for streaming. To construct an actor stream we create an Akka actor and implement the org.apache.spark.streaming.receiver.ActorHelper interface. To copy the input from our actor into Spark Streaming, we need to call the store() function in our actor when we receive new data.
+The second core receiver is actorStream, which allows using Akka actors as a source for streaming. To construct an actor stream we create an Akka actor and implement the `org.apache.spark.streaming.receiver.ActorHelper` interface. To copy the input from our actor into Spark Streaming, we need to call the store() function in our actor when we receive new data.
 
 #### Additional Sources
 In addition to the core sources, additional receivers for well-known data ingestion systems are packaged as separate components of Spark Streaming. These receivers are still part of Spark, but require extra packages to be included in your build file. Some current receivers include `Twitter`, `Apache Kafka`, `Amazon Kinesis`, `Apache Flume`, and `ZeroMQ`. We can include these additional receivers by adding the Maven artifact `spark-streaming- [projectname]_2.10` with the same version number as Spark.
 
 ##### Apache Kafka
-[Apache Kafka] is popular input source `due to its speed and resilience`. Using the native support for Kafka, we can easily process the messages for many topics. To use it, we have to include the Maven artifact `spark-streaming-kafka_2.10` to our project. The provided KafkaUtils object works on StreamingContext and JavaStreamingContext to create a DStream of your Kafka messages. `Since it can subscribe to multiple topics, the DStream it creates consists of pairs of topic and message`. To create a stream, we will call the createStream() method with our streaming context, a string containing comma-separated ZooKeeper hosts, the name of our consumer group (a unique name), and a map of topics to number of receiver threads to use for that topic (see Examples 10-32 and 10-33).
+[Apache Kafka] is popular input source `due to its speed and resilience`. Using the native support for Kafka, we can easily process the messages for many topics. To use it, we have to include the Maven artifact `spark-streaming-kafka_2.10` to our project. The provided **KafkaUtils** object works on StreamingContext and JavaStreamingContext to create a DStream of your Kafka messages. `Since it can subscribe to multiple topics, the DStream it creates consists of pairs of topic and message`. To create a stream, we will call the createStream() method with our streaming context, a string containing comma-separated ZooKeeper hosts, the name of our consumer group (a unique name), and a map of topics to number of receiver threads to use for that topic (see Examples 10-32 and 10-33).
 
 **Example 10-32. Apache Kafka subscribing to Panda’s topic in Scala**
 ```scala
@@ -3282,7 +3287,7 @@ The receiver can `pull data from an intermediate custom sink`, to which other pr
 Both approaches require reconfiguring Flume and running the receiver on a node on a configured port (not your existing Spark or Flume ports). To use either of them, we have to include the Maven artifact spark-streaming-flume_2.10 in our project.
 
 * Push-based receiver  
-The push-based approach can be set up quickly but `does not use transactions` to receive data. In this approach, the receiver acts as an Avro sink, and we need to configure Flume to send the data to the Avro sink (Example 10-34). The provided Flume Utils object sets up the receiver to be started on a specific worker’s hostname and port (Examples 10-35 and 10-36). These must match those in our Flume configuration.  
+The push-based approach can be set up quickly but `does not use transactions` to receive data. In this approach, the receiver acts as an Avro sink, and we need to configure Flume to send the data to the Avro sink (Example 10-34). The provided **FlumeUtils** object sets up the receiver to be started on a specific worker’s hostname and port (Examples 10-35 and 10-36). These must match those in our Flume configuration.  
 **Example 10-34. Flume configuration for Avro sink**
 ```properties
 a1.sinks = avroSink
@@ -3296,18 +3301,19 @@ a1.sinks.avroSink.port = port-used-for-avro-sink-not-spark-port
 val events = FlumeUtils.createStream(ssc, receiverHostname, receiverPort)
 ```
 
-`Despite its simplicity, the disadvantage of this approach is its lack of transactions`. This increases the chance of losing small amounts of data in case of the failure of the worker node running the receiver. Furthermore, if the worker running the receiver fails, the system will try to launch the receiver at a different location, and Flume will need to be reconfigured to send to the new worker. This is often challenging to set up.
+`Despite its simplicity, the disadvantage of this approach is its lack of transactions`. This increases the chance of losing small amounts of data in case of the failure of the worker node running the receiver. `Furthermore, if the worker running the receiver fails, the system will try to launch the receiver at a different location, and Flume will need to be reconfigured to send to the new worker`. This is often challenging to set up.
 
 * Pull-based receiver   
-The newer pull-based approach (added in Spark 1.1) is to set up a specialized Flume sink Spark Streaming will read from, and have the receiver pull the data from the sink. This approach is preferred for resiliency, as the data remains in the sink until Spark Streaming reads and replicates it and tells the sink via a transaction.
+The newer pull-based approach (added in Spark 1.1) is to set up a specialized Flume sink Spark Streaming will read from, and have the receiver pull the data from the sink. `This approach is preferred for resiliency, as the data remains in the sink until Spark Streaming reads and replicates it and tells the sink via a transaction`.   
 
-To get started, we will need to set up the custom sink as a third-party plug-in for Flume. The latest directions on installing plug-ins are in the Flume documentation. Since the plug-in is written in Scala we need to add both the plug-in and the Scala library to Flume’s plug-ins. For Spark 1.1, the Maven coordinates are shown in Example 10-37.
+To get started, we will need `to set up the custom sink as a third-party plug-in for Flume`. The latest directions on installing plug-ins are in the Flume documentation. Since the plug-in is written in Scala we need to add both the plug-in and the Scala library to Flume’s plug-ins. For Spark 1.1, the Maven coordinates are shown in Example 10-37.  
 
 **Example 10-37. Maven coordinates for Flume sink**
 ```maven
 groupId = org.apache.spark
 artifactId = spark-streaming-flume-sink_2.10
 version = 1.2.0
+
 groupId = org.scala-lang
 artifactId = scala-library
 version = 2.10.4
@@ -3343,17 +3349,17 @@ val lines = events.map{e => new String(e.event.getBody().array(), “UTF-8”)}
 
 In addition to the provided sources, you can also implement your own receiver.
 
-As covered earlier, we can combine multiple DStreams using operations like union(). Through these operators, we can combine data from multiple input DStreams. Sometimes multiple receivers are necessary to increase the aggregate throughput of the ingestion (if a single receiver becomes the bottleneck). Other times different receivers are created on different sources to receive different kinds of data, which are then combined using joins or cogroups.   
+As covered earlier, we can combine multiple DStreams using operations like union(). Through these operators, we can combine data from multiple input DStreams. `Sometimes multiple receivers are necessary to increase the aggregate throughput of the ingestion (if a single receiver becomes the bottleneck). Other times different receivers are created on different sources to receive different kinds of data, which are then combined using joins or cogroups`.   
 
 It is important to understand how the receivers are executed in the Spark cluster to use multiple ones. Each receiver runs as a long-running task within Spark’s executors, and hence occupies CPU cores allocated to the application. In addition, there need to be available cores for processing the data. This means that in order to run multiple receivers, you should have at least as many cores as the number of receivers, plus however many are needed to run your computation. For example, if we want to run 10 receivers in our streaming application, then we have to allocate at least 11 cores.
 
 ### 24/7 Operation
 One of the main advantages of Spark Streaming is that it provides `strong fault tolerance guarantees`. As long as the input data is stored reliably, Spark Streaming will always compute the correct result from it, offering `“exactly once” semantics` (i.e., as if all of the data was processed without any nodes failing), even if workers or the driver fail.
 
-To run Spark Streaming applications 24/7, you need some special setup. The first step is setting up **checkpointing** to a reliable storage system, such as HDFS or Amazon S3.16 In addition, we need to worry about `the fault tolerance of the driver program` (which requires special setup code) and of unreliable input sources.
+To run Spark Streaming applications 24/7, you need some special setup. The first step is setting up **checkpointing** to a reliable storage system, such as HDFS or Amazon S3. In addition, we need to worry about `the fault tolerance of the driver program` (which requires special setup code) and of unreliable input sources.
 
 #### Checkpointing
-Checkpointing is the main mechanism that needs to be set up for fault tolerance in Spark Streaming. It allows Spark Streaming to periodically save data about the application to a reliable storage system, such as HDFS or Amazon S3, for use in recovering. Specifically, checkpointing serves two purposes:  
+`Checkpointing is the main mechanism that needs to be set up for fault tolerance in Spark Streaming`. It allows Spark Streaming to periodically save data about the application to a reliable storage system, such as HDFS or Amazon S3, for use in recovering. Specifically, checkpointing serves two purposes:  
 * Limiting the state that must be recomputed on failure.  
 As discussed in “Architecture and Abstraction”, Spark Streaming can recompute state using the lineage graph of transformations, but checkpointing controls how far back it must go.  
 * Providing fault tolerance for the driver.  
@@ -3367,7 +3373,7 @@ ssc.checkpoint(“hdfs://…”)
 Note that even in local mode, Spark Streaming will complain if you try to run a stateful operation without checkpointing enabled. In that case, you can pass a local filesystem path for checkpointing. But in any production setting, you should use a replicated system such as HDFS, S3, or an NFS filer.
 
 #### Driver Fault Tolerance
-Tolerating failures of the driver node requires a special way of creating our StreamingContext, which takes in the checkpoint directory. Instead of simply calling new StreamingContext, we need to use the StreamingContext.getOrCreate() function. From our initial example we would change our code as shown in Examples 10-43 and 10- 44.  
+`Tolerating failures of the driver node requires a special way of creating our StreamingContext, which takes in the checkpoint directory`. Instead of simply calling new StreamingContext, we need to use the StreamingContext.getOrCreate() function. From our initial example we would change our code as shown in Examples 10-43 and 10- 44.  
 
 **Example 10-43. Setting up a driver that can recover from failure in Scala**
 ```scala
@@ -3381,9 +3387,9 @@ def createStreamingContext() = {
 …
 val ssc = StreamingContext.getOrCreate(checkpointDir, createStreamingContext _)
 ```
-When this code is run the first time, assuming that the checkpoint directory does not yet exist, the StreamingContext will be created when you call the factory function. In the factory, you should set the checkpoint directory. After the driver fails, if you restart it and run this code again, getOrCreate() will reinitialize a StreamingContext from the checkpoint directory and resume processing.
+When this code is run the first time, assuming that the checkpoint directory does not yet exist, the StreamingContext will be created when you call the factory function. In the factory, you should set the checkpoint directory. After the driver fails, if you restart it and run this code again, `getOrCreate()` will reinitialize a StreamingContext from the checkpoint directory and resume processing.
 
-On most cluster managers, Spark does not automatically relaunch the driver if it crashes, so you need to monitor it using a tool like monit and restart it.
+On most cluster managers, Spark does not automatically relaunch the driver if it crashes, so you need to monitor it using a tool like `monit` and restart it.
 
 One place where Spark provides more support is the Standalone cluster manager, which supports a —supervise flag when submitting your driver that lets Spark restart it.
 
@@ -3391,7 +3397,7 @@ One place where Spark provides more support is the Standalone cluster manager, w
 ```shell
 ./bin/spark-submit —deploy-mode cluster —supervise —master spark://… App.jar
 ```
-When using this option, you will also want the Spark Standalone master to be faulttolerant. You can configure this using ZooKeeper, as described in the Spark documentation. With this setup, your application will have no single point of failure.  
+`When using this option, you will also want the Spark Standalone master to be fault-tolerant. You can configure this using ZooKeeper`, as described in the Spark documentation. With this setup, your application will have no single point of failure.  
 
 Finally, note that when the driver crashes, executors in Spark will also restart. This may be changed in future Spark versions, but it is expected behavior in 1.2 and earlier versions, as the executors are not able to continue processing data without a driver. Your relaunched driver will start new executors to pick up where it left off.
 
@@ -3408,32 +3414,32 @@ In general, receivers provide the following guarantees:
 #### Processing Guarantees
 Due to Spark Streaming’s worker fault-tolerance guarantees, it can provide `exactly-once semantics` for all transformations — even if a worker fails and some data gets reprocessed, the final transformed result (that is, the transformed RDDs) will be the same as if the data were processed exactly once.
 
-However, when the transformed result is to be pushed to external systems using output operations, `the task pushing the result may get executed multiple times due to failures`, and some data can get pushed multiple times. Since this involves external systems, it is up to the system-specific code to handle this case. We can `either use transactions` to push to external systems (that is, atomically push one RDD partition at a time), or design updates to be idempotent operations (such that multiple runs of an update still produce the same result).
+`However, when the transformed result is to be pushed to external systems using output operations, the task pushing the result may get executed multiple times due to failures, and some data can get pushed multiple times`. Since this involves external systems, it is up to the system-specific code to handle this case. We can `either use transactions` to push to external systems (that is, atomically push one RDD partition at a time), or design updates to be `idempotent operations` (such that multiple runs of an update still produce the same result).
 
 ### Streaming UI
-Spark Streaming provides a special UI page that lets us look at what applications are doing. This is available in a Streaming tab on the normal Spark UI (typically http://<driver>:4040).
+Spark Streaming provides a special UI page that lets us look at what applications are doing. This is available in `a Streaming tab` on the normal Spark UI (typically http://<driver>:4040).
 
 ### Streaming Performance Considerations
 #### Batch and Window Sizes
 The most common question is what minimum batch size Spark Streaming can use. In general, `500 milliseconds has proven to be a good minimum size for many applications`. `The best approach is to start with a larger batch size (around 10 seconds) and work your way down to a smaller batch size`. If the processing times reported in the Streaming UI remain consistent, then you can continue to decrease the batch size, but if they are increasing you may have reached the limit for your application.
 
-In a similar way, for windowed operations, the interval at which you compute a result (i.e., the slide interval) has a big impact on performance. Consider increasing this interval for expensive computations if it is a bottleneck???
+In a similar way, for windowed operations, the interval at which you compute a result (i.e., the slide interval) has a big impact on performance. Consider increasing this interval for expensive computations(PS: compared to mass data processing) if it is a bottleneck.
 
 #### Steaming's Level of Parallelism
 A common way to reduce the processing time of batches is to increase the parallelism. There are three ways to increase the parallelism:  
-1. Increasing the number of receivers  
+1. `Increasing the number of receivers`  
 Receivers can sometimes act as a bottleneck if there are too many records for a single machine to read in and distribute. You can add more receivers by creating multiple input DStreams (which creates multiple receivers), and then applying union to merge them into a single stream.  
 2. Explicitly repartitioning received data  
-If receivers cannot be increased anymore, you can further redistribute the received data by explicitly repartitioning the input stream (or the union of multiple streams) using DStream.repartition. 
+If receivers cannot be increased anymore, you can further redistribute the received data by explicitly repartitioning the input stream (or `the union of multiple streams`) using DStream.repartition. 
 3. Increasing parallelism in aggregation  
 For operations like reduceByKey(), you can specify the parallelism as a second parameter, as already discussed for RDDs.
 
 #### Garbage Collection and Memory Usage
-You can minimize unpredictably large pauses due to GC by enabling Java’s Concurrent Mark-Sweep garbage collector. (PS: why not ParallelScanvenge for better throughput?)
+You can minimize unpredictably large pauses due to GC by enabling Java’s Concurrent Mark-Sweep garbage collector. (PS: why not ParallelScanvenge for better throughput? Maybe because it is streaming, honors timely fashion)
 
 Caching RDDs in serialized form (instead of as native objects) also reduces GC pressure, which is why, by default, RDDs generated by Spark Streaming are stored in serialized form. Using Kryo serialization further reduces the memory required for the in-memory representation of cached data.
 
-Spark also allows us to control how cached/persisted RDDs are evicted from the cache. By default Spark uses an LRU cache. Spark will also explicitly evict RDDs older than a certain time period if you set spark.cleaner.ttl. `By preemptively evicting RDDs that we are unlikely to need from the cache, we may be able to reduce the GC pressure.`
+Spark also allows us to control how cached/persisted RDDs are evicted from the cache. By default Spark uses an LRU cache. Spark will also explicitly evict RDDs older than a certain time period if you set `spark.cleaner.ttl`. `By preemptively evicting RDDs that we are unlikely to need from the cache, we may be able to reduce the GC pressure.`
 
 ## Miscellaneous
 ### References
