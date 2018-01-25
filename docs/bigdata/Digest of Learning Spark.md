@@ -149,6 +149,12 @@ The easiest way to demonstrate the power of Spark’s shells is to start using o
 
 >Note that, before Spark 2.0, the main programming interface of Spark was the Resilient Distributed Dataset (RDD). After Spark 2.0, RDDs are replaced by Dataset, which is strongly-typed like an RDD, but with richer optimizations under the hood. The RDD interface is still supported, and you can get a more complete reference at the RDD programming guide. However, we highly recommend you to switch to use Dataset, which has better performance than RDD. See the SQL programming guide to get more information about Dataset.
 
+[Twitter’s Elephant Bird package] supports a large number of data formats, including JSON, Lucene, Protocol Buffer–related formats, and others. The package also works with both the new and old Hadoop file APIs.
+
+The [SparkR] project also provides a lightweight frontend to use Spark from within R.
+
+To dive deeper into tuning Spark, visit the [tuning guide] in the official documentation.
+
 ## Chapter 1. Introduction to Data Analysis with Spark
 Apache Spark is a cluster computing platform designed to be fast and general-purpose.
 
@@ -725,12 +731,11 @@ Level                                       |Space used |CPU time |In memory |On
 ----------------------------------|-------------|-----------|-------------|---------|----------------------------------------------------------------
 MEMORY_ONLY                     |High           |Low         |Y                |N           |_
 MEMORY_ONLY_SER            |Low             |High        |Y                |N          |_
-MEMORY_AND_DISK            |High           |Medium   |Some          |Some    |Spills to disk if there is too much data to fit in
-memory.  
+MEMORY_AND_DISK            |High           |Medium   |Some          |Some    |Spills to disk if there is too much data to fit in memory.  
 MEMORY_AND_DISK_SER   |Low            |High        |Some          |Some    |Spills to disk if there is too much data to fit in memory. Stores serialized representation in memory.
 DISK_ONLY                           |Low            |High        |N                |Y          | _
 
-Off-heap caching is experimental and uses Tachyon. If you are interested in off-heap caching with Spark, take a look at the Running Spark on Tachyon guide.
+Off-heap caching is experimental and uses **Tachyon**. If you are interested in off-heap caching with Spark, take a look at the Running Spark on Tachyon guide.
 
 **Example 3-40. persist() in Scala**
 ```scala
@@ -739,20 +744,20 @@ result.persist(StorageLevel.DISK_ONLY)
 println(result.count())
 println(result.collect().mkString(“,”))
 ```
-Notice that we called persist() on the RDD before the first action. The persist() call on its own doesn’t force evaluation. If you attempt to cache too much data to fit in memory, Spark will automatically evict old partitions using a Least Recently Used (LRU) cache policy. For the memory-only storage levels, it will recompute these partitions the next time they are accessed, while for the memory-and-disk ones, it will write them out to disk. In either case, this means that you don’t have to worry about your job breaking if you ask Spark to cache too much data. However, caching unnecessary data can lead to eviction of useful data and more recomputation time. 
+Notice that we called persist() on the RDD before the first action. The persist() call on its own doesn’t force evaluation(PS: persist happens after the first action() call). `If you attempt to cache too much data to fit in memory, Spark will automatically evict old partitions using a Least Recently Used (LRU) cache policy`. `For the memory-only storage levels, it will recompute these partitions the next time they are accessed`, while for the memory-and-disk ones, it will write them out to disk. In either case, this means that you don’t have to worry about your job breaking if you ask Spark to cache too much data. However, caching unnecessary data can lead to eviction of useful data and more recomputation time. 
 
-Finally, RDDs come with a method called unpersist() that lets you manually remove them from the cache.
+Finally, RDDs come with a method called `unpersist()` that lets you manually remove them from the cache.
 
 ## Chapter 4. Working with Key/Value Pairs
 
 Key/value RDDs are commonly used to perform aggregations, and often we will do some initial ETL (extract, transform, and load) to get our data into a key/value format. Key/value RDDs expose new operations (e.g., counting up reviews for each product, grouping together data with the same key, and grouping together two different RDDs) 
 
-We also discuss an advanced feature that lets users control the layout of pair RDDs across nodes: partitioning. Using controllable partitioning, applications can sometimes greatly reduce communication costs by ensuring that data will be accessed together and will be on the same node. This can provide significant speedups. We illustrate partitioning using the `PageRank algorithm` as an example.
+We also discuss an advanced feature that lets users control the layout of pair RDDs across nodes: `partitioning`. Using controllable partitioning, applications can sometimes greatly reduce communication costs by ensuring that data will be accessed together and will be on the same node. This can provide significant speedups. We illustrate partitioning using the `PageRank algorithm` as an example.
 
 Spark provides special operations on RDDs containing key/value pairs. These RDDs are called pair RDDs. Pair RDDs are a useful building block in many programs, as they expose operations that allow you to act on each key in parallel or regroup data across the network. For example, pair RDDs have a reduceByKey() method that can aggregate data separately for each key, and a join() method that can merge two RDDs together by grouping elements with the same key. It is common to extract fields from an RDD (representing, for instance, an event time, customer ID, or other identifier) and use those fields as keys in pair RDD operations.
 
 ### Creating Pair RDDs
-Many formats we explore loading from in Chapter 5 will directly return pair RDDs for their key/value data. In other cases we have a regular RDD that we want to turn into a pair RDD. We can do this by running a map() function that returns key/value pairs. 
+`Many formats we explore loading from in Chapter 5 will directly return pair RDDs for their key/value data`. In other cases we have a regular RDD that we want to turn into a pair RDD. We can do this by running a map() function that returns key/value pairs. 
 
 To illustrate, we show code that starts with an RDD of lines of text and keys the data by the first word in each line.  
 
@@ -761,7 +766,7 @@ In Python, for the functions on keyed data to work we need to return an RDD comp
 pairs = lines.map(lambda x: (x.split(” “)[0], x))
 ```
 
-In Scala, for the functions on keyed data to be available, we also need to return tuples (see Example 4-2). An implicit conversion on RDDs of tuples exists to provide the additional key/value functions.
+In Scala, for the functions on keyed data to be available, we also need to return tuples (see Example 4-2). `An implicit conversion on RDDs of tuples` exists to provide the additional key/value functions.
 ```scala
 val pairs = lines.map(x => (x.split(” “)(0), x))
 ```
@@ -830,9 +835,9 @@ rdd.mapValues(lambda x: (x, 1)).reduceByKey(lambda x, y: (x[0] + y[0], x[1] + y[
 rdd.mapValues(x => (x, 1)).reduceByKey((x, y) => (x._1 + y._1, x._2 + y._2))
 ```
 * foldByKey()  
-foldByKey() is quite similar to fold(); both use a zero value of the same type of the data in our RDD and combination function. As with fold(), the provided zero value for foldByKey() should have no impact when added with your combination function to another element.  
+foldByKey() is quite similar to fold(); both use a zero value of `the same type` of the data in our RDD and combination function. As with fold(), the provided zero value for foldByKey() should have no impact when added with your combination function to another element.  
 
-Those familiar with the combiner concept from MapReduce should note that `calling reduceByKey() and foldByKey() will automatically perform combining locally on each machine before computing global totals for each key`. The user does not need to specify a combiner. The more general combineByKey() interface allows you to customize combining behavior.
+Those familiar with the combiner concept from MapReduce should note that `calling reduceByKey() and foldByKey() will automatically perform combining locally on each machine before computing global totals for each key`(PS: per MapReduce, same key goes to same partition, why does a key have multiple partititions?). The user does not need to specify a combiner. The more general combineByKey() interface allows you to customize combining behavior.
 
 **Example 4-9. Word count in Python**
 ```python
@@ -852,7 +857,7 @@ We can actually implement word count even faster by using the countByValue() fun
 combineByKey() is the most general of the per-key aggregation functions. `Most of the other per-key combiners are implemented using it`. Like aggregate(), `combineByKey() allows the user to return values that are not the same type as our input data`.  
 To understand combineByKey(), it’s useful to think of how it handles each element it processes. As combineByKey() goes through the elements in a partition, each element either has a key it hasn’t seen before or has the same key as a previous element. If it’s a new element, combineByKey() uses a function we provide, called `createCombiner()`, to create the initial value for the accumulator on that key. It’s important to note that `this happens the first time a key is found in each partition`, rather than only the first time the key is found in the RDD.  
 If it is a value we have seen before `while processing that partition`, it will instead use the provided function, `mergeValue()`, with the current value for the accumulator for that key and the new value.   
-Since each partition is processed independently, we can have multiple accumulators for the same key. When we are merging the results from each partition, `if two or more partitions have an accumulator for the same key we merge the accumulators using the user-supplied mergeCombiners() function`.  
+Since each partition is processed independently, we can have multiple accumulators for the same key. When we are merging the results from each partition, `if two or more partitions have an accumulator for the same key we merge the accumulators using the user-supplied mergeCombiners() function`(PS: per MapReduce, same key goes to same partition, why does a key have multiple partititions?).  
 `We can disable map-side aggregation in combineByKey()` if we know that our data won’t benefit from it. For example, groupByKey() disables map-side aggregation as the aggregation function (appending to a list) does not save any space. `If we want to disable map-side combines, we need to specify the partitioner`; for now you can just use the partitioner on the source RDD by passing `rdd.partitioner`.
 
 To better illustrate how combineByKey() works, we will look at computing the average value for each key, as shown in Examples 4-12 through 4-14 and illustrated in Figure 4-3.  
@@ -883,7 +888,7 @@ So far we have talked about how all of our transformations are distributed, but 
 
 `When performing aggregations or grouping operations, we can ask Spark to use a specific number of partitions`. Spark will always try to infer a sensible default value based on the size of your cluster, but in some cases you will want to tune the level of parallelism for better performance.
 
-`Most of the operators discussed in this chapter accept a second parameter giving the number of partitions to use` when creating the grouped or aggregated RDD.
+`Most of the operators discussed in this chapter accept a second parameter giving` **the number of partitions** `to use` when creating the grouped or aggregated RDD.
 
 **Example 4-15. reduceByKey() with custom parallelism in Python**  
 ```python
@@ -903,18 +908,18 @@ Sometimes, we want to change the partitioning of an RDD outside the context of g
 #### Grouping Data
 If our data is already keyed in the way we want, groupByKey() will group our data using the key in our RDD. On an RDD consisting of keys of type K and values of type V, we get back an RDD of type [K, Iterable[V]].
 
-groupBy() works on unpaired data or data where we want to use a different condition besides equality on the current key. It takes a function that it applies to every element in the source RDD and uses the result to determine the key.
+`groupBy()` works on unpaired data or data where we want to use a different condition besides equality on the current key. It takes a function that it applies to every element in the source RDD and uses the result to determine the key.
 
 If you find yourself writing code where you groupByKey() and then use a reduce() or fold() on the values, you can probably achieve the same result more efficiently by using one of the per-key aggregation functions. Rather than reducing the RDD to an in-memory value, we reduce the data per key and get back an RDD with the reduced values corresponding to each key. For example, rdd.reduceByKey(func) produces the same RDD as rdd.groupByKey().mapValues(value => value.reduce(func)) but is more efficient as it avoids the step of creating a list of values for each key.
 
 In addition to grouping data from a single RDD, we can group data sharing the same key from multiple RDDs using a function called cogroup(). cogroup() over two RDDs sharing the same key type, K, with the respective value types V and W gives us back RDD[(K, (Iterable[V], Iterable[W]))]. If one of the RDDs doesn’t have elements for a given key that is present in the other RDD, the corresponding Iterable is simply empty. cogroup() gives us the power to group data from multiple RDDs. `cogroup() is used as a building block for the joins` we discuss in the next section.
 
-cogroup() can be used for much more than just implementing joins. We can also use it to implement intersect by key. Additionally, cogroup() can work on three or more RDDs at once.
+`cogroup() can be used for much more than just implementing joins`. We can also use it to implement intersect by key. Additionally, cogroup() can work on three or more RDDs at once.
 
 #### Joins
 Some of the most useful operations we get with keyed data comes from using it together with other keyed data. Joining data together is probably one of the most common operations on a pair RDD, and we have a full range of options including right and left outer joins, cross joins, and inner joins.
 
-With leftOuterJoin() the resulting pair RDD has entries for each key in the source RDD. The value associated with each key in the result is a tuple of the value from the source RDD and an Option (or Optional in Java) for the value from the other pair RDD. In Python, if a value isn’t present None is used; and if the value is present the regular value, without any wrapper, is used. As with join(), we can have multiple entries for each key; when this occurs, we get the Cartesian product between the two lists of values.
+With leftOuterJoin() the resulting pair RDD has entries for each key in the source RDD. The value associated with each key in the result is a tuple of the value from the source RDD and an Option (or Optional in Java) for the value from the other pair RDD. `In Python`, if a value isn’t present None is used; and if the value is present the regular value, `without any wrapper`, is used. As with join(), we can have multiple entries for each key; when this occurs, we get the Cartesian product between the two lists of values.
 
 #### Sorting Data
 Having sorted data is quite useful in many cases, especially when you’re producing downstream output. We can sort an RDD with key/value pairs provided that there is an ordering defined on the key. Once we have sorted our data, any subsequent call on the sorted data to collect() or save() will result in ordered data.
@@ -935,7 +940,7 @@ rdd.sortByKey()
 ```
 
 ### Actions Available on Pair RDDs
-As with the transformations, all of the traditional actions available on the base RDD are also available on pair RDDs. Some additional actions are available on pair RDDs to take advantage of the key/value nature of the data; these are listed in Table 4-3.  
+`As with the transformations, all of the traditional actions available on the base RDD are also available on pair RDDs`. Some additional actions are available on pair RDDs to take advantage of the key/value nature of the data; these are listed in Table 4-3.  
 **Table 4-3. Actions on pair RDDs (example ({(1, 2), (3, 4), (3, 6)}))**  
 
 Function name   |Example                                |Result                                           |Purpose
@@ -945,11 +950,11 @@ collectAsMap()  |rdd.collectAsMap()              |Map{(1, 2), (3, 4), (3,6)}    
 lookup(key)       |rdd.lookup(3)                        |[4, 6]                                             |Return all values associated with the provided key.
 
 ### Data Partitioning (Advanced)
-The final Spark feature we will discuss in this chapter is how to control datasets’ partitioning across nodes. In a distributed program, communication is very expensive, so laying out data to minimize network traffic can greatly improve performance. Spark programs can choose to control their RDDs’ partitioning to reduce communication. Partitioning will not be helpful in all applications — for example, if a given RDD is scanned only once, there is no point in partitioning it in advance. `It is useful only when a dataset is reused multiple times in key-oriented operations such as joins`. We will give some examples shortly.
+The final Spark feature we will discuss in this chapter is how to control datasets’ partitioning across nodes. In a distributed program, communication is very expensive, so `laying out data to minimize network traffic can greatly improve performance`. Spark programs can choose to control their RDDs’ partitioning to reduce communication. Partitioning will not be helpful in all applications — for example, if a given RDD is scanned only once, there is no point in partitioning it in advance. `It is useful only when a dataset is reused multiple times in key-oriented operations such as joins`. We will give some examples shortly.
 
 Spark’s partitioning is available on all RDDs of key/value pairs, and causes the system to group elements based on a function of each key. Although Spark does not give explicit control of which worker node each key goes to (partly because the system is designed to work even if specific nodes fail), it lets the program ensure that a set of keys will appear together on some node.
 
-As a simple example, consider an application that keeps a large table of user information in memory — say, an RDD of (UserID, UserInfo) pairs, where UserInfo contains a list of topics the user is subscribed to. The application periodically combines this table with a smaller file representing events that happened in the past five minutes — say, a table of (UserID, LinkInfo) pairs for users who have clicked a link on a website in those five minutes. For example, we may wish to count how many users visited a link that was not to one of their subscribed topics. We can perform this combination with Spark’s join() operation, which can be used to group the UserInfo and LinkInfo pairs for each UserID by key. Our application would look like Example 4-22.  
+As a simple example, consider an application that keeps a large table of user information in memory — say, an RDD of (UserID, UserInfo) pairs, where UserInfo contains a list of topics the user is subscribed to. The application periodically combines this table with a smaller file representing events that happened in the past five minutes — say, a table of (UserID, LinkInfo) pairs for users who have clicked a link on a website in those five minutes. For example, we may wish to count how many users visited a link that was not to one of their subscribed topics(PS: indeed count how many of such visits, but rather how many users). We can perform this combination with Spark’s join() operation, which can be used to group the UserInfo and LinkInfo pairs for each UserID by key. Our application would look like Example 4-22.  
 **Example 4-22. Scala simple application**  
 ```scala
 // Initialization code; we load the user info from a Hadoop SequenceFile on HDFS.
@@ -972,7 +977,7 @@ def processNewLogs(logFileName: String) {
 ```
 This code will run fine as is, but it will be inefficient. This is because the join() operation, called each time processNewLogs() is invoked, does not know anything about how the keys are partitioned in the datasets. `By default, this operation will hash all the keys of both datasets, sending elements with the same key hash across the network to the same machine, and then join together the elements with the same key on that machine` (see Figure 4-4). Because we expect the userData table to be much larger than the small log of events seen every five minutes, this wastes a lot of work: the userData table is hashed and shuffled across the network on every call, even though it doesn’t change.  
 
-`Fixing this is simple: just use the partitionBy() transformation on userData to hashpartition it at the start of the program`. We do this by passing a `spark.HashPartitioner` object to partitionBy, as shown in Example 4-23.  
+`Fixing this is simple: just use the partitionBy() transformation on userData to hash-partition it at the start of the program`. We do this by passing a `spark.HashPartitioner` object to partitionBy, as shown in Example 4-23.  
 **Example 4-23. Scala custom partitioner**  
 ```scala
 val sc = new SparkContext(…)
@@ -980,18 +985,18 @@ val userData = sc.sequenceFile[UserID, UserInfo](“hdfs://…”)
                             .partitionBy(new HashPartitioner(100)) // Create 100 partitions
                             .persist()
 ```
-The processNewLogs() method can remain unchanged: the events RDD is local to processNewLogs(), and is used only once within this method, so there is no advantage in specifying a partitioner for events. Because we called partitionBy() when building userData, Spark will now know that it is hash-partitioned, and calls to join() on it will take advantage of this information. In particular, when we call userData.join(events), Spark will shuffle only the events RDD, sending events with each particular UserID to the machine that contains the corresponding hash partition of userData (see Figure 4-5). The result is that a lot less data is communicated over the network, and the program runs significantly faster.
+The processNewLogs() method can remain unchanged: the events RDD is local to processNewLogs(), and is used only once within this method, so there is no advantage in specifying a partitioner for events. `Because we called partitionBy() when building userData, Spark will now know that it is hash-partitioned, and calls to join() on it will take advantage of this information`. In particular, when we call userData.join(events), Spark will shuffle only the events RDD, sending events with each particular UserID to the machine that contains the corresponding hash partition of userData (see Figure 4-5). The result is that a lot less data is communicated over the network, and the program runs significantly faster.
 
 Note that `partitionBy() is a transformation`, so it always returns a new RDD — it does not change the original RDD in place. RDDs can never be modified once created. Therefore it is important to persist and save as userData the result of partitionBy(), not the original sequenceFile(). Also, `the 100 passed to partitionBy() represents the number of partitions, which will control how many parallel tasks perform further operations on the RDD (e.g., joins); in general, make this at least as large as the number of cores in your cluster`.
 
-Failure to persist an RDD after it has been transformed with partitionBy() will cause subsequent uses of the RDD to repeat the partitioning of the data. Without persistence, use of the partitioned RDD will cause reevaluation of the RDDs complete lineage. That would negate the advantage of partitionBy(), resulting in repeated partitioning and shuffling of data across the network, similar to what occurs without any specified partitioner.
+`Failure to persist an RDD after it has been transformed with partitionBy() will cause subsequent uses of the RDD to repeat the partitioning of the data`. Without persistence, use of the partitioned RDD will cause reevaluation of the RDDs complete lineage. That would negate the advantage of partitionBy(), resulting in repeated partitioning and shuffling of data across the network, similar to what occurs without any specified partitioner.
 
-In fact, many other Spark operations automatically result in an RDD with known partitioning information, and many operations other than join() will take advantage of this information. For example, sortByKey() and groupByKey() will result in rangepartitioned and hash-partitioned RDDs, respectively. `On the other hand, operations like map() cause the new RDD to forget the parent’s partitioning information`, because such operations could theoretically modify the key of each record.
+`In fact, many other Spark operations automatically result in an RDD with known partitioning information, and many operations other than join() will take advantage of this information`. For example, `sortByKey()` and `groupByKey()` will result in range-partitioned and hash-partitioned RDDs, respectively. `On the other hand, operations like map() cause the new RDD to forget the parent’s partitioning information`, because `such operations could theoretically modify the key of each record`.
 
-Spark’s Java and Python APIs benefit from partitioning in the same way as the Scala API. However, in Python, you cannot pass a HashPartitioner object to partitionBy; instead, you just pass the number of partitions desired (e.g., rdd.partitionBy(100)).
+Spark’s Java and Python APIs benefit from partitioning in the same way as the Scala API. However, `in Python, you cannot pass a HashPartitioner object to partitionBy; instead, you just pass the number of partitions desired` (e.g., rdd.partitionBy(100)).
 
 #### Determining an RDD’s Partitioner
-In Scala and Java, you can determine how an RDD is partitioned using its partitioner property (or partitioner() method in Java). This returns a scala.Option object, which is a Scala class for a container that may or may not contain one item. You can call isDefined() on the Option to check whether it has a value, and get() to get this value. If present, the value will be a spark.Partitioner object. This is essentially a function telling the RDD which partition each key goes into;  
+`In Scala and Java, you can determine how an RDD is partitioned using its partitioner property` (or partitioner() method in Java). This returns a scala.Option object, which is a Scala class for a container that may or may not contain one item. You can call isDefined() on the Option to check whether it has a value, and get() to get this value. If present, the value will be a spark.Partitioner object. This is essentially a function telling the RDD which partition each key goes into;  
 
 **Example 4-24. Determining partitioner of an RDD**
 ```scala
@@ -1006,16 +1011,16 @@ res1: Option[spark.Partitioner] = Some(spark.HashPartitioner@5147788d)
 ```
 
 #### Operations That Benefit from Partitioning
-Many of Spark’s operations involve shuffling data by key across the network. All of these will benefit from partitioning. As of Spark 1.0, the operations that benefit from partitioning are cogroup(), groupWith(), join(), leftOuterJoin(), rightOuterJoin(), groupByKey(), reduceByKey(), combineByKey(), and lookup().  
+Many of Spark’s operations involve shuffling data by key across the network. All of these will benefit from partitioning. As of Spark 1.0, the operations that benefit from partitioning are `cogroup(), groupWith(), join(), leftOuterJoin(), rightOuterJoin(), groupByKey(), reduceByKey(), combineByKey(), and lookup()`(PS: I think for pair RDD tramsformations other than sortByKey() benefits from it, however, collectAsMap(), substractByKey(), mapValues(), flatMapValues() are not listed as well. ).  
 
-For operations that act on a single RDD, such as reduceByKey(), running on a prepartitioned RDD will cause all the values for each key to be computed locally on a single machine, requiring only the final, locally reduced value to be sent from each worker node back to the master. For binary operations, such as cogroup() and join(), pre-partitioning will cause at least one of the RDDs (the one with the known partitioner) to not be shuffled. `If both RDDs have the same partitioner, and if they are cached on the same machines (e.g., one was created using mapValues() on the other, which preserves keys and partitioning)` or if one of them has not yet been computed, then no shuffling across the network will occur.
+`For operations that act on a single RDD, such as reduceByKey(), running on a prepartitioned RDD will cause all the values for each key to be computed locally on a single machine, requiring only the final, locally reduced value to be sent from each worker node back to the master`. `For binary operations, such as cogroup() and join(), pre-partitioning will cause at least one of the RDDs (the one with the known partitioner) to not be shuffled`. `If both RDDs have the same partitioner, and if they are cached on the same machines (e.g., one was created using mapValues() on the other, which preserves keys and partitioning)` or if one of them has not yet been computed, then no shuffling across the network will occur.
 
 #### Operations That Affect Partitioning
-Spark knows internally how each of its operations affects partitioning, and automatically sets the partitioner on RDDs created by operations that partition the data. For example, suppose you called join() to join two RDDs; because the elements with the same key have been hashed to the same machine, Spark knows that the result is hash-partitioned, and operations like reduceByKey() on the join result are going to be significantly faster.
+Spark knows internally how each of its operations affects partitioning, and `automatically sets the partitioner on RDDs created by operations that partition the data`. For example, suppose you called join() to join two RDDs; because the elements with the same key have been hashed to the same machine, Spark knows that the result is hash-partitioned, and operations like reduceByKey() on the join result are going to be significantly faster.
 
-The flipside, however, is that for transformations that cannot be guaranteed to produce a known partitioning, the output RDD will not have a partitioner set. For example, `if you call map() on a hash-partitioned RDD of key/value pairs, the function passed to map() can in theory change the key of each element, so the result will not have a partitioner`. Spark does not analyze your functions to check whether they retain the key. Instead, it provides two other operations, mapValues() and flatMapValues(), which guarantee that each tuple’s key remains the same.
+The flipside, however, is that for transformations that cannot be guaranteed to produce a known partitioning, the output RDD will not have a partitioner set. For example, `if you call map() on a hash-partitioned RDD of key/value pairs, the function passed to map() can in theory change the key of each element, so the result will not have a partitioner`. `Spark does not analyze your functions to check whether they retain the key`. Instead, it provides two other operations, mapValues() and flatMapValues(), which guarantee that each tuple’s key remains the same.
 
-All that said, here are all the operations that `result in a partitioner being set on the output RDD`: `cogroup(), groupWith(), join(), leftOuterJoin(), rightOuterJoin(), groupByKey(), reduceByKey(), combineByKey(), partitionBy(), sort(), mapValues() (if the parent RDD has a partitioner), flatMapValues() (if parent has a partitioner), and filter() (if parent has a partitioner)`. All other operations will produce a result with no partitioner.
+All that said, here are all the operations that `result in a partitioner being set on the output RDD`: `cogroup(), groupWith(), join(), leftOuterJoin(), rightOuterJoin(), groupByKey(), reduceByKey(), combineByKey(), partitionBy(), sort(), mapValues() (if the parent RDD has a partitioner), flatMapValues() (if parent has a partitioner), and filter() (if parent has a partitioner)`(PS: substractByKey(), collectAsMap(), lookup() are not included for sure. sortByKey() is not included.). All other operations will produce a result with no partitioner.
 
 Finally, for binary operations, which partitioner is set on the output depends on the parent RDDs’ partitioners. By default, it is a hash partitioner, with the number of partitions set to the level of parallelism of the operation. However, if one of the parents has a partitioner set, it will be that partitioner; and if both parents have a partitioner set, it will be the partitioner of the first parent.
 
@@ -1056,14 +1061,14 @@ Although the code itself is simple, the example does several things to ensure th
 `To maximize the potential for partitioning-related optimizations, you should use mapValues() or flatMapValues() whenever you are not changing an element’s key.`
 
 #### Custom Partitioners
-While Spark’s HashPartitioner and RangePartitioner are well suited to many use cases, Spark also allows you to tune how an RDD is partitioned by providing a custom Partitioner object. This can help you further reduce communication by taking advantage of domain-specific knowledge.
+While Spark’s **HashPartitioner** and **RangePartitioner** are well suited to many use cases, Spark also allows you to tune how an RDD is partitioned by providing a custom Partitioner object. `This can help you further reduce communication by taking advantage of domain-specific knowledge`.
 
 For example, suppose we wanted to run the PageRank algorithm in the previous section on a set of web pages. Here each page’s ID (the key in our RDD) will be its URL. Using a simple hash function to do the partitioning, pages with similar URLs (e.g., http://www.cnn.com/WORLD and http://www.cnn.com/US) might be hashed to completely different nodes. However, we know that web pages within the same domain tend to link to each other a lot. Because PageRank needs to send a message from each page to each of its neighbors on each iteration, it helps to group these pages into the same partition. We can do this with a custom Partitioner that looks at just the domain name instead of the whole URL.
 
 To implement a custom partitioner, you need to subclass the `org.apache.spark.Partitioner` class and implement three methods:  
 * numPartitions: Int, which returns the number of partitions you will create.
 * getPartition(key: Any): Int, which returns the partition ID (0 to numPartitions-1) for a given key.
-* equals(), the standard Java equality method. This is important to implement because Spark will need to test your Partitioner object against other instances of itself when it decides whether two of your RDDs are partitioned the same way!
+* equals(), the standard Java equality method. This is important to implement because `Spark will need to test your Partitioner object against other instances of itself when it decides whether two of your RDDs are partitioned the same way!`
 
 `One gotcha is that if you rely on Java’s hashCode() method in your algorithm, it can return negative numbers`. You need to be careful to ensure that getPartition() always returns a nonnegative result.  
 
@@ -1120,22 +1125,25 @@ Table 5-1. Common supported file formats
 * Protocol buffers  
 A fast, space-efficient multilanguage format. 
 * Object files  
-Useful for saving data from a Spark job to be consumed by shared code. Breaks if you change your classes, as `it relies on Java Serialization`
+Useful for saving data from a Spark job to be consumed by shared code. `Breaks if you change your classes`, as `it relies on Java Serialization`
 
 In addition to the output mechanisms supported directly in Spark, we can use both Hadoop’s new and old file APIs for keyed (or paired) data.
 
 #### Text Files
-We can also load multiple whole text files at the same time into a pair RDD, with the key being the name and the value being the contents of each file.
+When we load a single text file as an RDD, `each input line becomes an element in the RDD`. We can also `load multiple whole text files at the same time into a pair RDD`, with `the key being the name` and `the value being the contents of each file`.  
+
+If we want to control the number of partitions we can also specify minPartitions.
 ```scala
 val input = sc.textFile(“file:///home/holden/repos/spark/README.md”)
 
 result.saveAsTextFile(outputFile)
 ```
 
-Multipart inputs in the form of a directory containing all of the parts can be handled in two ways. We can just use the same textFile method and pass it a directory and it will load all of the parts into our RDD. 
+Multipart inputs in the form of a directory containing all of the parts can be handled in two ways.  
+1. We can just use the same `textFile` method and pass it a directory and it will load all of the parts into our RDD. 
+2. Sometimes it’s important to know which file which piece of input came from (such as time data with the key in the file) or we need to process an entire file at a time. If our files are `small enough, then we can use the SparkContext.wholeTextFiles()` method and get back a pair RDD where `the key is the name of the input file`.
 
-Sometimes it’s important to know which file which piece of input came from (such as time data with the key in the file) or we need to process an entire file at a time. If our files are `small enough, then we can use the SparkContext.wholeTextFiles()` method and get back a pair RDD where the key is the name of the input file.
-
+wholeTextFiles() can be very useful when each file represents a certain time period’s data. If we had files representing sales data from different periods, we could easily compute the average for each period.  
 **Example 5-4. Average value per file in Scala**  
 ```scala
 val input = sc.wholeTextFiles(“file://home/holden/salesFiles”)
@@ -1148,11 +1156,11 @@ val result = input.mapValues{y =>
 Spark supports reading all the files `in a given directory` and doing `wildcard expansion` on the input (e.g., part-*.txt).
 
 #### JSON
-JSON is a popular semistructured data format. `The simplest way to load JSON data is by loading the data as a text file and then mapping over the values with a JSON parser`. Likewise, we can use our preferred JSON serialization library to write out the values to strings, which we can then write out. In Java and Scala we can also work with JSON data using a custom Hadoop format. “JSON” also shows how to load JSON data with Spark SQL.
+JSON is a popular semistructured data format. `The simplest way to load JSON data is by loading the data as a text file and then mapping over the values with a JSON parser`. Likewise, we can use our preferred JSON serialization library to write out the values to strings, which we can then write out. In Java and Scala we can also work with JSON data using `a custom Hadoop format`. “JSON” also shows `how to load JSON data with Spark SQL`.
 
-Loading the data as a text file and then parsing the JSON data is an approach that we can use in all of the supported languages. `This works assuming that you have one JSON record per row;` if you have multiline JSON files, you will instead have to load the whole file and then parse each file. If constructing a JSON parser is expensive in your language, you can use mapPartitions() to reuse the parser
+Loading the data as a text file and then parsing the JSON data is an approach that we can use in all of the supported languages. This works assuming that you have one JSON record per row; if you have multiline JSON files, you will instead have to load the whole file and then parse each file. `If constructing a JSON parser is expensive in your language, you can use mapPartitions() to reuse the parser`.
 
-There are a wide variety of JSON libraries available for the three languages we are looking at, but for simplicity’s sake we are considering only one library per language. In Python we will use the built-in library (Example 5-6), and in Java and Scala we will use **Jackson** (Examples 5-7 and 5-8). These libraries have been chosen because they perform reasonably well and are also relatively simple.
+There are a wide variety of JSON libraries available for the three languages we are looking at, but for simplicity’s sake we are considering only one library per language. `In Python we will use the built-in library` (Example 5-6), and `in Java and Scal`a we will use **Jackson** (Examples 5-7 and 5-8). These libraries have been chosen because they perform reasonably well and are also relatively simple.
 
 **Example 9-21. Input records**
 ```json
@@ -1222,7 +1230,7 @@ result.filter(p => P.lovesPandas).map(mapper.writeValueAsString(_))
         .saveAsTextFile(outputFile)
 ```
 
-If you have a JSON file with records fitting the same schema, Spark SQL can infer the schema by scanning the file and let you access fields by name (Example 9-21). If you have ever found yourself staring at a huge directory of JSON records, Spark SQL’s schema inference is a very effective way to start working with the data without writing any special loading code.
+If you have a JSON file with records fitting the same schema, Spark SQL can infer the schema by scanning the file and let you access fields by name (Example 9-21). If you have ever found yourself staring at a huge directory of JSON records, `Spark SQL’s schema inference` is a very effective way to start working with the data without writing any special loading code.
 
 **Example 9-21. Input records**
 ```json
@@ -1233,7 +1241,7 @@ If you have a JSON file with records fitting the same schema, Spark SQL can infe
 #### Comma-Separated Values and Tab-Separated Values
 Comma-separated value (CSV) files are supposed to contain a fixed number of fields per line, and the fields are separated by a comma (or a tab in the case of tab-separated value, or TSV, files). Records are often stored one per line, but this is not always the case as records can sometimes span lines. CSV and TSV files can sometimes be inconsistent, most frequently with respect to handling newlines, escaping, and rendering non-ASCII characters, or noninteger numbers. CSVs cannot handle nested field types natively, so we have to unpack and pack to specific fields manually. 
 
-Unlike with JSON fields, each record doesn’t have field names associated with it; instead we get back row numbers. It is common practice in single CSV files to make the first row’s column values the names of each field.
+Unlike with JSON fields, each record doesn’t have field names associated with it; instead we get back row numbers. `It is common practice in single CSV files to make the first row’s column values the names of each field`.
 
 Loading CSV/TSV data is similar to loading JSON data in that we can first load it as text and then process it. The lack of standardization of format leads to different versions of the same library sometimes handling input in different ways.  
 
@@ -1275,7 +1283,7 @@ public static class ParseLine implements Function<String, String[]> {
         }
 } 
 JavaRDD<String> csvFile1 = sc.textFile(inputFile);
-// JavaPairRDD<String, AvgCount> avgCounts
+// JavaPairRDD<String, AvgCount> avgCounts ??
 JavaPairRDD<String[]> csvData = csvFile1.map(new ParseLine());
 ```
 Note that returning type is JavaPairRDD<String[]>
@@ -1312,9 +1320,9 @@ JavaPairRDD<String, String> csvData = sc.wholeTextFiles(inputFile);
 JavaRDD<String[]> keyedRDD = csvData.flatMap(new ParseLine());
 ```
 
-If there are only a few input files, and you need to use the wholeFile() method, you may want to repartition your input to allow Spark to effectively parallelize your future operations.
+`If there are only a few input files, and you need to use the wholeFile() method, you may want to repartition your input to allow Spark to effectively parallelize your future operations.`
 
-Since in CSV we don’t output the field name with each record, to have a consistent output we need to create a mapping. One of the easy ways to do this is to just write a function that converts the fields to given positions in an array. In Python, if we are outputting dictionaries the CSV writer can do this for us based on the order in which we provide the fieldnames when constructing the writer.
+Since in CSV we don’t output the field name with each record, to have a consistent output we need to create a mapping. One of the easy ways to do this is to just write a function that `converts the fields to given positions in an array`. In Python, if we are outputting dictionaries, the CSV writer can do this for us based on the order in which we provide the fieldnames when constructing the writer.
 
 ```python
 def writeRecords(records):
@@ -1338,11 +1346,11 @@ pandaLovers.map(person => List(person.name, person.favoriteAnimal).toArray)
 ```
 
 #### SequenceFiles
-The standard rule of thumb is to try adding the word Writable to the end of your class name and see if it is a known subclass of org.apache.hadoop.io.Writable(such as IntWritable or VIntWritable). If you can’t find a Writable for the data you are trying to write out (for example, a custom case class), you can go ahead and implement your own Writable class by overriding readFields and write from org.apache.hadoop.io.Writable.
+The standard rule of thumb is to try adding the word Writable to the end of your class name and see if it is a known subclass of org.apache.hadoop.io.Writable(such as IntWritable or VIntWritable). If you can’t find a Writable for the data you are trying to write out (for example, a custom case class), you can go ahead and implement your own Writable class by overriding `readFields` and `write` from org.apache.hadoop.io.Writable.
 
-Hadoop’s RecordReader reuses the same object for each record, `so directly calling cache on an RDD you read in like this can fail`; instead, add a simple map() operation and cache its result. Furthermore, many `Hadoop Writable classes do not implement java.io.Serializable`, so for them to work in RDDs we need to convert them with a map() anyway.
+Hadoop’s RecordReader reuses the same object for each record, `so directly calling cache on an RDD you read in like this can fail`; instead, `add a simple map() operation and cache its result`. Furthermore, many `Hadoop Writable classes do not implement java.io.Serializable`, so for them to work in RDDs we need `to convert them with a map() anyway`.
 
-Note that you will need to use Java and Scala to define custom Writable types, however. The Python Spark API knows only how to convert the basic Writables available in Hadoop to Python, and makes a best effort for other classes based on their available getter methods.
+`Note that you will need to use Java and Scala to define custom Writable types`, however. `The Python Spark API knows only how to convert the basic Writables available in Hadoop to Python`, and makes a best effort for other classes based on their available getter methods.
 
 Spark has a specialized API for reading in SequenceFiles. On the SparkContext we can `call sequenceFile(path, keyClass, valueClass, minPartitions)`.
 
@@ -1357,9 +1365,9 @@ val data = sc.sequenceFile(inFile, classOf[Text], classOf[IntWritable]).
 map{case (x, y) => (x.toString, y.get())}
 ```
 
-In Scala there is a convenience function that can automatically convert Writables to their corresponding Scala type. Instead of specifying the keyClass and valueClass, we can call sequenceFile[Key, Value](path, minPartitions) and get back an RDD of native Scala types.
+In Scala there is a convenience function that can automatically convert Writables to their corresponding Scala type. Instead of specifying the keyClass and valueClass, we can call `sequenceFile[Key, Value](path, minPartitions)` and get back an RDD of native Scala types.
 
-Writing the data out to a SequenceFile is fairly similar in Scala. First, because SequenceFiles are key/value pairs, we need a PairRDD with types that our SequenceFile can write out. Implicit conversions between Scala types and Hadoop Writables exist for many native types, so if you are writing out a native type you can just save your PairRDD by calling `saveAsSequenceFile(path)`, and it will write out the data for you. If there isn’t an automatic conversion from our key and value to Writable, or we want to use variablelength types (e.g., VIntWritable), we can just map over the data and convert it before saving.
+Writing the data out to a SequenceFile is fairly similar in Scala. First, because SequenceFiles are key/value pairs, we need a PairRDD with types that our SequenceFile can write out. `Implicit conversions between Scala types and Hadoop Writables exist for many native types`, so if you are writing out a native type you can just save your PairRDD by calling `saveAsSequenceFile(path)`, and it will write out the data for you. If there isn’t an automatic conversion from our key and value to Writable, `or we want to use variable-length types (e.g., VIntWritable)`, we can just map over the data and convert it before saving.
 
 ```scala
 val data = sc.parallelize(List((“Panda”, 3), (“Kay”, 6), (“Snail”, 2)))
@@ -1369,7 +1377,7 @@ data.saveAsSequenceFile(outputFile)
 #### Object Files
 `Object files are a deceptively simple wrapper around SequenceFiles that allows us to save our RDDs containing just values`. Unlike with SequenceFiles, with object files the values are written out `using Java Serialization`.
 
-If you change your classes — for example, to add and remove fields — old object files may no longer be readable. Object files use Java Serialization, which has some support for managing compatibility across class versions but requires programmer effort to do so.
+`If you change your classes — for example, to add and remove fields — old object files may no longer be readable`. Object files use Java Serialization, which has some support for managing compatibility across class versions but requires programmer effort to do so.
 
 Using Java Serialization for object files has a number of implications. Unlike with normal SequenceFiles, the output will be different than Hadoop outputting the same objects. `Unlike the other formats, object files are mostly intended to be used for Spark jobs communicating with other Spark jobs`. `Java Serialization can also be quite slow`.  
 
@@ -1377,12 +1385,12 @@ Saving an object file is as simple as calling `saveAsObjectFile` on an RDD. Read
 
 With all of these warnings about object files, you might wonder why anyone would use them. `The primary reason to use object files is that they require almost no work to save almost arbitrary objects.`  
 
-Object files are not available in Python, but the Python RDDs and SparkContext support methods called saveAsPickleFile() and pickleFile() instead. These use `Python’s pickle serialization library`. The same caveats for object files apply to pickle files, however: `the pickle library can be slow, and old files may not be readable if you change your classes.`
+`Object files are not available in Python, but the Python RDDs and SparkContext support methods called saveAsPickleFile() and pickleFile() instead`. These use `Python’s pickle serialization library`. `The same caveats for object files apply to pickle files`, however: `the pickle library can be slow, and old files may not be readable if you change your classes.`
 
 #### Hadoop Input and Output Formats
-In addition to the formats Spark has wrappers for, we can also interact with any Hadoopsupported formats. Spark supports both the “old” and “new” Hadoop file APIs, providing a great amount of flexibility
+In addition to the formats Spark has wrappers for, we can also interact with any Hadoop-supported formats. Spark supports both the “old” and “new” Hadoop file APIs, providing a great amount of flexibility.
 
-To read in a file using the new Hadoop API we need to tell Spark a few things. The newAPIHadoopFile takes a path, and three classes. The first class is the “format” class, which is the class representing our input format. A similar function, hadoopFile(), exists for working with Hadoop input formats implemented with the older API. The next class is the class for our key, and the final class is the class of our value. If we need to specify additional Hadoop configuration properties, we can also pass in a conf object.
+To read in a file using the new Hadoop API we need to tell Spark a few things. The `newAPIHadoopFile` takes a path, and three classes. The first class is the “format” class, which is the class representing our input format. A similar function, `hadoopFile()`, exists for working with Hadoop input formats implemented with the older API. The next class is the class for our key, and the final class is the class of our value. If we need to specify additional Hadoop configuration properties, we can also pass in a conf object.
 
 ```scala
 val input = sc.hadoopFile[Text, Text, KeyValueTextInputFormat](inputFile).map{
@@ -1390,7 +1398,7 @@ val input = sc.hadoopFile[Text, Text, KeyValueTextInputFormat](inputFile).map{
 }
 ```
 
-We looked at loading JSON data by loading the data as a text file and then parsing it, but we can also load JSON data using a custom Hadoop input format. This example requires setting up some extra bits for compression, so feel free to skip it. [Twitter’s Elephant Bird package] supports a large number of data formats, including JSON, Lucene, Protocol Buffer–related formats, and others. The package also works with both the new and old Hadoop file APIs. To illustrate how to work with the new-style Hadoop APIs from Spark, we’ll look at loading LZO-compressed JSON data with Lzo JsonInputFormat in Example 5-25.
+We looked at loading JSON data by loading the data as a text file and then parsing it, but we can also `load JSON data using a custom Hadoop input format`. This example requires setting up some extra bits for compression, so feel free to skip it. [Twitter’s Elephant Bird package] supports a large number of data formats, including JSON, Lucene, Protocol Buffer–related formats, and others. The package also works with both the new and old Hadoop file APIs. To illustrate how to work with the new-style Hadoop APIs from Spark, we’ll look at loading LZO-compressed JSON data with Lzo JsonInputFormat in Example 5-25.
 **Example 5-25. Loading LZO-compressed JSON with Elephant Bird in Scala**
 ```scala
 val input = sc.newAPIHadoopFile(inputFile, classOf[LzoJsonInputFormat],
@@ -1398,14 +1406,14 @@ classOf[LongWritable], classOf[MapWritable], conf)
 // Each MapWritable in “input” represents a JSON object
 ```
 
-In addition to the hadoopFile() and saveAsHadoopFile() family of functions, you can use hadoopDataset/saveAsHadoopDataSet and newAPIHadoopDataset/saveAsNewAPIHadoopDataset to access Hadoop-supported storage formats that are not filesystems. For example, many key/value stores, such as HBase and MongoDB, provide Hadoop input formats that read directly from the key/value store. You can easily use any such format in Spark.  
+In addition to the hadoopFile() and saveAsHadoopFile() family of functions, you can use `hadoopDataset/saveAsHadoopDataSet` and` newAPIHadoopDataset/saveAsNewAPIHadoopDataset`` to access Hadoop-supported storage formats that are not filesystems`. `For example, many key/value stores, such as HBase and MongoDB, provide Hadoop input formats that read directly from the key/value store. You can easily use any such format in Spark`.  
 
 The hadoopDataset() family of functions just take a Configuration object on which you set the Hadoop properties needed to access your data source. You do the configuration the same way as you would configure a Hadoop MapReduce job, so you can follow the instructions for accessing one of these data sources in MapReduce and then pass the object to Spark.
 
 ##### Example: Protocol buffers
-[Protocol buffers] were first developed at Google for internal remote procedure calls (RPCs) and have since been open sourced. Protocol buffers (PBs) are `structured data, with the fields and types of fields being clearly defined`. They are optimized to be fast for encoding and decoding and also take up the minimum amount of space. Compared to XML, PBs are `3× to 10× smaller and can be 20× to 100× faster to encode and decode`. While a PB has a consistent encoding, there are multiple ways to create a file consisting of many PB messages.
+[Protocol buffers] were first developed at Google for internal remote procedure calls (RPCs) and have since been open sourced. Protocol buffers (PBs) are `structured data, with the fields and types of fields being clearly defined`. They are optimized to be `fast for encoding and decoding` and also `take up the minimum amount of space`. Compared to XML, PBs are `3× to 10× smaller and can be 20× to 100× faster to encode and decode`. While a PB has a consistent encoding, there are multiple ways to create a file consisting of many PB messages.
 
-Protocol buffers are defined using a domain-specific language, and then the protocol buffer compiler can be used to generate accessor methods in a variety of languages (including all those supported by Spark). Since PBs aim to take up a minimal amount of space they are `not “self-describing”`, as encoding the description of the data would take up additional space. This means that to parse data that is formatted as PB, `we need the protocol buffer definition` to make sense of it.
+Protocol buffers are defined using `a domain-specific language`, and then the `protocol buffer compiler` can be used to `generate accessor methods in a variety of languages` (including all those supported by Spark). Since PBs aim to take up a minimal amount of space they are `not “self-describing”`, as encoding the description of the data would take up additional space. This means that to parse data that is formatted as PB, `we need the protocol buffer definition` to make sense of it.
 
 `PBs consist of fields that can be either optional, required, or repeated.` When you’re parsing data, a missing optional field does not result in a failure, but a missing required field results in failing to parse the data. Therefore, when you’re adding new fields to existing protocol buffers it is good practice to make the new fields optional, as not everyone will upgrade at the same time (and even if they do, you might want to read your old data).
 
@@ -1453,7 +1461,7 @@ outputData.saveAsNewAPIHadoopFile(outputFile, classOf[Text],
 #### File Compression
 Frequently when working with Big Data, we find ourselves needing to use compressed data to save storage space and network overhead.
 
-These compression options apply only to the Hadoop formats that support compression, namely those that are written out to a filesystem. `The database Hadoop formats generally do not implement support for compression`, or if they have compressed records that is configured in the database itself.
+`These compression options apply only to the Hadoop formats that support compression, namely those that are written out to a filesystem`. `The database Hadoop formats generally do not implement support for compression`, or if they have compressed records that is configured in the database itself.
 
 **Table 5-3. Compression options**
 
@@ -1465,9 +1473,9 @@ bzip2     |Y   |Slow           |Very high       |BZip2Codec        |Y  |Y  |Uses
 zlib        |N  |Slow           |Medium          |DefaultCodec     |Y  |Y  |Default compression codec for Hadoop
 Snappy  |N   |Very Fast  |Low                |SnappyCodec       |N  |Y  |There is a Java port of Snappy but is not yet available in Spark/Hadoop
 
-`While Spark’s textFile() method can handle compressed input, it automatically disables splittable even if the input is compressed such that it could be read in a splittable way.` If you find yourself needing to read in a large single-file compressed input, consider skipping Spark’s wrapper and instead use either newAPIHadoopFile or hadoopFile and specify the correct compression codec. 
+`While Spark’s textFile() method can handle compressed input, it automatically disables splittable even if the input is compressed such that it could be read in a splittable way.` `If you find yourself needing to read in a large single-file compressed input, consider skipping Spark’s wrapper and instead use either newAPIHadoopFile or hadoopFile and specify the correct compression codec.` 
 
-Some input formats (like SequenceFiles) allow us to compress only the values in key/value data, which can be useful for doing lookups. Other input formats have their own compression control: for example, many of the formats in Twitter’s Elephant Bird package work with LZO compressed data.
+Some input formats (like SequenceFiles) allow us to compress only the values in key/value data, which can be useful for doing lookups. Other input formats have their own compression control: for example, many of the formats in [Twitter’s Elephant Bird package] work with LZO compressed data.
 
 ### Filesystems
 #### Local/“Regular” FS
@@ -1478,7 +1486,7 @@ Some network filesystems, like NFS, AFS, and MapR’s NFS layer, are exposed to 
 val rdd = sc.textFile(“file:///home/holden/happypandas.gz”)
 ```
 
-If your file isn’t already on all nodes in the cluster, you can load it locally on the driver without going through Spark and then call parallelize to distribute the contents to workers. This approach can be slow, however, so we recommend putting your files in a shared filesystem like HDFS, NFS, or S3.
+If your file isn’t already on all nodes in the cluster, you can load it locally on the driver without going through Spark and then call parallelize to distribute the contents to workers. This approach can be slow, however, so `we recommend putting your files in a shared filesystem like HDFS, NFS, or S3`.
 
 #### Amazon S3
 Amazon S3 is an increasingly popular option for storing large amounts of data. S3 is especially fast when your compute nodes are located inside of Amazon EC2, `but can easily have much worse performance if you have to go over the public Internet`.
@@ -1486,14 +1494,14 @@ Amazon S3 is an increasingly popular option for storing large amounts of data. S
 To access S3 in Spark, you should first set the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables to your S3 credentials. You can create these credentials from the Amazon Web Services console. Then pass a path starting with s3n:// to Spark’s file input methods, of the form s3n://bucket/path-within-bucket. As with all the other filesystems, Spark supports wildcard paths for S3, such as s3n://bucket/my-files/*.txt.
 
 #### HDFS
-The Hadoop Distributed File System (HDFS) is a popular distributed filesystem with which Spark works well. HDFS is designed to work on commodity hardware and be resilient to node failure while providing high data throughput. Spark and HDFS can be collocated on the same machines, and Spark can take advantage of this data locality to avoid network overhead.  
+The Hadoop Distributed File System (HDFS) is a popular distributed filesystem with which Spark works well. HDFS is designed to work on commodity hardware and be resilient to node failure while providing high data throughput. `Spark and HDFS can be collocated on the same machines, and Spark can take advantage of this data locality to avoid network overhead`.  
 
-Using Spark with HDFS is as simple as specifying hdfs://master:port/path for your input and output.
+Using Spark with HDFS is as simple as specifying `hdfs://master:port/path` for your input and output.
 
 #### Structured Data with Spark SQL
 Spark SQL is a component added in Spark 1.0 that is quickly becoming Spark’s preferred way to work with structured and semistructured data. By structured data, we mean data that has a schema — that is, a consistent set of fields across data records. Spark SQL supports multiple structured data sources as input, and because it understands their schema, it can `efficiently read only the fields you require from these data sources`. 
 
-In all cases, we give Spark SQL a SQL query to run on the data source (selecting some fields or a function of the fields), and we get back an RDD of Row objects, one per record. In Java and Scala, the Row objects allow access based on the column number. Each Row has a get() method that gives back a general type we can cast, and specific get() methods for common basic types (e.g., getFloat(), getInt(), getLong(), getString(), getShort(), and getBoolean()). In Python we can just access the elements with row[column_number] and row.column_name.
+In all cases, we give Spark SQL a SQL query to run on the data source (selecting some fields or a function of the fields), and `we get back an RDD of Row objects, one per record`. In Java and Scala, the Row objects allow access based on the column number. Each Row has a get() method that gives back a general type we can cast, and specific get() methods for common basic types (e.g., getFloat(), getInt(), getLong(), getString(), getShort(), and getBoolean()). In Python we can just access the elements with row[column_number] and row.column_name.
 
 ##### Apache Hive
 Spark SQL can load any table supported by Hive.
@@ -1516,7 +1524,7 @@ println(firstRow.getString(0)) // Field 0 is the name
 ```
 
 ##### JSON 1
-If you have JSON data with a consistent schema across records, Spark SQL can infer their schema and load this data as rows as well, making it very simple to pull out the fields you need. To load JSON data, first create a HiveContext as when using Hive. (No installation of Hive is needed in this case, though — that is, you don’t need a hive-site.xml file.) Then use the HiveContext.jsonFile method to get an RDD of Row objects for the whole file. Apart from using the whole Row object, you can also register this RDD as a table and select specific fields from it.
+`If you have JSON data with a consistent schema across records, Spark SQL can infer their schema and load this data as rows as well`, making it very simple to pull out the fields you need. To load JSON data, first create a HiveContext as when using Hive. (No installation of Hive is needed in this case, though — that is, you don’t need a hive-site.xml file.) Then use the HiveContext.jsonFile method to get an RDD of Row objects for the whole file. Apart from using the whole Row object, you can also register this RDD as a table and select specific fields from it.
 
 For example, suppose that we had a JSON file containing tweets in the format shown in Example 5-33, one per line.
 **Example 5-33. Sample tweets in JSON**  
@@ -1537,10 +1545,10 @@ val results = hiveCtx.sql(“SELECT user.name, text FROM tweets”)
 ```
 
 #### Databases
-Spark can access several popular databases using either their Hadoop connectors or custom Spark connectors.
+Spark can access several popular databases using `either their Hadoop connectors or custom Spark connectors`.
 
 ##### Java Database Connectivity
-Spark can load data from any relational database that supports Java Database Connectivity (JDBC), including MySQL, Postgres, and other systems. To access this data, we construct an org.apache.spark.rdd.JdbcRDD and provide it with our SparkContext and the other parameters. Example 5-37 walks you through using JdbcRDD for a MySQL database.
+Spark can load data from any relational database that supports `Java Database Connectivity (JDBC)`, including MySQL, Postgres, and other systems. To access this data, we construct an org.apache.spark.rdd.JdbcRDD and provide it with our SparkContext and the other parameters. Example 5-37 walks you through using JdbcRDD for a MySQL database.
 ```scala
 def createConnection() = {
     Class.forName(“com.mysql.jdbc.Driver”).newInstance();
@@ -1558,9 +1566,9 @@ println(data.collect().toList)
 JdbcRDD takes several parameters:   
 * First, we provide a function to establish a connection to our database. This `lets each node create its own connection` to load data over, after performing any configuration required to connect.   
 * Next, we provide a query that can read a range of the data, as well as a lowerBound and upperBound value for the parameter to this query. `These parameters allow Spark to query different ranges of the data on different machines`, so we don’t get bottlenecked trying to load all the data on a single node.  
-* The last parameter is a function that converts each row of output from a java.sql.ResultSet to a format that is useful for manipulating our data. In Example 5-37, we will get (Int, String) pairs. If this parameter is left out, Spark will automatically convert each row to an array of objects.
+* The last parameter is a function that converts each row of output from a java.sql.ResultSet to a format that is useful for manipulating our data. In Example 5-37, we will get (Int, String) pairs. If this parameter is left out, `Spark will automatically convert each row to an array of objects`.
 
-As with other data sources, `when using JdbcRDD, make sure that your database can handle the load of parallel reads from Spark`. `If you’d like to query the data offline rather than the live database, you can always use your database’s export feature to export a text file`.
+`As with other data sources, when using JdbcRDD, make sure that your database can handle the load of parallel reads from Spark`. `If you’d like to query the data offline rather than the live database, you can always use your database’s export feature to export a text file`.
 
 ##### Cassandra
 Spark’s Cassandra support has improved greatly with the introduction of the open source [Spark Cassandra connector] from DataStax. Since the connector is not currently part of Spark, you will need to add some further dependencies to your build file. `Cassandra doesn’t yet use Spark SQL, but it returns RDDs of CassandraRow objects`, which have some of the same methods as Spark SQL’s Row object, as shown in Examples 5-38 and 5- 39.The Spark Cassandra connector is currently only available in Java and Scala.
@@ -1583,7 +1591,7 @@ Spark’s Cassandra support has improved greatly with the introduction of the op
     <version>1.0.0-rc5</version>
 </dependency>
 ```
-Much like with Elasticsearch, the Cassandra connector reads a job property to determine which cluster to connect to. We set the `spark.cassandra.connection.host` to point to our Cassandra cluster and if we have a username and password we can set them with `spark.cassandra.auth.username` and `spark.cassandra.auth.password`. Assuming you have only a single Cassandra cluster to connect to, we can set this up when we are creating our SparkContext as shown in Examples 5-40 and 5-41.
+`Much like with Elasticsearch, the Cassandra connector reads a job property to determine which cluster to connect to`. We set the `spark.cassandra.connection.host` to point to our Cassandra cluster and if we have a username and password we can set them with `spark.cassandra.auth.username` and `spark.cassandra.auth.password`. Assuming you have only a single Cassandra cluster to connect to, we can set this up when we are creating our SparkContext as shown in Examples 5-40 and 5-41.
 
 ```scala
 val conf = new SparkConf(true)
@@ -1624,7 +1632,7 @@ rdd.saveToCassandra(“test” , “kv”, SomeColumns(“key”, “value”))
 ##### HBase
 Spark can access HBase through its Hadoop input format, implemented in the `org.apache.hadoop.hbase.mapreduce.TableInputFormat` class. This input format returns key/value pairs where the key is of type `org.apache.hadoop.hbase.io.ImmutableBytesWritable` and the value is of type `org.apache.hadoop.hbase.client.Result`. The Result class includes various methods for getting values based on their column family, as described in its API documentation.
 
-To use Spark with HBase, you can call SparkContext.newAPIHadoopRDD with the correct input format, as shown for Scala in Example 5-45.  
+To use Spark with HBase, you can call `SparkContext.newAPIHadoopRDD` with the correct input format, as shown for Scala in Example 5-45.  
 **Example 5-45. Scala example of reading from HBase**
 ```scala
 import org.apache.hadoop.hbase.HBaseConfiguration
@@ -1641,7 +1649,7 @@ To optimize reading from HBase, TableInputFormat includes multiple settings such
 ##### Elasticsearch
 Spark can both read and write data from Elasticsearch using [Elasticsearch-Hadoop]. Elasticsearch is a new open source, Lucene-based search system.
 
-The Elasticsearch connector is a bit different than the other connectors we have examined, since it ignores the path information we provide and instead depends on setting up configuration on our SparkContext. The Elasticsearch OutputFormat connector also doesn’t quite have the types to use Spark’s wrappers, so we instead use saveAsHadoopDataSet, which means we need to set more properties by hand. Let’s look at how to read/write some simple data to Elasticsearch in Examples 5-46 and 5-47.
+The Elasticsearch connector is a bit different than the other connectors we have examined, since it ignores the path information we provide and instead depends on setting up configuration on our SparkContext. `The Elasticsearch OutputFormat connector also doesn’t quite have the types to use Spark’s wrappers, so we instead use saveAsHadoopDataSet`, which means we need to set more properties by hand. Let’s look at how to read/write some simple data to Elasticsearch in Examples 5-46 and 5-47.
 
 **Example 5-46. Elasticsearch output in Scala**
 ```scala
@@ -1719,19 +1727,19 @@ val callSigns = file.flatMap(line => {
 callSigns.saveAsTextFile(“output.txt”)
 println(“Blank lines: “ + blankLines.value)
 ```
-Note that we will see the right count only after we run the saveAsTextFile() action, because the transformation above it, map(), is lazy, so the sideeffect incrementing of the accumulator will happen only when the lazy map() transformation is forced to occur by the saveAsTextFile() action.
+Note that we will see the right count only after we run the saveAsTextFile() action, because the transformation above it, map(), is lazy, so the side effect incrementing of the accumulator will happen only when the lazy map() transformation is forced to occur by the saveAsTextFile() action.
 
-`Of course, it is possible to aggregate values from an entire RDD back to the driver program using actions like reduce()`, but sometimes we need a simple way to aggregate values that, in the process of transforming an RDD, are generated at different scale or granularity than that of the RDD itself. In the previous example, accumulators let us count errors as we load the data, without doing a separate filter() or reduce().
+Of course, it is possible to aggregate values from an entire RDD back to the driver program using actions like reduce(), but sometimes we need a simple way to aggregate values that, in the process of transforming an RDD, are generated at different scale or granularity than that of the RDD itself. In the previous example, accumulators let us count errors as we load the data, without doing a separate filter() or reduce().
 
 To summarize, accumulators work as follows:  
 * We create them in the driver by calling the SparkContext.accumulator(initialValue) method, which produces an accumulator holding an initial value. The return type is an org.apache.spark.Accumulator[T] object, where T is the type of initialValue.  
 * Worker code in Spark closures can add to the accumulator with its += method (or add in Java).  
-* The driver program can call the value property on the accumulator to access its value (or call value() and setValue() in Java).
+* The driver program can call the value property on the accumulator to access its value (or call value() and getValue() in Java).
 
-`Note that tasks on worker nodes cannot access the accumulator’s value() — from the point of view of these tasks, accumulators are write-only variables`. This allows accumulators to be implemented efficiently, without having to communicate every update.
+`Note that tasks on worker nodes cannot access the accumulator’s value() — from the point of view of these tasks, accumulators are write-only variables`. This allows accumulators to be implemented efficiently, `without having to communicate every update`.
 
 The type of counting shown here becomes especially handy when there are multiple values to keep track of, or when the same value needs to increase at multiple places in the parallel program. The value of our accumulators is available only in the driver
-program, so that is where we place our checks. 
+program, so that is where we place our checks.   
 **Example 6-5. Accumulator error count in Python**  
 ```html
 # Create Accumulators for validating call signs
@@ -1756,14 +1764,14 @@ else:
     print “Too many errors: %d in %d” % (invalidSignCount.value, validSignCount.value)
 ```
 #### Accumulators and Fault Tolerance
-Spark automatically deals with failed or slow machines by re-executing failed or slow tasks. For example, if the node running a partition of a map() operation crashes, Spark will rerun it on another node; and even if the node does not crash but is simply much slower than other nodes, Spark can preemptively launch a “speculative” copy of the task on another node, and take its result if that finishes. Even if no nodes fail, Spark may have to rerun a task to rebuild a cached value that falls out of memory. The net result is therefore that the same function may run multiple times on the same data depending on what happens on the cluster.
+`Spark automatically deals with failed or slow machines by re-executing failed or slow tasks`. For example, if the node running a partition of a map() operation crashes, Spark will rerun it on another node; and even if the node does not crash but is simply much slower than other nodes, `Spark can preemptively launch a “speculative” copy of the task on another node`, and take its result if that finishes. `Even if no nodes fail, Spark may have to rerun a task to rebuild a cached value that falls out of memory`. `The net result is therefore that the same function may run multiple times on the same data depending on what happens on the cluster`.
 
 How does this interact with accumulators? The end result is that` for accumulators used in actions, Spark applies each task’s update to each accumulator only once`. Thus, `if we want a reliable absolute value counter, regardless of failures or multiple evaluations, we must put it inside an action like foreach()`.
 
-`For accumulators used in RDD transformations instead of actions, this guarantee does not exist`. An accumulator update within a transformation can occur more than once. One such case of a probably unintended multiple update occurs when a cached but infrequently used RDD is first evicted from the LRU cache and is then subsequently needed. This forces the RDD to be recalculated from its lineage, with the unintended side effect that calls to update an accumulator within the transformations in that lineage are sent again to the driver. Within transformations, accumulators should, consequently, be used only for debugging purposes.
+`For accumulators used in RDD transformations instead of actions, this guarantee does not exist`. An accumulator update within a transformation can occur more than once. One such case of a probably unintended multiple update occurs when a cached but infrequently used RDD is first evicted from the LRU cache and is then subsequently needed. This forces the RDD to be recalculated from its lineage, with the unintended side effect that calls to update an accumulator within the transformations in that lineage are sent again to the driver. `Within transformations, accumulators should, consequently, be used only for debugging purposes`.
 
 #### Custom Accumulators
-So far we’ve seen how to use one of Spark’s built-in accumulator types: integers (Accumulator[Int]) with addition. Out of the box, Spark supports accumulators of type Double, Long, and Float. In addition to these, Spark also includes an API to define custom accumulator types and custom aggregation operations (e.g., finding the maximum of the accumulated values instead of adding them). Custom accumulators need to extend AccumulatorParam, which is covered in the Spark API documentation. Beyond adding to a numeric value, we can use any operation for add, provided that operation is commutative and associative. For example, instead of adding to track the total we could keep track of the maximum value seen so far.
+So far we’ve seen how to use one of Spark’s built-in accumulator types: integers (`Accumulator[Int]`) with addition. Out of the box, Spark supports accumulators of type `Double, Long, and Float`. In addition to these, Spark also includes an API to define custom accumulator types and custom aggregation operations (e.g., finding the maximum of the accumulated values instead of adding them). Custom accumulators need to extend AccumulatorParam, which is covered in the Spark API documentation. Beyond adding to a numeric value, we can use any operation for add, provided that `operation is commutative and associative`. For example, instead of adding to track the total we could keep track of the maximum value seen so far.
 
 An operation op is **commutative** if a op b = b op a for all values a, b.  
 An operation op is **associative** if (a op b) op c = a op (b op c) for all values a, b, and c.  
@@ -1771,7 +1779,7 @@ An operation op is **associative** if (a op b) op c = a op (b op c) for all valu
 ### Broadcast Variables
 Spark’s second type of shared variable, broadcast variables, allows the program to efficiently send `a large, read-only value` to all the worker nodes for use in one or more Spark operations. They come in handy, for example, if your application needs to send a large, read-only lookup table to all the nodes, or even a large feature vector in a machine learning algorithm.
 
-Recall that Spark automatically sends all variables referenced in your closures to the worker nodes. While this is convenient, it can also be inefficient because (1) the default task launching mechanism is optimized for small task sizes, and (2) you might, in fact, use the same variable in multiple parallel operations, but Spark will send it separately for each operation.
+`Recall that Spark automatically sends all variables referenced in your closures to the worker nodes`. While this is convenient, it can also be inefficient because (1) the default task launching mechanism is optimized for small task sizes, and (2) you might, in fact, use the same variable in multiple parallel operations, but Spark will send it separately for each operation.
 
 As an example, say that we wanted to write a Spark program that looks up countries by their call signs by prefix matching in an array. This is useful for ham radio call signs since each country gets its own prefix, although the prefixes are not uniform in length. If we wrote this naively in Spark, the code might look like Example 6-6.
 
@@ -1786,10 +1794,10 @@ def processSignCount(sign_count, signPrefixes):
     count = sign_count[1]
     return (country, count)
 countryContactCounts = (contactCounts
-                                            .map(processSignCount)
-                                            .reduceByKey((lambda x, y: x+ y)))
+            .map(processSignCount)
+            .reduceByKey((lambda x, y: x+ y)))
 ```
-This program would run, but if we had a larger table (say, with IP addresses instead of call signs), the signPrefixes could easily be several megabytes in size, making it expensive to send that Array from the master alongside each task. In addition, if we used the same signPrefixes object later (maybe we next ran the same code on file2.txt), it would be sent again to each node.
+This program would run, but if we had a larger table (say, with IP addresses instead of call signs), the signPrefixes could easily be several megabytes in size, `making it expensive to send that Array from the master alongside each task`. `In addition, if we used the same signPrefixes object later (maybe we next ran the same code on file2.txt), it would be sent again to each node`.
 
 We can fix this by making signPrefixes a broadcast variable. A broadcast variable is simply an object of type `spark.broadcast.Broadcast[T]`, which wraps a value of type T. We can access this value by calling value on the Broadcast object in our tasks. `The value is sent to each node only once, using an efficient, BitTorrent-like communication mechanism`.  
 **Example 6-7. Country lookup with Broadcast values in Python**  
@@ -1816,12 +1824,12 @@ As shown in these examples, the process of using broadcast variables is simple:
 `The easiest way to satisfy the read-only requirement is to broadcast a primitive value or a reference to an immutable object`. In such cases, you won’t be able to change the value of the broadcast variable except within the driver code. However, `sometimes it can be more convenient or more efficient to broadcast a mutable object. If you do that, it is up to you to maintain the read-only condition`. As we did with our call sign prefix table of Array[String], we must make sure that the code we run on our worker nodes does not try to do something like val theArray = broadcastArray.value; theArray(0) = newValue. When run in a worker node, that line will assign newValue to the first array element only in the copy of the array local to the worker node running the code; it will not change the contents of broadcastArray.value on any of the other worker nodes.
 
 #### Optimizing Broadcasts
-When we are broadcasting large values, it is important to choose a data serialization format that is both fast and compact, because the time to send the value over the network can quickly become a bottleneck if it takes a long time to either serialize a value or to send the serialized value over the network. `In particular, Java Serialization, the default serialization library used in Spark’s Scala and Java APIs, can be very inefficient out of the box for anything except arrays of primitive types`. You can optimize serialization by selecting a different serialization library using the spark.serializer property (Chapter 8 will describe how to use Kryo, a faster serialization library), or by implementing your own serialization routines for your data types (e.g., using the java.io.Externalizable interface for Java Serialization, or using the reduce() method to define custom serialization for Python’s pickle library).
+When we are broadcasting large values, it is important to choose a data serialization format that is both fast and compact, because the time to send the value over the network can quickly become a bottleneck if it takes a long time to either serialize a value or to send the serialized value over the network. `In particular, Java Serialization, the default serialization library used in Spark’s Scala and Java APIs, can be very inefficient out of the box for anything except arrays of primitive types`. You can optimize serialization by selecting a different serialization library using the `spark.serializer` property (Chapter 8 will describe how to use Kryo, a faster serialization library), or by implementing your own serialization routines for your data types (e.g., using the java.io.Externalizable interface for Java Serialization, or using the reduce() method to define custom serialization for Python’s pickle library).
 
 ### Working on a Per-Partition Basis
-Working with data on a per-partition basis allows us to `avoid redoing setup work for each data item`. Operations like opening a database connection or creating a random-number generator are examples of setup steps that we wish to avoid doing for each element. Spark has per-partition versions of map and foreach to help reduce the cost of these operations by letting you run code only once for each partition of an RDD.
+Working with data on a per-partition basis allows us to `avoid redoing setup work for each data item`. Operations like opening a database connection or creating a random-number generator are examples of setup steps that we wish to avoid doing for each element. `Spark has per-partition versions of map and foreach` to help reduce the cost of these operations by letting you run code only once for each partition of an RDD.
 
-As Examples 6-10 through 6-12 show, we use the mapPartitions() function, which gives us an iterator of the elements in each partition of the input RDD and expects us to return an iterator of our results.  
+As Examples 6-10 through 6-12 show, we use the mapPartitions() function, which `gives us an iterator of the elements in each partition of the input RDD` and `expects us to return an iterator of our results`.  
 **Example 6-10. Shared connection pool in Python**  
 ```python
 def processCallSigns(signs):
@@ -1871,7 +1879,7 @@ f: (Int, Iterator[T]) → Iterator[U]
 Input: Integer of partition number, and Iterator of the elements in that partition  
 Output: Iterator of our return elements
 * foreachPartition()  
-f: (Iterator[T]) → Unit
+f: (Iterator[T]) → Unit  
 Input: Iterator of the elements  
 Output: Nothing  
 
@@ -1903,11 +1911,11 @@ def fastAvg(nums):
 ```
 
 ### Piping to External Programs
-Spark provides a general mechanism to pipe data to programs in other languages, like R scripts. Spark provides a pipe() method on RDDs. Spark’s pipe() lets us write parts of jobs using any language we want as long as it can read and write to Unix standard streams.
+Spark provides a general mechanism to pipe data to programs in other languages, like R scripts. Spark provides a `pipe()` method on RDDs. Spark’s pipe() lets us write parts of jobs using any language we want as long as it can `read and write to Unix standard streams`.
 
 With pipe(), you can write a transformation of an RDD that reads each RDD element from standard input as a String, manipulates that String however you like, and then writes the result(s) as Strings to standard output. The interface and programming model is restrictive and limited, but sometimes it’s just what you need to do something like make use of a native code function within a map or filter operation. 
 
-Most likely, you’d want to pipe an RDD’s content through some external program or script because you’ve already got complicated software built and tested that you’d like to reuse with Spark. A lot of data scientists have code in R,12 and we can interact with R programs using pipe().
+Most likely, you’d want to pipe an RDD’s content through some external program or script because you’ve already got complicated software built and tested that you’d like to reuse with Spark. A lot of data scientists have code in R, and we can interact with R programs using pipe().
 
 ```r
 #!/usr/bin/env Rscript
@@ -1960,7 +1968,7 @@ println(distances.collect().toList)
 ```
 With SparkContext.addFile(path), The files can then be found on the worker nodes in SparkFiles.getRootDirectory, or located with SparkFiles.get(filename). Of course, this is only one way to make sure that pipe() can find a script on each worker node. You could use another remote copying tool to place the script file in a knowable location on each node.
 
-All the files added with SparkContext.addFile(path) are stored in the same directory, so it’s important to use unique names.
+`All the files added with SparkContext.addFile(path) are stored in the same directory`, so it’s important to use unique names.
 
 Once the script is available, the pipe() method on RDDs makes it easy to pipe the elements of an RDD through the script. Perhaps a smarter version of findDistance would accept SEPARATOR as a command-line argument. In that case, either of these would do the job, although the first is preferred:  
 * rdd.pipe(Seq(SparkFiles.get(“finddistance.R”), “,”))  
@@ -1971,7 +1979,7 @@ The [SparkR] project also provides a lightweight frontend to use Spark from with
 ### Numeric RDD Operations
 Spark provides several descriptive statistics operations on RDDs containing numeric data. These are in addition to the more complex statistical and machine learning methods we will describe later in Chapter 11.
 
-Spark’s numeric operations are implemented with a streaming algorithm that allows for building up our model one element at a time. The descriptive statistics are `all computed in a single pass over the data and returned as a StatsCounter object by calling stats()`. Table 6-2 lists the methods available on the StatsCounter object.
+Spark’s numeric operations are implemented with `a streaming algorithm that allows for building up our model one element at a time`. The descriptive statistics are `all computed in a single pass over the data and returned as a StatsCounter object by calling stats()`. Table 6-2 lists the methods available on the StatsCounter object.
 
 **Table 6-2. Summary statistics available from StatsCounter**  
 
@@ -2004,7 +2012,7 @@ println(reasonableDistance.collect().toList)
 ```
 
 ## Chapter 7. Running on a Cluster
-The good news is that writing applications for parallel cluster execution uses the same API you’ve already learned in this book. The examples and applications you’ve written so far will run on a cluster “out of the box.” This is one of the benefits of Spark’s higher level API: users can rapidly prototype applications on smaller datasets locally, then run unmodified code on even very large clusters.
+`The good news is that writing applications for parallel cluster execution uses the same API you’ve already learned in this book`. The examples and applications you’ve written so far will run on a cluster “out of the box.” This is one of the benefits of Spark’s higher level API: users can rapidly prototype applications on smaller datasets locally, then run unmodified code on even very large clusters.
 
 Spark can run on a wide variety of cluster managers (Hadoop YARN, Apache Mesos, and Spark’s own built-in Standalone cluster manager) in both on-premise and cloud deployments. We’ll discuss the trade-offs and configurations required for running in each case.
 
@@ -2024,9 +2032,9 @@ The driver is the process where the main() method of your program runs. It is th
 
 When the driver runs, it performs two duties:
 1. Converting a user program into tasks  
-The Spark driver is responsible for converting a user program into units of physical execution called tasks. At a high level, all Spark programs follow the same structure: they create RDDs from some input, derive new RDDs from those using transformations, and perform actions to collect or save data. A Spark program implicitly creates a logical `directed acyclic graph (DAG)` of operations. When the driver runs, it converts this logical graph into a physical `execution plan`. `Spark performs several optimizations, such as “pipelining” map transformations together to merge them, and converts the execution graph into a set of` `stages`. Each stage, in turn, consists of multiple tasks. The tasks are bundled up and prepared to be sent to the cluster. `Tasks` are the smallest unit of work in Spark; a typical user program can launch hundreds or thousands of individual tasks.  
+The Spark driver is responsible for converting a user program into units of physical execution called tasks. At a high level, all Spark programs follow the same structure: they create RDDs from some input, derive new RDDs from those using transformations, and perform actions to collect or save data. A Spark program implicitly creates a logical `directed acyclic graph (DAG)` of operations. When the driver runs, it converts this logical graph into a physical `execution plan`. `Spark performs several optimizations, such as “pipelining” map transformations together to merge them, and converts the execution graph into a set of` `stages`. `Each stage, in turn, consists of multiple tasks`. `The tasks are bundled up and prepared to be sent to the cluster`. `Tasks` are the smallest unit of work in Spark; a typical user program can launch hundreds or thousands of individual tasks.  
 2. Scheduling tasks on executors  
-Given a physical execution plan, a Spark driver must coordinate the scheduling of individual tasks on executors. When executors are started they register themselves with the driver, so it has a complete view of the application’s executors at all times. Each executor represents a process capable of running tasks and storing RDD data. The Spark driver will look at the current set of executors and try to schedule each task in an appropriate location, based on data placement. When tasks execute, they may have a side effect of storing cached data. The driver also tracks the location of cached data and uses it to schedule future tasks that access that data. The driver exposes information about the running Spark application through a web interface, which by default is available at port 4040. For instance, in local mode, this UI is available at http://localhost:4040.  
+Given a physical execution plan, a Spark driver must coordinate the scheduling of individual tasks on executors. When executors are started they register themselves with `the driver, so it has a complete view of the application’s executors at all times`. `Each executor represents a process capable of running tasks and storing RDD data`. The Spark driver will look at the current set of executors and try to schedule each task in an appropriate location, based on data placement. When tasks execute, they may have a side effect of storing cached data. The driver also tracks the location of cached data and uses it to schedule future tasks that access that data. `The driver exposes information about the running Spark application through a web interface, which by default is available at port 4040. For instance, in local mode, this UI is available at http://localhost:4040`.  
 
 #### Executors
 Spark executors are worker processes responsible for running the individual tasks in a given Spark job. `Executors are launched once at the beginning of a Spark application and typically run for the entire lifetime of an application`, though Spark applications can continue if executors fail. Executors have two roles. First, they run the tasks that make up the application and return results to the driver. `Second, they provide in-memory storage for RDDs that are cached by user programs`, through a service called the `Block Manager` that lives within each executor. Because RDDs are cached directly inside of executors, tasks can run alongside the cached data.
@@ -2034,11 +2042,11 @@ Spark executors are worker processes responsible for running the individual task
 For most of this book, you’ve run examples in Spark’s local mode. In this mode, the Spark driver runs along with an executor in the same Java process.
 
 #### Cluster Manager
-Spark depends on a cluster manager to launch executors and, in certain cases, to launch the driver. The cluster manager is a pluggable component in Spark. This allows Spark to run on top of different external managers, such as YARN and Mesos, as well as its built-in Standalone cluster manager.
+`Spark depends on a cluster manager to launch executors and, in certain cases, to launch the driver`. The cluster manager is a pluggable component in Spark. This allows Spark to run on top of different external managers, such as YARN and Mesos, as well as its built-in Standalone cluster manager.
 
 Spark’s documentation consistently uses the terms driver and executor when describing the processes that execute each Spark application. The terms master and worker are used to describe the centralized and distributed portions of the cluster manager. It’s easy to confuse these terms, so pay close attention. For instance, Hadoop YARN runs a master daemon (called the Resource Manager) and several worker daemons called Node Managers. Spark can run both drivers and executors on the YARN worker nodes.
 
-No matter which cluster manager you use, Spark provides a single script you can use to submit your program to it called spark-submit. Through various options, `spark-submit` can connect to different cluster managers and control how many resources your application gets. For some cluster managers, spark-submit can run the driver within the cluster (e.g., on a YARN worker node), while for others, it can run it only on your local machine.
+No matter which cluster manager you use, Spark provides a single script you can use to submit your program to it called spark-submit. Through various options, `spark-submit` can connect to different cluster managers and control how many resources your application gets. `For some cluster managers, spark-submit can run the driver within the cluster (e.g., on a YARN worker node), while for others, it can run it only on your local machine`.
 
 To summarize the concepts in this section, let’s walk through the exact steps that occur when you run a Spark application on a cluster:
 1. The user submits an application using spark-submit.
@@ -2047,7 +2055,7 @@ To summarize the concepts in this section, let’s walk through the exact steps 
 4. The cluster manager launches executors on behalf of the driver program.
 5. The driver process runs through the user application. Based on the RDD actions and transformations in the program, the driver sends work to executors in the form of tasks.
 6. Tasks are run on executor processes to compute and save results.
-7. If the driver’s main() method exits or it calls `SparkContext.stop()`, it will terminate the executors and release resources from the cluster manager.
+7. If the driver’s main() method exits or it calls `SparkContext.stop()`, `it will terminate the executors and release resources from the cluster manager`.
 
 ### Deploying Applications with spark-submit
 As you’ve learned, Spark provides a single tool for submitting jobs across all cluster managers, called `spark-submit`.
@@ -2055,13 +2063,14 @@ As you’ve learned, Spark provides a single tool for submitting jobs across all
 bin/spark-submit my_script.py
 ```
 
-When spark-submit is called with nothing but the name of a script or JAR, it simply runs the supplied Spark program locally. Let’s say we wanted to submit this program to a Spark Standalone cluster. We can provide extra flags with the address of a Standalone cluster and a specific size of each executor process we’d like to launch, as shown in Example 7-2.  
+`When spark-submit is called with nothing but the name of a script or JAR, it simply runs the supplied Spark program locally`. Let’s say we wanted to submit this program to a Spark Standalone cluster. We can provide extra flags with the address of a Standalone cluster and a specific size of each executor process we’d like to launch, as shown in Example 7-2.  
 **Example 7-2. Submitting an application with extra arguments** 
 ```shell
 bin/spark-submit —master spark://host:7077 —executor-memory 10g my_script.py
 ```
 The —master flag specifies a cluster URL to connect to; in this case, the spark:// URL means a cluster using Spark’s Standalone mode (see Table 7-1).  
 **Table 7-1. Possible values for the —master flag in spark-submit**  
+
 Value                       |Explanation
 ----------------------|------------------------------------------------------------------------------------------------------------------------------
 spark://host:port   |Connect to a Spark Standalone cluster at the specified port. By default Spark Standalone masters use port 7077.
@@ -2080,6 +2089,7 @@ bin/spark-submit [options] <app jar | python file> [app options]
 
 [options] are a list of flags for spark-submit. You can enumerate all possible flags by running spark-submit —help.
 **Table 7-2. Common flags for spark-submit**  
+
 Flag                            |Explanation
 -------------------------|---------------------------------------------------------------------------------------------------------------------------
 —master                    |Indicates the cluster manager to connect to. The options for this flag are described in Table 7-1.
@@ -2121,7 +2131,7 @@ For Python users, there are a few ways to install third-party libraries. Since P
 
 When you are bundling an application, you should never include Spark itself in the list of submitted dependencies. `spark-submit automatically ensures that Spark is present in the path of your program`.
 
-For Java and Scala users, it is also possible to submit individual JAR files using the —jars flag to spark-submit. This can work well if you have a very simple dependency on one or two libraries and they themselves don’t have any other dependencies. It is more common, however, for users to have Java or Scala projects that depend on several libraries. When you submit an application to Spark, it must ship with its entire transitive dependency graph to the cluster. This is often called an `uber JAR` or an `assembly JAR`, and most Java or Scala build tools can produce this type of artifact.
+For Java and Scala users, it is also possible to submit individual JAR files using the —jars flag to spark-submit. This can work well if you have a very simple dependency on one or two libraries and they themselves don’t have any other dependencies. It is more common, however, for users to have Java or Scala projects that depend on several libraries. `When you submit an application to Spark, it must ship with its entire transitive dependency graph to the cluster`. This is often called an `uber JAR` or an `assembly JAR`, and most Java or Scala build tools can produce this type of artifact.
 
 The most popular build tools for Java and Scala are `Maven` and `sbt (Scala build tool)`. `Either tool can be used with either language`, but Maven is more often used for Java projects and sbt for Scala projects.
 
@@ -2279,7 +2289,7 @@ $ cat ~/.ssh/id_dsa.pub >> ~/.ssh/authorized_keys
 $ chmod 644 ~/.ssh/authorized_keys
 ```
 3. Edit the conf/slaves file on your master and fill in the workers’ hostnames.
-4. To start the cluster, run sbin/start-all.sh on your master (it is important to run it there rather than on a worker). If everything started, you should get no prompts for a password, and the cluster manager’s web UI should appear at http://masternode:8080 and show all your workers.
+4. To start the cluster, run sbin/start-all.sh on your master (it is important to run it there rather than on a worker). If everything started, you should get no prompts for a password, and `the cluster manager’s web UI should appear at http://masternode:8080 and show all your workers`.
 5. To stop the cluster, run bin/stop-all.sh on your master node.
 
 If you are not on a UNIX system or would like to launch the cluster manually, you can also start the master and workers by hand, using the spark-class script in Spark’s bin/ directory. On your master, type:
@@ -2307,7 +2317,7 @@ To check that your application or shell is running, look at the cluster manager�
 
 Finally, the Standalone cluster manager supports two deploy modes for where the driver program of your application runs. In client mode (the default), the driver runs on the machine where you executed spark-submit, as part of the spark-submit command. This means that you can directly see the output of your driver program, or send input to it (e.g., for an interactive shell), but it requires the machine from which your application was submitted to have fast connectivity to the workers and to stay available for the duration of your application. In contrast, in cluster mode, the driver is launched within the Standalone cluster, as another process on one of the worker nodes, and then it connects back to request executors.
 
-When sharing a Spark cluster among multiple applications, you will need to decide how to allocate resources between the executors. The Standalone cluster manager has a basic scheduling policy that allows capping the usage of each application so that multiple ones may run concurrently.
+When sharing a Spark cluster among multiple applications, you will need to decide how to allocate resources between the executors. `The Standalone cluster manager has a basic scheduling policy that allows capping the usage of each application so that multiple ones may run concurrently`.
 
 In the Standalone cluster manager, resource allocation is controlled by two settings:  
 1. Executor memory  
@@ -2317,12 +2327,12 @@ This is the total number of cores used across all executors for an application. 
 
 Finally, the Standalone cluster manager works by `spreading out each application across the maximum number of executors by default`. For example, suppose that you have a 20- node cluster with 4-core machines, and you submit an application with —executor-memory 1G and —total-executor-cores 8. Then Spark will launch eight executors, each with 1 GB of RAM, on different machines. Spark does this by default to `give applications a chance to achieve data locality for distributed filesystems running on the same machines (e.g., HDFS), because these systems typically have data spread out across all nodes`. If you prefer, you can instead ask Spark to consolidate executors on as few nodes as possible, by setting the config property `spark.deploy.spreadOut` to false in `conf/spark-defaults.conf`. In this case, the preceding application would get only two executors, each with 1 GB RAM and four cores. This setting affects all applications on the Standalone cluster and must be configured before you launch the Standalone cluster manager.
 
-When running in production settings, you will want your Standalone cluster to be available to accept applications even if individual nodes in your cluster go down. Out of the box, the Standalone mode will gracefully support the failure of worker nodes. If you also want the master of the cluster to be highly available, Spark supports using Apache ZooKeeper (a distributed coordination system) to keep multiple standby masters and switch to a new one when any of them fails.
+When running in production settings, you will want your Standalone cluster to be available to accept applications even if individual nodes in your cluster go down. `Out of the box, the Standalone mode will gracefully support the failure of worker nodes. If you also want the master of the cluster to be highly available, Spark supports using Apache ZooKeeper (a distributed coordination system) to keep multiple standby masters and switch to a new one when any of them fails.`
 
 #### Hadoop YARN
 Running Spark on YARN in these environments is useful because it lets Spark access HDFS data quickly, on the same nodes where the data is stored.
 
-Using YARN in Spark is straightforward: you set an environment variable that points to your Hadoop configuration directory, then submit jobs to a special master URL with spark-submit. The first step is to figure out your Hadoop configuration directory, and set it as the environment variable HADOOP_CONF_DIR.
+`Using YARN in Spark is straightforward: you set an environment variable that points to your Hadoop configuration directory`, then submit jobs to a special master URL with spark-submit. The first step is to figure out your Hadoop configuration directory, and set it as the environment variable HADOOP_CONF_DIR.
 ```shell
 export HADOOP_CONF_DIR=“…”
 spark-submit —master yarn yourapp
@@ -2330,7 +2340,7 @@ spark-submit —master yarn yourapp
 
 Spark’s interactive shell and pyspark both work on YARN as well; simply set HADOOP_CONF_DIR and pass —master yarn to these applications. Note that these will run only in client mode since they need to obtain input from the user.
 
-When running on YARN, Spark applications use a fixed number of executors, which you can set via the `—num-executors` flag to spark-submit, spark-shell, and so on. `By default, this is only two`, so you will likely need to increase it. You can also set the memory used by each executor via `—executor-memory` and the number of cores it claims from YARN via `—executor-cores`. `On a given set of hardware resources, Spark will usually run better with a smaller number of larger executors (with multiple cores and more memory)`, since it can optimize communication within each executor. Note, however, that some clusters have a limit on the maximum size of an executor (8 GB by default), and will not let you launch larger ones.
+When running on YARN, `Spark applications use a fixed number of executors`, which you can set via the `—num-executors` flag to spark-submit, spark-shell, and so on. `By default, this is only two`, so you will likely need to increase it. You can also set the memory used by each executor via `—executor-memory` and the number of cores it claims from YARN via `—executor-cores`. `On a given set of hardware resources, Spark will usually run better with a smaller number of larger executors (with multiple cores and more memory), since it can optimize communication within each executor`. Note, however, that some clusters have a limit on the maximum size of an executor (8 GB by default), and will not let you launch larger ones.
 
 Some YARN clusters are configured to schedule applications into multiple “queues” for resource management purposes. Use the `—queue` option to select your queue name.
 
@@ -2349,14 +2359,14 @@ Unlike the other cluster managers, Mesos offers two modes to share resources bet
 * In `“fine-grained” mode,` which is the default, executors scale up and down the number of CPUs they claim from Mesos as they execute tasks, and so a machine running multiple executors can dynamically share CPU resources between them.  
 * In `“coarse-grained” mode`, Spark allocates a fixed number of CPUs to each executor in advance and never releases them until the application ends, even if the executor is not currently running tasks. You can enable coarse-grained mode by passing `—conf spark.mesos.coarse=true` to spark-submit.
 
-The fine-grained Mesos mode is attractive when multiple users share a cluster to run interactive workloads such as shells, because applications will scale down their number of cores when they’re not doing work and still allow other users’ programs to use the cluster. `The downside, however, is that scheduling tasks through fine-grained mode adds more latency (so very low-latency applications like Spark Streaming may suffer)`, and that applications may need to wait some amount of time for CPU cores to become free to “ramp up” again when the user types a new command. Note, however, that you can use `a mix of scheduling modes` in the same Mesos cluster (i.e., some of your Spark applications might have spark.mesos.coarse set to true and some might not).
+The fine-grained Mesos mode `is attractive when multiple users share a cluster to run interactive workloads such as shells`, because applications will scale down their number of cores when they’re not doing work and still allow other users’ programs to use the cluster. `The downside, however, is that scheduling tasks through fine-grained mode adds more latency (so very low-latency applications like Spark Streaming may suffer)`, and that applications may need to wait some amount of time for CPU cores to become free to “ramp up” again when the user types a new command. Note, however, that you can use `a mix of scheduling modes` in the same Mesos cluster (i.e., `some of your Spark applications might have spark.mesos.coarse set to true and some might not`).
 
 As of Spark 1.2, `Spark on Mesos supports running applications only in the “client” deploy mode` — that is, with the driver running on the machine that submitted the application. If you would like to run your driver in the Mesos cluster as well, frameworks like [Aurora] and `Chronos` allow you to submit arbitrary scripts to run on Mesos and monitor them.
 
 You can control resource usage on Mesos through two parameters to spark-submit: `—executor-memory`, to set the memory for each executor, and `—total-executor-cores`, to set the maximum number of CPU cores for the application to claim (across all executors). By default, Spark will launch each executor with as many cores as possible, consolidating the application to the smallest number of executors that give it the desired number of cores. If you do not set —total-executor-cores, it will try to use all available cores in the cluster.
 
 #### Amazon EC2
-Spark comes with a built-in script to launch clusters on Amazon EC2. This script launches a set of nodes and then installs the `Standalone cluster manager` on them, so once the cluster is up, you can use it according to the Standalone mode instructions in the previous section. In addition, the EC2 script sets up supporting services such as HDFS, Tachyon, and Ganglia to monitor your cluster. The Spark EC2 script is called spark-ec2.
+`Spark comes with a built-in script to launch clusters on Amazon EC2`. This script launches a set of nodes and then installs the `Standalone cluster manager` on them, so once the cluster is up, you can use it according to the Standalone mode instructions in the previous section. In addition, the EC2 script sets up supporting services such as HDFS, Tachyon, and Ganglia to monitor your cluster. The Spark EC2 script is called spark-ec2.
 
 1. To launch a cluster, you should first create an Amazon Web Services (AWS) account and obtain an access key ID and secret access key.
 2. You can log in to a cluster by SSHing into its master node with the .pem file for your keypair.
@@ -2394,7 +2404,7 @@ val sc = new SparkContext(conf)
 ```
 In addition to set(), the SparkConf class includes a small number of utility methods for setting common parameters. In the preceding three examples, you could also call setAppName() and setMaster() to set the spark.app.name and the spark.master configurations, respectively.
 
-Spark allows setting configurations dynamically through the `spark-submit` tool. When an application is launched with spark-submit, it injects configuration values into the environment. These are detected and automatically filled in when a new SparkConf is constructed. Therefore, user applications can simply construct an “empty” SparkConf and pass it directly to the SparkContext constructor if you are using spark-submit.
+Spark allows setting configurations dynamically through the `spark-submit` tool. `When an application is launched with spark-submit, it injects configuration values into the environment. These are detected and automatically filled in when a new SparkConf is constructed`. Therefore, user applications can simply construct an “empty” SparkConf and pass it directly to the SparkContext constructor if you are using spark-submit.
 
 The spark-submit tool provides built-in flags for the most common Spark configuration parameters and a generic —conf flag that accepts any Spark configuration value.
 ```shell
@@ -2417,12 +2427,12 @@ spark.app.name “My Spark App”
 spark.ui.port 36000
 ```
 
-`The SparkConf associated with a given application is immutable` once it is passed to the SparkContext constructor. `That means that all configuration decisions must be made before a SparkContext is instantiated`.
+`The SparkConf associated with a given application is immutable once it is passed to the SparkContext constructor. That means that all configuration decisions must be made before a SparkContext is instantiated`.
 
 In some cases, the same configuration property might be set in multiple places. For instance, a user might call setAppName() directly on a SparkConf object and also pass the —name flag to spark-submit. In these cases Spark has a specific precedence order. The highest priority is given to configurations declared explicitly in the user’s code using the set() function on a SparkConf object. Next are flags passed to spark-submit, then values in the properties file, and finally default values.
 
 **Table 8-1. Common Spark configuration values**  
-spark.storage.blockManagerTimeoutIntervalMs
+
 Option(s)                                                               |Default    |Description
 -------------------------------------------------------|------------|--------------------------------------------------------------------------------
 spark.executor.memory (—executor-memory)       |512m        |Amount of memory to use in the same format as JVM 512m, 2g). 
@@ -2439,7 +2449,7 @@ spark.[X].port                                                      |(random)   
 spark.eventLog.enabled                                        |false           |Set to true to enable event completed Spark jobs to Spark’s history server. 
 spark.eventLog.dir                                               |file:///tmp/spark-events |The storage location used enabled. This needs to be filesystem such as HDFS. 
 
-Almost all Spark configurations occur through the SparkConf construct, but one important option doesn’t. To set the local storage directories for Spark to use for shuffle data (necessary for standalone and Mesos modes), you export the `SPARK_LOCAL_DIRS` environment variable inside of conf/spark-env.sh to a comma-separated list of storage locations. SPARK_LOCAL_DIRS is described in detail in “Hardware Provisioning”. This is specified differently from other Spark configurations because its value may be different on different physical hosts.
+Almost all Spark configurations occur through the SparkConf construct, but one important option doesn’t. `To set the local storage directories for Spark to use for shuffle data (necessary for standalone and Mesos modes)`, you export the `SPARK_LOCAL_DIRS` environment variable inside of conf/spark-env.sh to a comma-separated list of storage locations. SPARK_LOCAL_DIRS is described in detail in “Hardware Provisioning”. This is specified differently from other Spark configurations because its value may be different on different physical hosts.
 
 ### Components of Execution: Jobs, Tasks, and Stages
 To demonstrate Spark’s phases of execution, we’ll walk through an example application and see how user code compiles down to a lower-level execution plan. The application we’ll consider is a simple bit of log analysis in the Spark shell. For input data, we’ll use a text file that consists of log messages of varying degrees of severity, along with some blank lines interspersed (Example 8-6).   
@@ -2472,7 +2482,7 @@ scala> val counts = tokenized.
         | map(words => (words(0), 1)).
         | reduceByKey{ (a, b) => a + b }
 ```
-After executing these lines in the shell, the program has not performed any actions. Instead, it has implicitly defined a directed acyclic graph (DAG) of RDD objects that will be used later once an action occurs. Each RDD maintains a pointer to one or more parents along with metadata about what type of relationship they have. For instance, when you call val b = a.map() on an RDD, the `RDD b keeps a reference to its parent a`. These pointers allow an RDD to be traced to all of its ancestors.
+After executing these lines in the shell, the program has not performed any actions. Instead, it has implicitly defined a directed acyclic graph (DAG) of RDD objects that will be used later once an action occurs. `Each RDD maintains a pointer to one or more parents along with metadata about what type of relationship they have`. For instance, when you call val b = a.map() on an RDD, the RDD b keeps a reference to its parent a. These pointers allow an RDD to be traced to all of its ancestors.
 
 To display the lineage of an RDD, Spark provides a `toDebugString()` method. In Example 8-8, we’ll look at some of the RDDs we created in the preceding example.  
 **Example 8-8. Visualizing RDDs with toDebugString() in Scala**  
@@ -2505,7 +2515,7 @@ Spark’s scheduler creates a physical execution plan to compute the RDDs needed
 
 `In more complex cases`, the physical set of stages will not be an exact 1:1 correspondence to the RDD graph. This can occur when `the scheduler performs pipelining`, or collapsing of multiple RDDs into a single stage. `Pipelining occurs when RDDs can be computed from their parents without data movement`. The lineage output shown in Example 8-8 `uses indentation levels to show where RDDs are going to be pipelined together` into physical stages. RDDs that exist at the same level of indentation as their parents will be pipelined during physical execution.
 
-`In addition to pipelining, Spark’s internal scheduler may truncate the lineage of the RDD graph if an existing RDD has already been persisted in cluster memory or on disk`. Spark can “short-circuit” in this case and just begin computing based on the persisted RDD. `A second case in which this truncation can happen is when an RDD is already materialized as a side effect of an earlier shuffle`, even if it was not explicitly persist()ed. This is an under-the-hood optimization that takes advantage of the fact that `Spark shuffle outputs are written to disk`, and exploits the fact that many times portions of the RDD graph are recomputed.
+`In addition to pipelining, Spark’s internal scheduler may truncate the lineage of the RDD graph if an existing RDD has already been persisted in cluster memory or on disk`. Spark can `“short-circuit”` in this case and just begin computing based on the persisted RDD. `A second case in which this truncation can happen is when an RDD is already materialized as a side effect of an earlier shuffle`, even if it was not explicitly persist()ed. This is an under-the-hood optimization that takes advantage of the fact that `Spark shuffle outputs are written to disk`, and exploits the fact that many times portions of the RDD graph are recomputed.
 
 To see the effects of caching on physical execution, let’s cache the counts RDD and see how that truncates the execution graph for future actions (Example 8-10). If you revisit the UI, you should see that caching reduces the number of stages required when executing future computations. Calling collect() a few more times will reveal only one stage executing to perform the action.  
 
@@ -2522,7 +2532,7 @@ scala> counts.collect()
 res88: Array[(String, Int)] = Array((ERROR,1), (INFO,4), (WARN,2), (##,1),
 ((empty,2))
 ```
-The set of stages produced for a particular action is termed a job. In each case when we invoke actions such as count(), we are creating a job composed of one or more stages.
+`The set of stages produced for a particular action is termed a` **job**. In each case when we invoke actions such as count(), we are creating a job composed of one or more stages.
 
 Once the stage graph is defined, tasks are created and dispatched to an internal scheduler, which varies depending on the deployment mode being used. Stages in the physical plan can depend on each other, based on the RDD lineage, so they will be executed in a specific order. For instance, a stage that outputs shuffle data must occur before one that relies on that data being present. 
 
@@ -2547,14 +2557,14 @@ Spark records detailed progress information and performance metrics as applicati
 #### Spark Web UI
 The first stop for learning about the behavior and performance of a Spark application is Spark’s built-in web UI. This is available on `the machine where the driver is running at port 4040 by default`. One caveat is that in the case of the YARN cluster mode, where the application driver runs inside the cluster, you should access the UI through the YARN ResourceManager, which proxies requests directly to the driver.  
 
-* Jobs: Progress and metrics of stages, tasks, and more  
+* Jobs: Progress and metrics of stages, tasks, and more(PS: all about various time figures)  
 A good first step is to look through the stages that make up a job and see whether some are particularly slow or vary significantly in response time across multiple runs of the same job.
 In data-parallel systems such as Spark, a common source of performance issues is skew, which occurs when a small number of tasks take a very large amount of time compared to others. The stage page can help you identify skew by looking at the distribution of different metrics over all tasks.  
 In addition to looking at task skew, it can be helpful to identify how much time tasks are spending in each of the phases of the task lifecycle: reading, computing, and writing.  
 * Storage: Information for RDDs that are persisted  
 In some cases, if many RDDs are cached, older ones will fall out of memory to make space for newer ones. This page will tell you exactly what fraction of each RDD is cached and the quantity of data cached in various storage media (disk, memory, etc.) It can be helpful to scan this page and understand whether important datasets are fitting into memory or not.
 * Executors: A list of executors present in the application  
-One valuable use of this page is to confirm that your application has the amount of resources you were expecting. A good first step when debugging issues is to scan this page, since a misconfiguration resulting in fewer executors than expected can, for obvious reasons, affect performance. It can also be useful to look for executors with anomalous behaviors, such as a very large ratio of failed to successful tasks. An executor with a high failure rate could indicate a misconfiguration or failure on the physical host in question. Simply removing that host from the cluster can improve performance.  
+One valuable use of this page is `to confirm that your application has the amount of resources you were expecting`. `A good first step when debugging issues is to scan this page, since a misconfiguration resulting in fewer executors than expected can, for obvious reasons, affect performance`. It can also be useful to look for executors with anomalous behaviors, such as a very large ratio of failed to successful tasks. `An executor with a high failure rate could indicate a misconfiguration or failure on the physical host in question. Simply removing that host from the cluster can improve performance`.  
 Another feature in the executors page is the ability to collect a stack trace from executors using the `Thread Dump` button
 * Environment: Debugging Spark’s configuration  
 This page enumerates the set of active properties in the environment of your Spark application. This page will also enumerate JARs and files you’ve added to your application, which can be useful when you’re tracking down issues such as missing dependencies.
@@ -2563,7 +2573,7 @@ This page enumerates the set of active properties in the environment of your Spa
 The exact location of Spark’s logfiles depends on the deployment mode:   
 * In Spark’s Standalone mode, application logs are directly displayed in the standalone master’s web UI. They are stored by default in the work/ directory of the Spark distribution on each worker.  
 * In Mesos, logs are stored in the work/ directory of a Mesos slave, and accessible from the Mesos master UI.  
-* In YARN mode, the easiest way to collect logs is to use YARN’s log collection tool (running yarn logs -applicationId <app ID>) to produce a report containing logs from your application. This will work only after an application has fully finished, since YARN must first aggregate these logs together. For viewing logs of a running application in YARN, you can click through the ResourceManager UI to the Nodes page, then browse to a particular node, and from there, a particular container. YARN will give you the logs associated with output produced by Spark in that container. This process is likely to become less roundabout in a future version of Spark with direct links to the relevant logs.
+* In YARN mode, the easiest way to collect logs is to use YARN’s log collection tool (running `yarn logs -applicationId <app ID>`) to produce a report containing logs from your application. This will work only after an application has fully finished, since YARN must first aggregate these logs together. For viewing logs of a running application in YARN, you can click through the ResourceManager UI to the Nodes page, then browse to a particular node, and from there, a particular container. YARN will give you the logs associated with output produced by Spark in that container. This process is likely to become less roundabout in a future version of Spark with direct links to the relevant logs.
 
 Spark’s logging subsystem is based on log4j.  Once you’ve tweaked the logging to match your desired level or format, you can add the log4j.properties file using the —files flag of spark-submit. If you have trouble setting the log level in this way, make sure that you are not including any JARs that themselves contain log4j.properties files with your application. `Log4j works by scanning the classpath for the first properties file it finds, and will ignore your customization if it finds properties somewhere else first`.
 
@@ -2571,9 +2581,9 @@ Spark’s logging subsystem is based on log4j.  Once you’ve tweaked the loggin
 #### Level of Parallelism
 an RDD is divided into a set of partitions with each partition containing some subset of the total data. When Spark schedules and runs tasks, it creates a single task for data stored in one partition, and that task will require, by default, a single core in the cluster to execute. 
 
-Out of the box, Spark will infer what it thinks is a good degree of parallelism for RDDs, and this is sufficient for many use cases. Input RDDs typically choose parallelism based on the underlying storage systems. For example, HDFS input RDDs have one partition for each block of the underlying HDFS file. RDDs that are derived from shuffling other RDDs will have parallelism set based on the size of their parent RDDs.  
+`Out of the box, Spark will infer what it thinks is a good degree of parallelism for RDDs`, and this is sufficient for many use cases. Input RDDs typically choose parallelism based on the underlying storage systems. For example, `HDFS input RDDs have one partition for each block of the underlying HDFS file`. `RDDs that are derived from shuffling other RDDs will have parallelism set based on the size of their parent RDDs`.  
 
-Spark offers two ways to tune the degree of parallelism for operations. The first is that, during operations that shuffle data, you can always give a degree of parallelism for the produced RDD as a parameter. The second is that any existing RDD can be redistributed to have more or fewer partitions. The `repartition()` operator will randomly shuffle an RDD into the desired number of partitions. `If you know you are shrinking the RDD, you can use the coalesce() operator; this is more efficient than repartition() since it avoids a shuffle operation`. If you think you have too much or too little parallelism, it can help to redistribute your data with these operators.
+Spark offers two ways to tune the degree of parallelism for operations. `The first is that, during operations that shuffle data(PS: io operations such as textFile() also have parameters to designate number of partitions), you can always give a degree of parallelism for the produced RDD as a parameter`. The second is that any existing RDD can be redistributed to have more or fewer partitions. The `repartition()` operator will randomly shuffle an RDD into the desired number of partitions. `If you know you are shrinking the RDD, you can use the coalesce() operator; this is more efficient than repartition() since it avoids a shuffle operation`. If you think you have too much or too little parallelism, it can help to redistribute your data with these operators.
 
 As an example, let’s say we are reading a large amount of data from S3, but then immediately performing a filter() operation that is likely to exclude all but a tiny fraction of the dataset. By default the RDD returned by filter() will have the same size as its parent and might have many empty or small partitions. In this case you can improve the application’s performance by coalescing down to a smaller RDD, as shown in Example 8-11.   
 **Example 8-11. Coalescing a large RDD in the PySpark shell**  
@@ -2589,13 +2599,13 @@ As an example, let’s say we are reading a large amount of data from S3, but th
 # We coalesce the lines RDD before caching
 >>> lines = lines.coalesce(5).cache()
 >>> lines.getNumPartitions()
-4#
-Subsequent analysis can operate on the coalesced RDD…
+4
+# Subsequent analysis can operate on the coalesced RDD…
 >>> lines.count()
 ```
 
 #### Serialization Format
-When Spark is `transferring data over the network or spilling data to disk`, it needs to serialize objects into a binary format. This comes into play during shuffle operations, where potentially large amounts of data are transferred. By default Spark will use Java’s built-in serializer. Spark also supports the use of Kryo, a third-party serialization library that improves on Java’s serialization by offering both faster serialization times and a more compact binary representation,` but cannot serialize all types of objects “out of the box”`. Almost all applications will benefit from shifting to Kryo for serialization.
+When Spark is `transferring data over the network or spilling data to disk`, it needs to serialize objects into a binary format. This comes into play during shuffle operations, where potentially large amounts of data are transferred. `By default Spark will use Java’s built-in serializer`. Spark also supports the use of Kryo, a third-party serialization library that improves on Java’s serialization by offering both faster serialization times and a more compact binary representation,` but cannot serialize all types of objects “out of the box”`. `Almost all applications will benefit from shifting to Kryo for serialization`.
 
 To use Kryo serialization, you can set the `spark.serializer` setting to `org.apache.spark.serializer.KryoSerializer`. `For best performance, you’ll also want to register classes with Kryo that you plan to serialize`, as shown in Example 8-12. `Registering a class allows Kryo to avoid writing full class names with individual objects`, a space savings that can add up over thousands or millions of serialized records. If you want to force this type of registration, you can set `spark.kryo.registrationRequired` to true, and Kryo will throw errors if it encounters an unregistered class.
 
@@ -2608,50 +2618,50 @@ conf.set(“spark.kryo.registrationRequired”, “true”)
 conf.registerKryoClasses(Array(classOf[MyClass], classOf[MyOtherClass]))
 ```
 
-Whether using Kryo or Java’s serializer, you may encounter a NotSerializableException if your code refers to a class that does not extend Java’s Serializable interface. It can be difficult to track down which class is causing the problem in this case, since many different classes can be referenced from user code. Many JVMs support a special option to help debug this situation: `“- Dsun.io.serialization.extendedDebugInfo=true”`. You can enable this option this using the `—driver-java-options` and `—executor-java-options` flags to spark-submit. Once you’ve found the class in question, the easiest solution is to simply modify it to implement Serializable. `If you cannot modify the class in question you’ll need to use more advanced workarounds, such as creating a subclass of the type in question that implements Java’s Externalizable interface or customizing the serialization behavior using Kryo`.
+`Whether using Kryo or Java’s serializer, you may encounter a NotSerializableException if your code refers to a class that does not extend Java’s Serializable interface`. It can be difficult to track down which class is causing the problem in this case, since many different classes can be referenced from user code. Many JVMs support a special option to help debug this situation: `“-Dsun.io.serialization.extendedDebugInfo=true”`. You can enable this option this using the `—driver-java-options` and `—executor-java-options` flags to spark-submit. Once you’ve found the class in question, the easiest solution is to simply modify it to implement Serializable. `If you cannot modify the class in question you’ll need to use more advanced workarounds, such as creating a subclass of the type in question that implements Java’s Externalizable interface or customizing the serialization behavior using Kryo`.
 
 #### Memory Management
 Spark uses memory in different ways, so understanding and tuning Spark’s use of memory can help optimize your application. Inside of each executor, memory is used for a few purposes:  
 * RDD storage  
 When you call persist() or cache() on an RDD, its partitions will be stored in memory buffers. Spark will limit the amount of memory used when caching to a certain fraction of the JVM’s overall heap, set by `spark.storage.memoryFraction`. If this limit is exceeded, older partitions will be dropped from memory.  
 * Shuffle and aggregation buffers  
-When performing shuffle operations, Spark will create intermediate buffers for storing shuffle output data. These buffers are used to store intermediate results of aggregations in addition to buffering data that is going to be directly output as part of the shuffle. Spark will attempt to limit the total amount of memory used in shufflerelated buffers to `spark.shuffle.memoryFraction`.  
+When performing shuffle operations, Spark will create intermediate buffers for storing shuffle output data. These buffers are used to store intermediate results of aggregations in addition to buffering data that is going to be directly output as part of the shuffle. Spark will attempt to limit the total amount of memory used in shuffle-related buffers to `spark.shuffle.memoryFraction`.  
 * User code  
 Spark executes arbitrary user code, so user functions can themselves require substantial memory. For instance, if a user application allocates large arrays or other objects, these will contend for overall memory usage. User code has access to everything left in the JVM heap after the space for RDD storage and shuffle storage are allocated.
 
-By default Spark will leave 60% of space for RDD storage, 20% for shuffle memory, and the remaining 20% for user programs. If your user code is allocating very large objects, it might make sense to decrease the storage and shuffle regions to avoid running out of memory.
+`By default Spark will leave 60% of space for RDD storage, 20% for shuffle memory, and the remaining 20% for user programs`. If your user code is allocating very large objects, it might make sense to decrease the storage and shuffle regions to avoid running out of memory.
 
-In addition to tweaking memory regions, you can improve certain elements of Spark’s default caching behavior for some workloads. Spark’s default cache() operation persists memory using the MEMORY_ONLY storage level. This means that if there is not enough space to cache new RDD partitions, `old ones will simply be deleted and, if they are needed again, they will be recomputed`. It is sometimes better to call persist() with the MEMORY_AND_DISK storage level, which instead drops RDD partitions to disk and simply reads them back to memory from a local store if they are needed again. This can be much cheaper than recomputing blocks and can lead to more predictable performance. This is particularly useful if your RDD partitions are very expensive to recompute (for instance, if you are reading data from a database)
+`In addition to tweaking memory regions`, you can improve certain elements of Spark’s default caching behavior for some workloads. Spark’s default cache() operation persists memory using the MEMORY_ONLY storage level. This means that if there is not enough space to cache new RDD partitions, `old ones will simply be deleted and, if they are needed again, they will be recomputed`. It is sometimes better to call persist() with the MEMORY_AND_DISK storage level, which instead drops RDD partitions to disk and simply reads them back to memory from `a local store` if they are needed again. This can be much cheaper than recomputing blocks and can lead to more predictable performance. This is particularly useful if your RDD partitions are very expensive to recompute (for instance, if you are reading data from a database)
 
-A second improvement on the default caching policy is to cache serialized objects instead of raw Java objects. Caching serialized objects will slightly slow down the cache operation due to the cost of serializing objects, but it can `substantially reduce time spent on garbage collection in the JVM, since many individual records can be stored as a single serialized buffer`. `This is because the cost of garbage collection scales with the number of objects on the heap, not the number of bytes of data`, and this caching method will take many objects and serialize them into a single giant buffer. Consider this option if you are caching large amounts of data (e.g., gigabytes) as objects and/or seeing long garbage collection pauses. Such pauses would be visible in the application UI under the GC Time column for each task.
+`A second improvement on the default caching policy is to cache serialized objects instead of raw Java objects`. Caching serialized objects will slightly slow down the cache operation due to the cost of serializing objects, but it can `substantially reduce time spent on garbage collection in the JVM, since many individual records can be stored as a single serialized buffer`. `This is because the cost of garbage collection scales with the number of objects on the heap, not the number of bytes of data`, and this caching method will take many objects and serialize them into a single giant buffer. Consider this option if you are caching large amounts of data (e.g., gigabytes) as objects and/or seeing long garbage collection pauses. Such pauses would be visible in the application UI under the GC Time column for each task.
 
 #### Hardware Provisioning
 The main parameters that affect cluster sizing are the amount of memory given to each executor, the number of cores for each executor, the total number of executors, and the number of local disks to use for scratch data.
 
 In all deployment modes, executor memory is set with spark.executor.memory or the — executor-memory flag to spark-submit. The options for number and cores of executors differ depending on deployment mode. In YARN you can set spark.executor.cores or the —executor-cores flag and the —num-executors flag to determine the total count. In Mesos and Standalone mode, Spark will greedily acquire as many cores and executors as are offered by the scheduler. However, both Mesos and Standalone mode support setting `spark.cores.max` to limit the total number of cores across all executors for an application. Local disks are used for scratch storage during shuffle operations.
 
-Broadly speaking, Spark applications will benefit from having more memory and cores. Spark’s architecture allows for linear scaling.  
-If you do plan to use caching, the more of your cached data can fit in memory, the better the performance will be.  
+`Broadly speaking, Spark applications will benefit from having more memory and cores. Spark’s architecture allows for linear scaling`.  
+`If you do plan to use caching, the more of your cached data can fit in memory, the better the performance will be`.  
 One approach is to start by caching a subset of your data on a smaller cluster and extrapolate the total memory you will need to fit larger amounts of the data in memory.
 
-In addition to memory and cores, Spark uses local disk volumes to store intermediate data required during shuffle operations along with RDD partitions that are spilled to disk. Using a larger number of local disks can help accelerate the performance of Spark applications.  In all cases you specify the local directories using a single comma-separated list. It is common to have one local directory for each disk volume available to Spark. Writes will be evenly striped across all local directories provided. Larger numbers of disks will provide higher overall throughput.
+`In addition to memory and cores, Spark uses local disk volumes to store intermediate data required during shuffle operations along with RDD partitions that are spilled to disk`. Using a larger number of local disks can help accelerate the performance of Spark applications.  In all cases you specify the local directories using a single comma-separated list. `It is common to have one local directory for each disk volume available to Spark. Writes will be evenly striped across all local directories provided. Larger numbers of disks will provide higher overall throughput`.
 
-One caveat to the “more is better” guideline is when sizing memory for executors. `Using very large heap sizes can cause garbage collection pauses to hurt the throughput of a Spark job`. `It can sometimes be beneficial to request smaller executors (say, 64 GB or less) to mitigate this issue`. Mesos and YARN can, out of the box, support packing multiple, smaller executors onto the same physical host, so requesting smaller executors doesn’t mean your application will have fewer overall resources. In Spark’s Standalone mode, you need to launch multiple workers (determined using SPARK_WORKER_INSTANCES) for a single application to run more than one executor on a host. This limitation will likely be removed in a later version of Spark.  
+One caveat to the “more is better” guideline is when sizing memory for executors. `Using very large heap sizes can cause garbage collection pauses to hurt the throughput of a Spark job`. `It can sometimes be beneficial to request smaller executors (say, 64 GB or less) to mitigate this issue`. Mesos and YARN can, out of the box, support packing multiple, smaller executors onto the same physical host, so requesting smaller executors doesn’t mean your application will have fewer overall resources.` In Spark’s Standalone mode, you need to launch multiple workers (determined using SPARK_WORKER_INSTANCES) for a single application to run more than one executor on a host. This limitation will likely be removed in a later version of Spark`.  
 
 To dive deeper into tuning Spark, visit the [tuning guide] in the official documentation.
 
 ## Chapter 9. Spark SQL
 This chapter introduces Spark SQL, Spark’s interface for working with structured and semistructured data. Structured data is any data that has a schema — that is, a known set of fields for each record. When you have this type of data, Spark SQL makes it both easier and more efficient to load and query. In particular, Spark SQL provides three main capabilities (illustrated in Figure 9-1):
 1. It can load data from a variety of structured sources (e.g., JSON, Hive, and Parquet).  
-2. It lets you query the data using SQL, both inside a Spark program and from external tools that connect to Spark SQL through standard database connectors (JDBC/ODBC), such as business intelligence tools like Tableau.  
-3. When used within a Spark program, Spark SQL provides rich integration between SQL and regular Python/Java/Scala code, including the ability to join RDDs and SQL tables, expose custom functions in SQL, and more. Many jobs are easier to write using this combination.
+2. It lets you `query the data using SQL`, both inside a Spark program and from external tools that connect to Spark SQL through standard database connectors (JDBC/ODBC), such as business intelligence tools like Tableau.  
+3. When used within a Spark program, Spark SQL provides rich integration between SQL and regular Python/Java/Scala code, including the ability to `join RDDs and SQL tables`, `expose custom functions in SQL`, and more. Many jobs are easier to write using this combination.
 
-To implement these capabilities, Spark SQL provides a special type of RDD called SchemaRDD. A SchemaRDD is an RDD of Row objects, each representing a record. A SchemaRDD also knows the schema (i.e., data fields) of its rows. While SchemaRDDs look like regular RDDs, internally they store data in a more efficient manner, taking advantage of their schema. In addition, they provide new operations not available on RDDs, such as the ability to run SQL queries. SchemaRDDs can be created from external data sources, from the results of queries, or from regular RDDs.
+To implement these capabilities, Spark SQL provides a special type of RDD called SchemaRDD. A **SchemaRDD** is `an RDD of` **Row** `objects`, each representing a record. A SchemaRDD also knows the schema (i.e., data fields) of its rows. While SchemaRDDs look like regular RDDs, `internally they store data in a more efficient manner, taking advantage of their schema`. In addition, they provide new operations not available on RDDs, such as the ability to `run SQL queries`. SchemaRDDs can be created `from external data sources`, `from the results of queries`, or `from regular RDDs`.
 
 ![spark-sql-usage-img-1]  
 
 ### Linking with Spark SQL
-Spark SQL can be built with or without Apache Hive, the Hadoop SQL engine. Spark SQL with Hive support allows us to access Hive tables, UDFs (user-defined functions), SerDes (serialization and deserialization formats), and the Hive query language (HiveQL). `It is important to note that including the Hive libraries does not require an existing Hive installation`. In general, it is best to build Spark SQL with Hive support to access these features.
+`Spark SQL can be built with or without Apache Hive`, the Hadoop SQL engine. `Spark SQL with Hive support allows us to access Hive tables, UDFs (user-defined functions), SerDes (serialization and deserialization formats), and the Hive query language (HiveQL)`. `It is important to note that including the Hive libraries does not require an existing Hive installation`. `In general, it is best to build Spark SQL with Hive support to access these features.`
 
 If you have dependency conflicts with Hive that you cannot solve through exclusions or shading, you can also build and link to Spark SQL without Hive. In that case you link to a separate Maven artifact.  
 
@@ -2668,7 +2678,7 @@ When programming against Spark SQL we have two entry points depending on whether
 
 Finally, to connect Spark SQL to an existing Hive installation, you must copy your hive-site.xml file to Spark’s configuration directory ($SPARK_HOME/conf). If you don’t have an existing Hive installation, Spark SQL will still run.  
 
-Note that if you don’t have an existing Hive installation, Spark SQL will create its own Hive metastore (metadata DB) in your program’s work directory, called metastore_db. In addition, if you attempt to create tables using HiveQL’s CREATE TABLE statement (not CREATE EXTERNAL TABLE), they will be placed in the /user/hive/warehouse directory on your default filesystem (either your local filesystem, or HDFS if you have a hdfs-site.xml on your classpath).
+`Note that if you don’t have an existing Hive installation, Spark SQL will create its own Hive metastore (metadata DB) in your program’s work directory, called metastore_db`. In addition, if you attempt to create tables using HiveQL’s CREATE TABLE statement (not CREATE EXTERNAL TABLE), they will be placed in the /user/hive/warehouse directory on your default filesystem (either your local filesystem, or HDFS if you have a hdfs-site.xml on your classpath).
 
 ### Using Spark SQL in Applications
 To use Spark SQL this way, we construct a HiveContext (or SQLContext for those wanting a stripped-down version) based on our SparkContext. This context provides additional functions for querying and interacting with Spark SQL data. Using the HiveContext, we can build SchemaRDDs, which represent our structure data, and operate on them with SQL or with normal RDD operations like map().
@@ -2732,17 +2742,17 @@ topTweets = hiveCtx.sql(“““SELECT text, retweetCount FROM
 tweets ORDER BY retweetCount LIMIT 10”””)
 ```
 
-If you have an existing Hive installation, and have copied your hive-site.xml file to $SPARK_HOME/conf, you can also just run hiveCtx.sql to query your existing Hive tables.
+If you have an existing Hive installation, and have copied your hive-site.xml file to $SPARK_HOME/conf, you can also just run `HiveContext.sql()` to query your existing Hive tables.
 
 #### SchemaRDDs
-Both loading data and executing queries return **SchemaRDDs**. SchemaRDDs are similar to tables in a traditional database. Under the hood, a SchemaRDD is an RDD composed of Row objects with additional schema information of the types in each column. Row objects are just wrappers around arrays of basic types (e.g., integers and strings).
+Both loading data and executing queries return **SchemaRDDs**. `SchemaRDDs are similar to tables in a traditional database`. `Under the hood, a SchemaRDD is an RDD composed of Row objects with additional schema information of the types in each column.` `Row objects are just wrappers around arrays of basic types (e.g., integers and strings)`.
 
-One important note: in future versions of Spark, the name SchemaRDD may be changed to DataFrame.
+One important note: in future versions of Spark, the name SchemaRDD may be changed to **DataFrame**.
 
-SchemaRDDs are also regular RDDs, so you can operate on them using existing RDD transformations like map() and filter(). However, they provide several additional capabilities. Most importantly, you can register any SchemaRDD as a temporary table to query it via HiveContext.sql or SQLContext.sql. You do so using the SchemaRDD’s registerTempTable() method, as in Examples 9-9 through 9-11.
+`SchemaRDDs are also regular RDDs, so you can operate on them using existing RDD transformations like map() and filter()`. However, they provide several additional capabilities. `Most importantly, you can register any SchemaRDD as a temporary table to query it via HiveContext.sql() or SQLContext.sql()`. You do so using the SchemaRDD’s registerTempTable() method, as in Examples 9-9 through 9-11.
 
-Temp tables are local to the HiveContext or SQLContext being used, and go away when your application exits.
-SchemaRDDs can store several basic types, as well as structures and arrays of these types. They use the HiveQL syntax for type definitions. The last type, structures, is simply represented as other Rows in Spark SQL. All of these types can also be nested within each other
+`Temp tables are local to the HiveContext or SQLContext being used, and go away when your application exits`.  
+SchemaRDDs can store several basic types, as well as structures and arrays of these types. `They use the HiveQL syntax for type definitions`. The last type, structures, is simply represented as other Rows in Spark SQL. All of these types can also be nested within each other.
 
 **Table 9-1. Types stored by SchemaRDDs**
 
@@ -2771,12 +2781,12 @@ Caching in Spark SQL works a bit differently. `Since we know the types of each c
 
 In Spark 1.2, the regular cache() method on RDDs also results in a cacheTable().  
 
-You can also cache tables using HiveQL/SQL statements. To cache or uncache a table simply run CACHE TABLE tableName or UNCACHE TABLE tableName. This is most commonly used with command-line clients to the JDBC server.
+You can also cache tables using HiveQL/SQL statements. To cache or uncache a table simply run `CACHE TABLE tableName` or `UNCACHE TABLE tableName`. This is most commonly used with command-line clients to the JDBC server.
 
 ### Loading and Saving Data
-Spark SQL supports a number of structured data sources out of the box, letting you get Row objects from them without any complicated loading process. These sources include Hive tables, JSON, and Parquet files. `In addition, if you query these sources using SQL and select only a subset of the fields, Spark SQL can smartly scan only the subset of the data for those fields, instead of scanning all the data like a naive SparkContext.hadoopFile might.`
+Spark SQL supports a number of structured data sources out of the box, letting you get Row objects from them without any complicated loading process. `These sources include Hive tables, JSON, and Parquet files`. `In addition, if you query these sources using SQL and select only a subset of the fields, Spark SQL can smartly scan only the subset of the data for those fields, instead of scanning all the data like a naive SparkContext.hadoopFile might.`
 
-Apart from these data sources, you can also convert regular RDDs in your program to SchemaRDDs by assigning them a schema. This makes it easy to write SQL queries even when your underlying data is Python or Java objects. Often, SQL queries are more concise when you’re computing many quantities at once (e.g., if you wanted to compute the average age, max age, and count of distinct user IDs in one pass). In addition, you can easily join these RDDs with SchemaRDDs from any other Spark SQL data source.
+`Apart from these data sources, you can also convert regular RDDs in your program to SchemaRDDs by assigning them a schema`. This makes it easy to write SQL queries even when your underlying data is Python or Java objects. Often, SQL queries are more concise when you’re computing many quantities at once (e.g., if you wanted to compute the average age, max age, and count of distinct user IDs in one pass). `In addition, you can easily join these RDDs with SchemaRDDs from any other Spark SQL data source`.
 
 #### Loading and Saving Data: Apache Hive
 When loading data from Hive, Spark SQL supports any Hive-supported storage formats (SerDes), including text files, RCFiles, ORC, Parquet, Avro, and Protocol Buffers. 
@@ -2802,9 +2812,9 @@ val keys = rows.map(row => row.getInt(0))
 ```
 
 #### Loading and Saving Data: Parquet
-Parquet is a popular column-oriented storage format that can `store records with nested fields efficiently`. It is often used with tools in the Hadoop ecosystem, and it supports all of the data types in Spark SQL. Spark SQL provides methods for reading data directly to and from Parquet files.
+Parquet is a popular `column-oriented` storage format that can `store records with nested fields efficiently`. It is often used with tools in the Hadoop ecosystem, and it `supports all of the data types in Spark SQL`. Spark SQL provides methods for reading data directly to and from Parquet files.
 
-First, to load data, you can use HiveContext.parquetFile or SQLContext.parquetFile, as shown in Example 9-18.
+First, to load data, you can use `HiveContext.parquetFile` or `SQLContext.parquetFile`, as shown in Example 9-18.
 **Example 9-18. Parquet load in Python**
 ```python
 # Load some data in from a Parquet file with field’s name and favouriteAnimal
@@ -2813,7 +2823,8 @@ names = rows.map(lambda row: row.name)
 print “Everyone”
 print names.collect()
 ```
-You can also register a Parquet file as a Spark SQL temp table and write queries against it. Example 9-19 continues from Example 9-18 where we loaded the data.  
+`You can also register a Parquet file as a Spark SQL temp table and write queries against it`.   
+Example 9-19 continues from Example 9-18 where we loaded the data.  
 **Example 9-19. Parquet query in Python**  
 ```python
 # Find the panda lovers
@@ -2822,14 +2833,14 @@ pandaFriends = hiveCtx.sql(“SELECT name FROM people WHERE favouriteAnimal = "p
 print “Panda friends”
 print pandaFriends.map(lambda row: row.name).collect()
 ```
-Finally, you can save the contents of a SchemaRDD to Parquet with saveAsParquetFile(), as shown in Example 9-20.
+Finally, you can save the contents of a SchemaRDD to Parquet with saveAsParquetFile(), as shown in Example 9-20.  
 **Example 9-20. Parquet file save in Python**
 ```python
 pandaFriends.saveAsParquetFile(“hdfs://…”)
 ```
 
 #### Loading and Saving Data: JSON
-If you have a JSON file with records fitting the same schema, Spark SQL can infer the schema by scanning the file and let you access fields by name (Example 9-21). If you have ever found yourself staring at a huge directory of JSON records, Spark SQL’s schema inference is a very effective way to start working with the data without writing any special loading code.  
+If you have a JSON file with records fitting the same schema, `Spark SQL can infer the schema` by scanning the file and let you access fields by name (Example 9-21). If you have ever found yourself staring at a huge directory of JSON records, Spark SQL’s schema inference is a very effective way to start working with the data without writing any special loading code.  
 
 To load our JSON data, all we need to do is call the jsonFile() function on our hiveCtx, as shown in Examples 9-22 through 9-24. If you are curious about what the inferred schema for your data is, you can call printSchema on the resulting SchemaRDD (Example 9-25).
 
@@ -2860,9 +2871,9 @@ select hashtagEntities[0].text from tweets LIMIT 1;
 ```
 
 #### Loading and Saving Data: From RDDs
-In addition to loading data, we can also create a SchemaRDD from an RDD. In Scala, RDDs with case classes are implicitly converted into SchemaRDDs.
+In addition to loading data, we can also `create a SchemaRDD from an RDD`. `In Scala, RDDs with case classes are implicitly converted into SchemaRDDs`.
 
-For Python we create an RDD of Row objects and then call inferSchema(), as shown in Example 9-28.  
+`For Python we create an RDD of Row objects and then call inferSchema()`, as shown in Example 9-28.  
 **Example 9-28. Creating a SchemaRDD using Row and named tuple in Python**
 ```python
 happyPeopleRDD = sc.parallelize([Row(name=“holden”, favouriteBeverage=“coffee”)])
@@ -2884,9 +2895,9 @@ happyPeopleRDD.registerTempTable(“happy_people”)
 ### JDBC/ODBC Server
 Spark SQL also provides JDBC connectivity, which is useful for connecting business intelligence (BI) tools to a Spark cluster and for sharing a cluster across multiple users. `The JDBC server runs as a standalone Spark driver program that can be shared by multiple clients`. Any client can cache tables in memory, query them, and so on, and `the cluster resources and cached data will be shared among all of them`.
 
-Spark SQL’s JDBC server corresponds to the HiveServer2 in Hive. It is also known as the `“Thrift server”` since it uses the Thrift communication protocol. Note that the JDBC server requires Spark be built with Hive support.
+`Spark SQL’s JDBC server corresponds to the HiveServer2 in Hive`. It is also known as the `“Thrift server”` since it uses the Thrift communication protocol. `Note that the JDBC server requires Spark be built with Hive support`.
 
-The server can be launched with sbin/start-thriftserver.sh in your Spark directory (Example 9-31). This script takes many of the same options as spark-submit. By default it listens on localhost:10000, but we can change these with either environment variables (HIVE_SERVER2_THRIFT_PORT and HIVE_SERVER2_THRIFT_BIND_HOST), or with Hive configuration properties (hive.server2.thrift.port and hive.server2.thrift.bind.host). You can also specify Hive properties on the command line with —hiveconf property=value.  
+The server can be launched with `sbin/start-thriftserver.sh` in your Spark directory (Example 9-31). This script takes many of the same options as spark-submit. By default it listens on localhost:10000, but we can change these with either environment variables (HIVE_SERVER2_THRIFT_PORT and HIVE_SERVER2_THRIFT_BIND_HOST), or with Hive configuration properties (hive.server2.thrift.port and hive.server2.thrift.bind.host). You can also specify Hive properties on the command line with `—hiveconf property=value`.  
 
 **Example 9-31. Launching the JDBC server**
 ```shell
@@ -2898,7 +2909,7 @@ Spark also ships with the **Beeline** client program we can use to connect to ou
 holden@hmbp2:~/repos/spark$ ./bin/beeline -u jdbc:hive2://localhost:10000
 ```
 #### Working with Beeline
-Within the Beeline client, you can use standard HiveQL commands to create, list, and query tables.
+Within the Beeline client, you can `use standard HiveQL commands` to create, list, and query tables.
 ```sql
 > CREATE TABLE IF NOT EXISTS mytable (key INT, value STRING)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ‘,’;
@@ -2911,19 +2922,15 @@ To list tables, you can use the SHOW TABLES statement (Example 9-34). You can al
 The Beeline shell is great for quick data exploration on cached tables shared by multiple users.
 
 #### Long-Lived Tables and Queries
-One of the advantages of using Spark SQL’s JDBC server is we can share cached tables between multiple programs. This is possible since the JDBC Thrift server is a single driver program. To do this, you only need to register the table and then run the CACHE command on it.
+`One of the advantages of using Spark SQL’s JDBC server is we can share cached tables between multiple programs`. This is possible since the JDBC Thrift server is a single driver program. To do this, you only need to register the table and then run the CACHE command on it.
 
 #### Standalone Spark SQL Shell
-Apart from its JDBC server, Spark SQL also supports a simple shell you can use as a
-single process, available through ./bin/spark-sql. This shell connects to the Hive metastore
-you have set in conf/hive-site.xml, if one exists, or creates one locally. It is most useful for
-local development; in a shared cluster, you should instead use the JDBC server and have
-users connect with beeline.
+Apart from its JDBC server, Spark SQL also supports a simple shell you can use as a single process, available through `./bin/spark-sql`. This shell connects to the Hive metastore you have set in conf/hive-site.xml, if one exists, or creates one locally. It is `most useful for local development`; `in a shared cluster, you should instead use the JDBC server and have users connect with beeline`.
 
 ### User-Defined Functions
-User-defined functions, or UDFs, allow you to register custom functions in Python, Java, and Scala to call within SQL. They are a very popular way to expose advanced functionality to SQL users in an organization, so that these users can call into it without writing code. Spark SQL makes it especially easy to write UDFs. `It supports both its own UDF interface and existing Apache Hive UDFs`.
+User-defined functions, or UDFs, allow you to `register custom functions in Python, Java, and Scala to call within SQL`. They are a very popular way to expose advanced functionality to SQL users in an organization, so that these users can call into it without writing code. Spark SQL makes it especially easy to write UDFs. `It supports both its own UDF interface and existing Apache Hive UDFs`.
 
-Spark SQL offers a built-in method to easily register UDFs by passing in a function in your programming language. In Scala and Python, we can use the native function and lambda syntax of the language, and in Java we need only extend the appropriate UDF class. Our UDFs can work on a variety of types, and we can return a different type than the one we are called with.
+Spark SQL offers a built-in method to easily register UDFs `by passing in a function` in your programming language. In Scala and Python, we can use the native function and lambda syntax of the language, and in Java we need only extend the appropriate UDF class. Our UDFs can work on a variety of types, and we can return a different type than the one we are called with.
 
 **Example 9-36. Python string length UDF**  
 ```python
@@ -2937,23 +2944,23 @@ lengthSchemaRDD = hiveCtx.sql(“SELECT strLenPython(‘text’) FROM tweets LIM
 registerFunction(“strLenScala”, (_: String).length)
 val tweetLength = hiveCtx.sql(“SELECT strLenScala(‘tweet’) FROM tweets LIMIT 10”)
 ```
-In Python and Java we also need to specify the return type using one of the SchemaRDD types, listed in Table 9-1. In Java these types are found in org.apache.spark.sql.api.java.DataType and in Python we import the DataType.
+`In Python and Java we also need to specify the return type using one of the SchemaRDD types`, listed in Table 9-1. In Java these types are found in org.apache.spark.sql.api.java.DataType and in Python we import the DataType.
 
-Spark SQL can also use existing Hive UDFs. The standard Hive UDFs are already automatically included. If you have a custom UDF, it is important to make sure that the JARs for your UDF are included with your application.  Using a Hive UDF requires that we use the HiveContext instead of a regular SQLContext. To make a Hive UDF available, simply call `hiveCtx.sql(“CREATE TEMPORARY FUNCTION name AS class.function“)`.
+`Spark SQL can also use existing Hive UDFs`. The standard Hive UDFs are already automatically included. If you have a custom UDF, it is important to make sure that the JARs for your UDF are included with your application.  Using a Hive UDF requires that we use the HiveContext instead of a regular SQLContext. To make a Hive UDF available, simply call `hiveCtx.sql(“CREATE TEMPORARY FUNCTION name AS class.function“)`.
 
 ### Spark SQL Performance
 As alluded to in the introduction, Spark SQL’s higher-level query language and additional type information allows Spark SQL to be more efficient.
 
-Spark SQL is for more than just users who are familiar with SQL. Spark SQL makes it very easy to perform conditional aggregate operations, like counting the sum of multiple columns (as shown in Example 9-40), without having to construct special objects as we discussed in Chapter 6. 
+Spark SQL is for more than just users who are familiar with SQL. Spark SQL makes it very easy to perform conditional aggregate operations, like counting the sum of multiple columns (as shown in Example 9-40), without having to construct special objects as we discussed in Chapter 6.   
 **Example 9-40. Spark SQL multiple sums**
 ```sql
 SELECT SUM(user.favouritesCount), SUM(retweetCount), user.id FROM tweets
 GROUP BY user.id
 ```
 
-Spark SQL is able to use the knowledge of types to more efficiently represent our data. `When caching data, Spark SQL uses an in-memory columnar storage`. This not only takes up less space when cached, but if our subsequent queries depend only on subsets of the data, Spark SQL minimizes the data read.  
+Spark SQL is able to use the knowledge of types to more efficiently represent our data. `When caching data, Spark SQL uses an in-memory columnar storage`. `This not only takes up less space when cached, but if our subsequent queries depend only on subsets of the data, Spark SQL minimizes the data read`.  
 
-`Predicate push-down` allows Spark SQL to move some parts of our query “down” to the engine we are querying. If we wanted to read only certain records in Spark, the standard way to handle this would be to read in the entire dataset and then execute a filter on it. However, in Spark SQL, if the underlying data store supports retrieving only subsets of the key range, or another restriction, Spark SQL is able to push the restrictions in our query down to the data store, resulting in potentially much less data being read.
+`Predicate push-down` allows Spark SQL to move some parts of our query “down” to the engine we are querying. If we wanted to read only certain records in Spark, `the standard way to handle this would be to read in the entire dataset and then execute a filter on it`. However, in Spark SQL, if the underlying data store supports retrieving only subsets of the key range, or another restriction, Spark SQL is able to push the restrictions in our query down to the data store, `resulting in potentially much less data being read`.
 
 **Table 9-2. Performance options in Spark SQL**  
 
@@ -2978,28 +2985,14 @@ In a traditional Spark SQL application we can set these Spark properties on our 
 conf.set(“spark.sql.codegen”, “true”)
 ```
 
-A few options warrant special attention. First is spark.sql.codegen, which causes Spark SQL to compile each query to Java bytecode before running it. Codegen can `make long queries or frequently repeated queries substantially faster`, because it generates specialized code to run them. However, in a setting with very short (1–2 seconds) ad hoc queries, it may add overhead as it has to run a compiler for each query. Codegen is also still experimental, but we recommend trying it for any workload with large queries, or with the same query repeated over and over.
+A few options warrant special attention. First is `spark.sql.codegen`, which causes Spark SQL to compile each query to Java bytecode before running it. `Codegen can make long queries or frequently repeated queries substantially faster`, because it generates specialized code to run them. However, in a setting with very short (1–2 seconds) ad hoc queries, it may add overhead as it has to run a compiler for each query. Codegen is also still experimental, but we recommend trying it for any workload with large queries, or with the same query repeated over and over.
 
-The second option you may need to tune is spark.sql.inMemoryColumnarStorage.batchSize. When caching SchemaRDDs, `Spark SQL groups together the records in the RDD in batches of the size given by this option (default: 1000), and compresses each batch.` Very small batch sizes lead to low compression, but on the other hand, very large sizes can also be problematic, as each batch might be too large to build up in memory. If the rows in your tables are large (i.e., contain hundreds of fields or contain string fields that can be very long, such as web pages), you may need to lower the batch size to avoid out-of-memory errors. If not, the default batch size is likely fine, as there are diminishing returns for extra compression when you go beyond 1,000 records.
-
-We will start by creating a **StreamingContext**, which is the main entry point for streaming functionality. This also sets up an underlying SparkContext that it will use to process the data. `It takes as input a batch interval specifying how often to process new data, which we set to 1 second`. Next, we use socketTextStream() to create a DStream based on text data received on port 7777 of the local machine. Then we transform the DStream with filter() to get only the lines that contain error. Finally, we apply the output operation print() to print some of the filtered lines.  
-**Example 10-4. Streaming filter for printing lines containing “error” in Scala**
-```scala
-// Create a StreamingContext with a 1-second batch size from a SparkConf
-val ssc = new StreamingContext(conf, Seconds(1))
-// Create a DStream using data received after connecting to port 7777 on the
-// local machine
-val lines = ssc.socketTextStream(“localhost”, 7777)
-// Filter our DStream for lines with “error”
-val errorLines = lines.filter(_.contains(“error”))
-// Print out the lines with errors
-errorLines.print()
-```
+The second option you may need to tune is `spark.sql.inMemoryColumnarStorage.batchSize`. When caching SchemaRDDs, `Spark SQL groups together the records in the RDD in batches of the size given by this option (default: 1000), and compresses each batch.` Very small batch sizes lead to low compression, but on the other hand, very large sizes can also be problematic, as each batch might be too large to build up in memory. If the rows in your tables are large (i.e., contain hundreds of fields or contain string fields that can be very long, such as web pages), you may need to lower the batch size to avoid out-of-memory errors. If not, the default batch size is likely fine, as `there are diminishing returns for extra compression when you go beyond 1,000 records`.
 
 ## Chapter 10. Spark Streaming
-It lets users write streaming applications using a very similar API to batch jobs, and thus reuse a lot of the skills and even code they built for those.
+It lets users write streaming applications `using a very similar API to batch jobs`, and thus reuse a lot of the skills and even code they built for those.
 
-Much like Spark is built on the concept of RDDs, Spark Streaming provides an abstraction called DStreams, or discretized streams. A **DStream** is a sequence of data arriving over time. Internally, each DStream is represented as `a sequence of RDDs arriving at each time step` (hence the name “discretized”). DStreams can be created from various input sources, such as Flume, Kafka, or HDFS. Once built, they offer two types of operations: `transformations`, which yield a new DStream, and `output` operations, which write data to an external system. `DStreams provide many of the same operations available on RDDs, plus new operations related to time, such as sliding windows.`
+Much like Spark is built on the concept of RDDs, Spark Streaming provides an abstraction called **DStreams**, or discretized streams. A **DStream** is a sequence of data arriving over time. Internally, each DStream is represented as `a sequence of RDDs arriving at each time step` (hence the name “discretized”). DStreams can be created from various input sources, such as Flume, Kafka, or HDFS. Once built, they offer two types of operations: `transformations`, which yield a new DStream, and `output` operations, which write data to an external system. `DStreams provide many of the same operations available on RDDs, plus new operations related to time, such as sliding windows.`
 
 Unlike batch programs, Spark Streaming applications need additional setup in order to operate 24/7. We will discuss `checkpointing`, the main mechanism Spark Streaming provides for this purpose, which lets it store data in a reliable file system such as HDFS. We will also discuss how to restart applications on failure or set them to be automatically restarted.
 
@@ -3022,7 +3015,7 @@ import org.apache.spark.streaming.Duration
 import org.apache.spark.streaming.Seconds
 ```
 
-We will start by creating a **StreamingContext**, which is the main entry point for streaming functionality. This also sets up an underlying SparkContext that it will use to process the data. It takes as input a batch interval specifying how often to process new data, which we set to 1 second. Next, we use socketTextStream() to create a DStream based on text data received on port 7777 of the local machine. Then we transform the DStream with filter() to get only the lines that contain error. Finally, we apply the output operation print() to print some of the filtered lines.
+We will start by `creating` a **StreamingContext**, which is the main entry point for streaming functionality. `This also sets up an underlying SparkContext` that it will use to process the data. `It takes as input a batch interval specifying how often to process new data, which we set to 1 second`. Next, we use socketTextStream() to create a DStream based on text data received on port 7777 of the local machine. Then we transform the DStream with filter() to get only the lines that contain error. Finally, we apply the output operation print() to print some of the filtered lines.   
 
 **Example 10-4. Streaming filter for printing lines containing “error” in Scala**
 ```scala
@@ -3037,7 +3030,7 @@ val errorLines = lines.filter(_.contains(“error”))
 errorLines.print()
 ```
 
-This sets up only the computation that will be done when the system receives data. To start receiving data, we must explicitly call start() on the StreamingContext. Then, Spark Streaming will start to schedule Spark jobs on the underlying SparkContext. This will occur in a separate thread, so to keep our application from exiting, we also need to call awaitTermination to wait for the streaming computation to finish. (See Examples 10-6 and 10-7.)
+`This sets up only the computation that will be done when the system receives data`. To start receiving data, we must explicitly call start() on the StreamingContext. Then, `Spark Streaming will start to schedule Spark jobs on the underlying SparkContext. This will occur in a separate thread`, so to keep our application from exiting, we also need to call awaitTermination to wait for the streaming computation to finish. (See Examples 10-6 and 10-7.)
 
 **Example 10-6. Streaming filter for printing lines containing “error” in Scala**
 ```scala
@@ -3047,7 +3040,7 @@ ssc.start()
 ssc.awaitTermination()
 ```
 
-Note that a streaming context can be started only once, `and must be started after we set up all the DStreams and output operations we want`.
+`Note that a streaming context can be started only once`, `and must be started after we set up all the DStreams and output operations we want`.
 
 **Example 10-8. Running the streaming app and providing data on Linux/Mac**
 ```shell
@@ -3059,7 +3052,7 @@ $ nc localhost 7777 # Lets you type input lines to send to the server
 Windows users can use the ncat command in place of the nc command. ncat is available as part of nmap.
 
 ### Architecture and Abstraction
-Spark Streaming uses a “micro-batch” architecture, where the streaming computation is treated as a continuous series of batch computations on small batches of data. `Spark Streaming receives data from various input sources and groups it into small batches`. New batches are created `at regular time intervals`. At the beginning of each time interval a new batch is created, and any data that arrives during that interval gets added to that batch. At the end of the time interval the batch is done growing. The size of `the time intervals is determined by a parameter called the batch interval`. The batch interval is typically between 500 milliseconds and several seconds, as configured by the application developer. `Each input batch forms an RDD`, and is processed using Spark jobs to create other RDDs. The processed results can then be pushed out to external systems in batches. This high-level architecture is shown in Figure 10-1.
+Spark Streaming uses a `“micro-batch”` architecture, where the streaming computation is treated as a continuous series of batch computations on small batches of data. `Spark Streaming receives data from various input sources and groups it into small batches`. New batches are created `at regular time intervals`. At the beginning of each time interval a new batch is created, and any data that arrives during that interval gets added to that batch. At the end of the time interval the batch is done growing. The size of `the time intervals is determined by a parameter called the batch interval`. The batch interval is typically between 500 milliseconds and several seconds, as configured by the application developer. `Each input batch forms an RDD`, and is processed using Spark jobs to create other RDDs. The processed results can then be pushed out to external systems in batches. This high-level architecture is shown in Figure 10-1.
 
 ![spark_stream_architecture_img_1]  
 **Figure 10-1. High-level architecture of Spark Streaming**  
@@ -3078,13 +3071,13 @@ Apart from transformations, DStreams support output operations, such as the prin
 ![spark_stream_components_img_1]  
 **Figure 10-4. Spark application UI when running a streaming job**
 
-The execution of Spark Streaming within Spark’s driver-worker components is shown in Figure 10-5. For each input source, Spark Streaming launches receivers, which are tasks running within the application’s executors that collect data from the input source and save it as RDDs. `These receive the input data and replicate it (by default) to another executor for fault tolerance`. This data is stored in the memory of the executors in the same way as cached RDDs.14 The StreamingContext in the driver program then periodically runs Spark jobs to process this data and `combine it with RDDs from previous time steps`.
+The execution of Spark Streaming within Spark’s driver-worker components is shown in Figure 10-5. For each input source, `Spark Streaming launches receivers`, `which are tasks running within the application’s executors that collect data from the input source and save it as RDDs`. `These receive the input data and replicate it (by default) to another executor for fault tolerance`. This data is stored in the memory of the executors in the same way as cached RDDs. The StreamingContext in the driver program then periodically runs Spark jobs to process this data and `combine it with RDDs from previous time steps`.
 
 `Spark Streaming offers the same fault-tolerance properties for DStreams as Spark has for RDDs`: as long as a copy of the input data is still available, it can recompute any state derived from it using the lineage of the RDDs (i.e., by rerunning the operations used to process it). `By default, received data is replicated across two nodes`, as mentioned, so Spark Streaming can tolerate single worker failures. Using just lineage, however, `recomputation could take a long time for data that has been built up since the beginning of the program. Thus, Spark Streaming also includes a mechanism called checkpointing that saves state periodically to a reliable filesystem (e.g., HDFS or S3)`. Typically, you might set up `checkpointing every 5–10 batches of data`. When recovering lost data, Spark Streaming needs only to go back to the last checkpoint.
 
 ### Stream Transformations
 Transformations on DStreams can be grouped into either `stateless` or `stateful`:  
-* In stateless transformations the processing of each batch does `not depend on the data of its previous batches`. They include the common RDD transformations we have seen in Chapters 3 and 4, like map(), filter(), and reduceByKey().  
+* In stateless transformations the processing of each batch does `not depend on the data of its previous batches`. `They include the common RDD transformations we have seen in Chapters 3 and 4`, like map(), filter(), and reduceByKey().  
 * Stateful transformations, in contrast, `use data or intermediate results from previous batches` to compute the results of the current batch. `They include transformations based on sliding windows and on tracking state across time`.
 
 #### Stateless Transformations
@@ -3098,7 +3091,7 @@ Stateless transformations, some of which are listed in Table 10-1, are simple RD
 * reduceByKey()
 * groupByKey()
 
-Keep in mind that although these functions look like they’re applying to the whole stream, internally each DStream is composed of multiple RDDs (batches), and each stateless transformation applies separately to each RDD. For example, reduceByKey() will reduce data within each time step, but not across time steps. The stateful transformations we cover later allow combining data across time.
+`Keep in mind that although these functions look like they’re applying to the whole stream, internally each DStream is composed of multiple RDDs (batches), and each stateless transformation applies separately to each RDD`. For example, reduceByKey() will reduce data within each time step, but not across time steps. The stateful transformations we cover later allow combining data across time.
 
 **Example 10-10. map() and reduceByKey() on DStream in Scala**
 ```scala
@@ -3108,7 +3101,7 @@ val ipDStream = accessLogsDStream.map(entry => (entry.getIpAddress(), 1))
 val ipCountsDStream = ipDStream.reduceByKey((x, y) => x + y)
 ```
 
-Stateless transformations can also combine data from multiple DStreams, again within each time step.  
+`Stateless transformations can also combine data from multiple DStreams, again within each time step`.  
 
 For example, key/value DStreams have the same join-related transformations as RDDs — namely, cogroup(), join(), leftOuterJoin(), and so on (see “Joins”). We can use these operations on DStreams to perform the underlying RDD operations separately on each batch. Let us consider a join between two DStreams. In Examples 10-12 and 10-13, we have data keyed by IP address, and we join the request count against the bytes transferred.
 
@@ -3121,14 +3114,14 @@ val ipBytesRequestCountDStream = ipCountsDStream.join(ipBytesSumDStream)
 
 We can also merge the contents of two different DStreams using the union() operator as in regular Spark, or using `StreamingContext.union()` for multiple streams.
 
-Finally, if these stateless transformations are insufficient, DStreams provide an advanced operator called transform() that lets you operate `directly on the RDDs inside them`. The transform() operation lets you provide any `arbitrary RDD-to-RDD function` to act on the DStream. This function `gets called on each batch of data in the stream to produce a new stream`. `A common application of transform() is to reuse batch processing code you had written on RDDs`. For example, if you had a function, extractOutliers(), that acted on an RDD of log lines to produce an RDD of outliers (perhaps after running some statistics on the messages), you could reuse it within a transform(), as shown in Examples 10-14 and 10-15.  
+Finally, if these stateless transformations are insufficient, DStreams provide an advanced operator called `transform()` that lets you operate `directly on the RDDs inside them`. The transform() operation lets you provide any `arbitrary RDD-to-RDD function` to act on the DStream. This function `gets called on each batch of data in the stream to produce a new stream`. `A common application of transform() is to reuse batch processing code you had written on RDDs`. For example, if you had a function, extractOutliers(), that acted on an RDD of log lines to produce an RDD of outliers (perhaps after running some statistics on the messages), you could reuse it within a transform(), as shown in Examples 10-14 and 10-15.  
 **Example 10-14. transform() on a DStream in Scala**  
 ```scala
 val outlierDStream = accessLogsDStream.transform { rdd =>
     extractOutliers(rdd)
 }
 ```
-You can also combine and transform data from multiple DStreams together using StreamingContext.transform or DStream.transformWith(otherStream, func).
+You can also combine and transform data from multiple DStreams together using `StreamingContext.transform` or `DStream.transformWith(otherStream, func)`.
 
 #### Stateful Transformations
 Stateful transformations are operations on DStreams that track data across time; that is, some data from previous batches is used to generate the results for a new batch. The two main types are `windowed operations`, which act over a sliding window of time periods, and `updateStateByKey()`, which is used to track state across events for each key (e.g., to build up an object representing each user session).  
@@ -3143,12 +3136,12 @@ ssc.checkpoint(“hdfs://…”)
 ##### Windowed transformations
 Windowed operations compute results across a longer time period than the StreamingContext’s batch interval, by combining results from multiple batches.
 
-All windowed operations need two parameters, `window duration` and `sliding duration`, both of which must be `a multiple of the StreamingContext’s batch interval`. The window duration controls how many previous batches of data are considered, namely the last windowDuration/batchInterval. If we had a source DStream with a batch interval of 10 seconds and wanted to create a sliding window of the last 30 seconds (or last 3 batches) we would set the windowDuration to 30 seconds. The sliding duration, which defaults to the batch interval, controls how frequently the new DStream computes results. If we had the source DStream with a batch interval of 10 seconds and wanted to compute our window only on every second batch, we would set our sliding interval to 20 seconds. Figure 10-6 shows an example.  
+All windowed operations need two parameters, `window duration` and `sliding duration`, both of which must be `a multiple of the StreamingContext’s batch interval`. `The window duration controls how many previous batches of data are considered, namely the last windowDuration/batchInterval`. If we had a source DStream with a batch interval of 10 seconds and wanted to create a sliding window of the last 30 seconds (or last 3 batches) we would set the windowDuration to 30 seconds. `The sliding duration, which defaults to the batch interval, controls how frequently the new DStream computes results`. If we had the source DStream with a batch interval of 10 seconds and wanted to compute our window only on every second batch, we would set our sliding interval to 20 seconds. Figure 10-6 shows an example.  
 
 ![spark_stream_window_example_img_1]  
 **Figure 10-6. A windowed stream with a window duration of 3 batches and a slide duration of 2 batches; every two time steps, we compute a result over the previous 3 time steps**  
 
-The simplest window operation we can do on a DStream is window(), which returns a new DStream with the data for the requested window. In other words, each RDD in the DStream resulting from window() will contain data from multiple batches, which we can then process with count(), transform(), and so on. (See Examples 10-17 and 10-18.)
+`The simplest window operation we can do on a DStream is window()`, which returns a new DStream with the data for the requested window. In other words, each RDD in the DStream resulting from window() will contain data from multiple batches, which we can then process with count(), transform(), and so on. (See Examples 10-17 and 10-18.)
 
 **Example 10-17. How to use window() to count data over a window in Scala**  
 ```scala
@@ -3156,7 +3149,7 @@ val accessLogsWindow = accessLogsDStream.window(Seconds(30), Seconds(10))
 val windowCounts = accessLogsWindow.count()
 ```
 
-While we can build all other windowed operations on top of window(), Spark Streaming provides a number of other windowed operations for efficiency and convenience. First, `reduceByWindow()` and `reduceByKeyAndWindow()` allow us to perform reductions on each window more efficiently. They take a single reduce function to run on the whole window, such as +. In addition, they have `a special form that allows Spark to compute the reduction incrementally`, `by considering only which data is coming into the window and which data is going out`. This special form `requires an inverse of the reduce function`, such as - for +. It is much more efficient for large windows if your function has an inverse (see Figure 10- 7).
+`While we can build all other windowed operations on top of window(), Spark Streaming provides a number of other windowed operations for efficiency and convenience`. First, `reduceByWindow()` and `reduceByKeyAndWindow()` allow us to perform reductions on each window more efficiently. They take a single reduce function to run on the whole window, such as +. In addition, they have `a special form that allows Spark to compute the reduction incrementally`, `by considering only which data is coming into the window and which data is going out`. This special form `requires an inverse of the reduce function`, such as - for +. It is much more efficient for large windows if your function has an inverse (see Figure 10- 7).
 
 ![spark_stream_window_incremental_img_1]  
 Figure 10-7. Difference between naive reduceByWindow() and incremental reduceByWindow(), using an inverse function
@@ -3476,5 +3469,7 @@ Spark also allows us to control how cached/persisted RDDs are evicted from the c
 [spark_dstream_transform_example_img_1]:/resources/img/java/spark_dstream_transform_example_1.png "Figure 10-3. DStreams and transformation of Examples 10-4 through 10-8"
 [spark_stream_components_img_1]:/resources/img/java/spark_stream_components_1.png "Figure 10-5. Execution of Spark Streaming within Spark’s components"
 [spark_stream_window_example_img_1]:/resources/img/java/spark_stream_window_example_1.png "Figure 10-6. A windowed stream with a window duration of 3 batches and a slide duration of 2 batches; every two time steps, we compute a result over the previous 3 time steps"
+[spark_stream_window_incremental_img_1]:/resources/img/java/spark_stream_window_incremental_1.png "Figure 10-7. Difference between naive reduceByWindow() and incremental reduceByWindow(), using an inverse function"
+[spark_stream_window_incremental_img_2]:/resources/img/java/spark_stream_window_incremental_2.png "Figure 10-7. Difference between naive reduceByWindow() and incremental reduceByWindow(), using an inverse function. Revised"
 [Akka actors]:https://akka.io/ "Akka actors"
 [Apache Kafka]:http://kafka.apache.org/ "Apache Kafka"

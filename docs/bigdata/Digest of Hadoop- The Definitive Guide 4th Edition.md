@@ -5665,11 +5665,9 @@ Data types            |Integral, floating-point, fixed-point, text and binary st
 Functions              |Hundreds of built-in functions                    |Hundreds of built-in functions  
 Multitable inserts |Not supported                                            |Supported
 CREATE TABLE...AS SELECT    |Not valid SQL-92, but found in some databases      |Supported 
-SELECT                |SQL-92                                                      |SQL-92. `SORT BY for partial ordering`, LIMIT to limit
-number of rows returned
+SELECT                |SQL-92                                                      |SQL-92. `SORT BY for partial ordering`, LIMIT to limit number of rows returned
 Joins                    |SQL-92, or variants (join tables in the FROM clause, join condition in the WHERE clause)  |Inner joins, outer joins, `semi joins`, map joins, cross joins
-Subqueries           |In any clause (correlated or noncorrelated)       |In the FROM, WHERE, or HAVING clauses (uncorrelated
-subqueries not supported)(PS: should only support uncorrelated subqueries)
+Subqueries           |In any clause (correlated or noncorrelated)       |In the FROM, WHERE, or HAVING clauses (uncorrelated subqueries not supported)(PS: should only support uncorrelated subqueries)
 Views                   |Updatable (materialized or nonmaterialized)      |Read-only (materialized views not supported)
 Extension points  |User-defined functions, stored procedures        |User-defined functions, MapReduce scripts
 
