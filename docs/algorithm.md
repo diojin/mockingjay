@@ -42,7 +42,7 @@
     - [Consistent hash](#consistent-hash)
     - [MapReduce](#mapreduce)
     - [Exercises & Snippets](distributed-exercises-and-snippets)
-* [Exercises & Snippets](exercises-and-snippets)
+* [Exercises & Snippets](#exercises-and-snippets)
     - [Big volumn of data processing](#big-volumn-of-data-processing)
     - [Misc](exercises-and-snippets-misc)
       + [Large volumn data processing](#large-volumn-data-processing)
@@ -81,9 +81,7 @@ Radix Sort      |O(nk)          |O(nk)          |O(nk)          |O(n+k)     |Y
 快速排序比大部分排序算法都要快。尽管我们可以在某些特殊的情况下写出比快速排序快的算法，但是就通常情况而言，没有比它更快的了。快速排序是递归的，对于内存非常有限的机器来说，它不是一个好的选择。
 
 堆排序适合于数据量非常大的场合（百万数据）。  
-堆排序不需要大量的递归或者多维的暂存数组。这对于数据量非常巨大的序列是合适的。比如超过数百万条记录，因为快速排序，归并排序都使用递归来设计算法，在数据量非常大的时候，可能会发生堆栈溢出错误。
-
-
+堆排序不需要大量的递归(??)或者多维的暂存数组(??)。这对于数据量非常巨大的序列是合适的。比如超过数百万条记录，因为快速排序，归并排序都使用递归来设计算法，在数据量非常大的时候，可能会发生堆栈溢出错误。
 
 ##### Insertion Sort
 ```scala
@@ -151,12 +149,12 @@ for ( i = n-1 to 1 ) {
 } 
 ```
 
-**Restore(K, start, end)**
-Assumption: both left and right subtree of K(start) are heap already
-Compare K(start) with the larger one (say K(larger)) of its left child( `K(2*start + 1)` ) and right child( `K(2*start + 2)` ),  if K(start) > K(larger), then it is already a heap, process ends, otherwise, swap K(start) with K(larger), and call R(K, larger, end)
+**Restore(K, start, end)**  
+`Assumption`: both left and right subtree of K(start) are heap already  
+Compare K(start) with the larger one of its left child( `K(2*start + 1)` ) and right child( `K(2*start + 2)` ), namely K(larger), if K(start) > K(larger), then it is already a heap, process ends, otherwise, swap K(start) with K(larger), and call R(K, larger, end), that is, restore the swapped part of tree.
 
-**HeapSort(K, n)**
-Assumption: n is the length of K
+**HeapSort(K, n)**  
+`Assumption`: n is the length of K  
 1. initiating the heap  
 ```scala
 for ( i <- floor((n-1)/2) to 0 ){
@@ -193,7 +191,7 @@ for ( i <- n-1 to 1 ){
   
   def sort[T](source: Array[T])(implicit ev: T <:< Ordered[T]){
     // initiating the heap
-    for ( i <- (math.floor((source.length -1)/2).toInt) to (0, -1) ){
+    for ( i <- (math.floor((source.length -1 - 1)/2).toInt) to (0, -1) ){
       restore(source, i, source.length -1)
     }
     
@@ -471,8 +469,8 @@ r: Radix for each digit, for a decimal number, it is 2
 
 ##### BucketSort
 Bucket sort works as follows:  
-1. Set up an array of initially empty "buckets".
-2. Scatter: Go over the original array, putting each object in its bucket.
+1. Set up an array of initially empty "buckets"(the value range of each buckets must be in order).
+2. Scatter: Go over the original array, putting each object in its bucket(can use / but rather % to decide the bucket).
 3. Sort each non-empty bucket.
 4. Gather: Visit the buckets in order and put all elements back into the original array.  
 
@@ -487,10 +485,10 @@ function bucketSort(array, n) is
   return the concatenation of buckets[0], ...., buckets[n-1]
 ```
 
-Here array is the array to be sorted and n is the number of buckets to use. The function msbits(x,k) returns the k most significant bits of x (floor(x/2^(size(x)-k))); different functions can be used to translate the range of elements in array to n buckets, such as translating the letters A–Z to 0–25 or returning the first character (0–255) for sorting strings. The function nextSort is a sorting function; using bucketSort itself as nextSort produces a relative of radix sort; in particular, the case n = 2 corresponds to quicksort (although potentially with poor pivot choices).  
-Note that for bucket sort to be O(n) on average, the number of buckets n must be equal to the length of the array being sorted, and the input array must be uniformly distributed across the range of possible bucket values. If these requirements are not met, the performance of bucket sort will be dominated by the running time of nextSort, which is typically O(n^2) insertion sort, making bucket sort less optimal than O(n\log(n)) comparison sort algorithms like Quicksort.
+Here array is the array to be sorted and n is the number of buckets to use. The function `msbits(x,k`) returns `the k most significant bits of x` (floor(x/2^(size(x)-k))); different functions can be used to translate the range of elements in array to n buckets, such as translating the letters A–Z to 0–25 or returning the first character (0–255) for sorting strings. The function nextSort is a sorting function; using bucketSort itself as nextSort produces a relative of radix sort; in particular, the case n = 2 corresponds to quicksort (although potentially with poor pivot choices).  
+`Note that for bucket sort to be O(n) on average, the number of buckets n must be equal to the length of the array being sorted, and the input array must be uniformly distributed across the range of possible bucket values`. `If these requirements are not met, the performance of bucket sort will be dominated by the running time of nextSort, which is typically O(n^2) insertion sort, making bucket sort less optimal than O(n\log(n)) comparison sort algorithms like Quicksort`.
 
-A common optimization is to put the unsorted elements of the buckets back in the original array first, then run insertion sort over the complete array; because insertion sort's runtime is based on how far each element is from its final position, the number of comparisons remains relatively small, and the memory hierarchy is better exploited by storing the list contiguously in memory.
+`A common optimization is to put the unsorted elements of the buckets back in the original array first, then run insertion sort over the complete array`; because insertion sort's runtime is based on how far each element is from its final position, the number of comparisons remains relatively small, and the memory hierarchy is better exploited by storing the list contiguously in memory.
 
 ###### Value Distribution Sort
 Suppose value range of input dataset K is from u to v, [u, v]
@@ -504,18 +502,22 @@ S: output
 2. For j = 0 to n-1 DO  
     COUNT[Kj] += 1
 3. compute Count[i], which is the last index of elements whose value equal to i  
+    ```python
     For i = u+1 to v Do  
         COUNT[i] = COUNT[i] + Count[i-1]
-4. output to S   
+    ```
+4. output to S  
+    ```python 
     For j = n-1 to 0 DO  {   
         i <- COUNT[Kj]   
         Si = Kj   
         COUNT[Kj] <- i-1   
     }
+    ```
     
 ##### External Sort
 
-外排序的一个例子是外归并排序（External merge sort），它读入一些能放在内存内的数据量，在内存中排序后输出为一个顺串（即是内部数据有序的临时文件），处理完所有的数据后再进行归并。[1][2]比如，要对 900 MB 的数据进行排序，但机器上只有 100 MB 的可用内存时，外归并排序按如下方法操作：  
+外排序的一个例子是外归并排序（External merge sort），它读入一些能放在内存内的数据量，在内存中排序后输到临时文件ISS（即是内部数据有序的临时文件），处理完所有的数据后再将临时文件进行归并。比如，要对 900 MB 的数据进行排序，但机器上只有 100 MB 的可用内存时，外归并排序按如下方法操作：  
 1. 读入 100 MB的数据至内存中，用某种常规方式（如快速排序、堆排序、归并排序等方法）在内存中完成排序。
 2. 将排序完成的数据写入磁盘。
 3. 重复步骤 1 和 2 直到所有的数据都存入了不同的 100 MB的块（临时文件）中。在这个例子中，有 900 MB 数据，单个临时文件大小为 100 MB，所以会产生 9 个临时文件。
@@ -581,7 +583,7 @@ T (T >= 2) channels in all, separated in 2 groups, group A and group B, group A 
 1. Place all ISS in turn (interleavingly) to P channels in group A
 2. Merge ISS in group A to group B  
     every P ISS are merged to 1 larger ISS ( create several virtual ISS whose length is 0 so that total number of ISS is a multiple of P), and places newly merged ISS to the only channel in group B   
-3. Algorithm ends if there is only 1 ISS left in group B, otherwise, copy in turn (interleavingly) all ISS in the only channel in group B back to P channels in group A, repeat step 2 and 3
+3. Algorithm ends if there is only 1 ISS left in group B, otherwise, copy in turn (interleavingly) all ISS in the only channel of group B back to P channels in group A, repeat step 2 and 3
 
 Take an example that T=4, P=3, 5000 ISS(S=5000), it takes 3 rounds to finish  
 1. Operation 1  
@@ -605,13 +607,14 @@ Channel 2: EMPTY
 Channel 3: EMPTY  
 Channel 4: R1 ~ R5000    
 
-Because the the copy step, it needs double times of scan, 2 * ceil(log(P)(S)) (Here S is the size of initial files)
+Because the the copy step, it needs double times of scan, 2 * ceil(log(P)(S)) (Here S is the number of initial files)
 
 **Complexity**:  
 Here S is the number of initial files, P is the number of channels, n is the total size of data       
 Internal sorting: `O（S *(n/S)*log(n/S) ）`, assume that nlogn sorting algorithm is applied.  
 External sorting: `O((n/S) * 2 * ceil(log(P,S))`, not accurate, assume that time for merging each pair of files is O(n/S) (here, log(S) is short for log(2, S)) 
 
+PS: so roughly speakingly, totaly complexity should be O(n) + O(nlogn)
 
 ###### Fibonacci Merge Sort
 Multiple channels merge sort is not so efficent because they needs more scan times, Fibonacci merge sort can avoid copy step, reduce scan times
@@ -660,13 +663,13 @@ initial state:
 dp[0][j] = j，dp[i][0] = i
 ```
 
-1. dp[i-1][j] + 1, 即s[i]不在T[0…j]中,删除操作  
+1. dp[i-1][j] + 1, 即s[i]不在T[0…j]中(s[i]通过上述各种变化, 但不在T[0...j]中),删除操作  
 s[i]没有落在T[0…j]中，即s[i]在中间的某一次编辑操作被删除了。因为删除操作没有前后相关性，不妨将其在第1次操作中删除。除首次操作时删除外，后续编辑操作是将长度为i-1的字符串，编辑成长度为j的字符串：即dp[i-1][j]。
-2. dp[i-1][j-1] + 0/1, 即s[i] 在T[0...j], 但不在T[0...j-1], 替换操作    
+2. dp[i-1][j-1] + 0/1, 即s[i] 在T[0...j], 但不在T[0...j-1],(s[i]通过上述各种变化, 最后在T[0...j], 但不在T[0...j-1]) 替换操作    
 说明s[i]经过编辑，最终落在T[j]的位置。  
 则要么s[i] == t[j]，s[i]直接落在T[j]  。这种情况，编辑操作实际上是将长度为i-1的S’串，编辑成长度为j-1的T’串：即dp[i-1][j-1]；  
 要么s[i] ≠ t[j]，s[i] 落在T[j]后，要将s[i]修改成T[j]，即在上一种情况的基础上，增加一次修改操作：即dp[i-1][j-1] + 1。  
-3. dp[i][j-1] + 1, 即s[i]在T[0…j-1]中, 插入操作  
+3. dp[i][j-1] + 1, 即s[i]在T[0…j-1]中(s[i]通过上述各种变化, 在T[0…j-1]中), 插入操作  
 若s[i]落在了T[1…j-1]的某个位置，不妨认为是k，因为最小编辑步数的定义，那么，在k+1到j-1的字符，必然是通过插入新字符完成的(因为变化方式只有删除, 替换和插入, 没有同一个串内部的相互位置交换, 所以s[i]是变换的最末位字符)。因为共插入了(j-k)个字符，故编辑次数为(j-k)次。而字符串S[1…i]经过编辑，得到了T[1…k]，编辑次数为dp[i][k]。故： dp[i][j] = dp[i][k] + (j-k)。  
 由于最后的(j-k)次是插入操作，可以讲(j-k)逐次规约到dp[i][k]中。即：dp[i][k]+(j-k)=dp[i][k+1] + (j-k-1) 规约到插入操作为1次，得到 dp[i][k]+(j-k) =dp[i][k+1] + (j-k-1) =dp[i][k+2] + (j-k-2)=… =dp[i][k+(j-k-1)] + (j-k)-(j-k-1) =dp[i][j-1] + 1。   
 也可以有个再简单的理解方法, 可以认为是把S[0..i]变成T[0..j-1]然后再插入T[j], 因为S[i](的变换)落在T[0…j-1]中  
@@ -677,14 +680,16 @@ s[i]没有落在T[0…j]中，即s[i]在中间的某一次编辑操作被删除�
 
 令dp[i][j]代表s3[0...i+j-1]是否由s1[0...i-1]和s2[0...j-1]的字符组成  
 
-如果s1当前字符（即s1[i-1]）等于s3当前字符（即s3[i+j-1]），而且dp[i-1][j]为真，那么可以取s1当前字符而忽略s2的情况，dp[i][j]返回真；  
-如果s2当前字符等于s3当前字符，并且dp[i][j-1]为真，那么可以取s2而忽略s1的情况，dp[i][j]返回真，其它情况，dp[i][j]返回假  
-初始状态: dp[0][0] = true, 空串可以由空串组成   
+如果s1当前字符（即s1[i-1]）等于s3当前字符（即s3[i+j-1]），而且dp[i-1][j]为真，那么可以取s1当前字符而作为s3当前字符，dp[i][j]返回真；  
+如果s2当前字符等于s3当前字符，并且dp[i][j-1]为真，那么可以取s2当前字符作为s3当前字符，dp[i][j]返回真，其它情况，dp[i][j]返回假  
+初始状态: dp[0][0] = true, 空串可以由空串组成(注意: 初始的时候, d[0][j]或d[i][0]不一定为true, 要计算)   
 
 * 最大连续乘积子串   
 [algorithm_dynamic_planning_1]  
 
->>给一个浮点数序列，取最大乘积连续子串的值，例如 -2.5，4，0，3，0.5，8，-1，则取出的最大乘积连续子串为3，0.5，8。也就是说，上述数组中，3 0.5 8这3个数的乘积30.58=12是最大的，而且是连续的。
+>>给一个浮点数序列，取最大乘积连续子串的值，例如 -2.5，4，0，3，0.5，8，-1，则取出的最大乘积连续子串为3，0.5，8。也就是说，上述数组中，3 0.5 8这3个数的乘积30.58=12是最大的，而且是连续的。  
+
+考虑到可能存在负数的情况，我们用maxend来表示`以a[i]结尾`的最大连续子串的乘积值，用minend表示`以a[i]结尾`的最小的子串的乘积值
 
 ```scala
 //那么状态转移方程为：
@@ -697,6 +702,12 @@ s[i]没有落在T[0…j]中，即s[i]在中间的某一次编辑操作被删除�
 ```
 
 算法复杂度:  O(N)  
+
+最长公共子串（Longest CommonSubstring）和最长公共子序列（LongestCommon Subsequence，LCS）是：  
+* 子串（Substring）是串的一个连续的部分，  
+* 子序列（Subsequence）则是从不改变序列的顺序，而从序列中去掉任意的元素而获得的新序列；  
+更简略地说，前者（子串）的字符的位置必须连续，后者（子序列LCS）则不必。比如字符串“ acdfg ”同“ akdfc ”的最长公共子串为“ df ”，而它们的最长公共子序列LCS是“ adf ”，LCS可以使用动态规划法解决。   
+上面一题求的是子串, 所以状态定义有效, 如果是自序列, 得用另外的办法.  
 
 * 格子取数问题  
 [algorithm_dynamic_planning_3]  
@@ -763,7 +774,7 @@ DP[0,0,0] = a[0][0]
 DP[0,i,j] = Min
 ```
 
-算法的时空复杂度都是O(N^3), 空间复杂度可以通过滚动数组来降一维, 因为每步的计算只与上一步有关, 所以空间上可以用2个2维数组表示就可以  
+算法的时空复杂度都是O(N^3), 空间复杂度可以通过`滚动数组`来降一维, 因为每步的计算只与上一步有关, 所以空间上可以用2个2维数组表示就可以  
 
 >>给定m*n的矩阵，每个位置是一个整数，从左上角开始，每次只能朝右、上和下走，并且不允许两次进入同一个格子，走到右上角，最小和。
 
@@ -792,14 +803,14 @@ dp[i][j] = min {
 ##### Binary Tree
 * 以下结论均假定根节点层次为0  
 * 二叉树中层数为n的结点至多有2^n个
-* 高度为k的二叉树中至多有2^(k+1)-1 个结点, 最少有k个结点  
+* 高度为k的二叉树中至多有2^(k+1) - 1 个结点, 最少有k个结点  
 * 结点的子节点个数为该节点的次数
 * 结点的个数 = 边数 + 1
 * 对于n结点的二叉树,  叶子结点的个数为n(0),  次数为1, 2的结点个数分别为n(1), n(2)  
     n(0) = n(2) + 1
 * 满二叉树: 高度为k的满二叉树, 是有 2^(k+1) - 1 个结点的高度为k的二叉树
 * 完全二叉树(complete binary tree), 一颗具有n个结点, 高度为k的二叉树, 并且树中所有的结点连续对应于高度为k的满二叉树中编号为由0至n的那些结点(n <= 2^(k+1) - 1) 
-* n个结点的完全二叉树的高度是floor(log2(n))(根节点层次为0)
+* n个结点的完全二叉树的高度是floor(log(2)(n))(根节点层次为0)
 * 线索二叉树: 比二叉树增加两个指针域, 分别指向当前节点的中根前驱结点和中根后继结点
 * 只知道二叉树的先根/中根/后根次序, 无法唯一确定一颗二叉树
 * 如果已知二叉树的先根次序和各结点的次数, 可以唯一确定一棵二叉树
@@ -942,7 +953,7 @@ stack implementation:
 ```
 
 ##### Tree & Forest
-By using 2 pointer fiels to express a forest, that is, firstChild and nextBrother(not firstChild's brother, but its same level brother),  a forest can be converted to a binary tree, vice verse, the cardinal of the relationship is 1:1
+By using 2 pointer fields to express a forest, that is, firstChild and nextBrother(not firstChild's brother, but its same level brother),  a forest can be converted to a binary tree, vice verse, the cardinal of the relationship is 1:1
 
 **Tree & Forest Definition**  
 ```scala
@@ -1240,32 +1251,37 @@ stack implementation 2
 
 stack implementation 3  
 ```scala
-  /**
-   * much simpler but is indeed not depth first search
-   */
-  def depthFirstSearchStackImp3() {
-    val visited = new Array[Int](vertexes.size)
-    for (i <- 0 to visited.length -1 ){
-      visited(i) = 0
-    }
-    val stack = Stack[Int]()
-    var cur = 0
-    stack.push(cur)
-    while ( stack.nonEmpty ){
-      cur = stack.pop()
-      if ( visited(cur) == 0 ){
-        println(cur)
-        visited(cur) = 1        
-      }
+/**
+ * much simpler and elegant
+ */
+def depthFirstSearchStackImp3() {
+  val visited = new Array[Int](vertexes.size)
+  for (i <- 0 to visited.length - 1) {
+    visited(i) = 0
+  }
+  val stack = Stack[Int]()
+  var cur = 0
+  stack.push(cur)
+  while (stack.nonEmpty) {
+    cur = stack.pop()
+    if (visited(cur) == 0) {
+      println(cur)
+      visited(cur) = 1
+      
+      // push into stack in reverse order
       var nextChild = vertexes(cur).next
-      while ( nextChild != null){
-        if ( visited(nextChild.verAdj) == 0 ){
-          stack.push(nextChild.verAdj)
-        }
+      val reverseStack = new Stack[AdjacentArrayGraph.EdgeNode]()
+      while (nextChild != null){
+        reverseStack.push(nextChild)
         nextChild = nextChild.next
       }
-    }    
+
+      while (reverseStack.nonEmpty) {
+        stack.push(reverseStack.pop().verAdj)
+      }
+    }
   }
+}
 ```
 
 **Width First Search**  
@@ -1386,9 +1402,9 @@ vl(n) = ve(n)
 4. 按拓扑排序的逆序, 计算各个顶点的最晚开始时间, 计算方法是  
 vl(n) = ve(n)  
 vl(i) = min { vl(j) - weight(<Vi, Vj>) } if there is edge <Vi, Vj>   
-6. 计算各个活动的最早和最晚发生时间, 计算公式如下  
-e(i) = ve(j)
-l(i) = vl(k) - weight(<Vj, Vk>)  
+5. 计算各个活动的最早和最晚发生时间, 计算公式如下  
+e(i) = ve(j)  
+l(i) = vl(k) - weight(<Vj, Vk>)   
 如果e(i) = l(i) , 则活动Ai是关键活动, 在关键路径上  
 
 ##### None Weight Shortest Path
@@ -1414,7 +1430,8 @@ path[j] = i, 当边<Vi, Vj>是从源点广度优先遍历首次打到Vj的边
 数组visited[i] = 0 (包括源点) 表示顶点i没有被访问过; 一旦被访问, 则令visited[i] = 1  
 数组path[i]存储从源点到达顶点i的最短路径上的前一个顶点
 1. 从没有被访问过的顶点中选择Dv最小的顶点v, 访问顶点v, 令visited[v] = 1  
-2. 一次检验与顶点v的所有顶点w, 如果Dv + weight(v,w) < Dw, 则更新Dw = Dv + weight(v,w), 且path[w] = v  
+2. 依次检验与顶点v的所有顶点w, 如果Dv + weight(v,w) < Dw, 则更新Dw = Dv + weight(v,w), 且path[w] = v  
+重复上述过程直到所有的节点都被访问  
 
 
 ##### Negtive Weight Shortest Path
@@ -1424,39 +1441,43 @@ Complexity:  o(n*e), e 为边数, n为顶点数
 
 单源负权最短路径算法基本类似与图的层次遍历, 不过对每个顶点增加一个访问计数, 用以控制每个顶点被访问的次数. 访问次数过多(超过2倍顶点个数), 则存在开销回路.  
 
-scratch[]数组, 初始值为零, 当一个顶点v入队(enqueue)或者出队(dequeue), scratch[v]++ 于是可知, scratch[v]为奇数时, 顶点v已经在队列; 为偶数时, 则不在队列.   
+scratch[]数组, 初始值为零, 当一个顶点v入队(enqueue)或者出队(dequeue), scratch[v]++ 于是可知, scratch[v]为奇数时, 顶点v已经在队列; 为偶数时, 则不在队列. 实际上scratch[u]是任意时刻, 从源点到顶点u的最短路径所经历的节点数的2倍(包括源点. 或如果在队伍里面, 是节点数的2倍 -1). 可见用scratch[u] > 2n 作为判断是否有负开销回路的并不很及时, 可能不经历n个节点就已经多次进入负收益回路.  
 
 path[]数组用于记录最短路径, path[v] = k 表示源点到v的最短路径中, v之前的顶点是k.  
 dist[]数组用于记录开销  
 
 **Negtive Weight Shortest Path Algorithm**  
-1. 初始化阶段, 源点S入队, 并令dist[S] = 0, scratch[S] = -1, path[S] = -1. 对于其他顶点v, dist[v] = max, scratch[v] = 0,  path[v] = -1
-2. 从队列中弹出一个顶点v, scratch[v]++, 并且计算如下,   
+1. 初始化阶段  
+对于源点S,  令dist[S] = 0, scratch[S] = -1, path[S] = -1, 入队S  
+对于其他顶点v, dist[v] = max, scratch[v] = 0,  path[v] = -1  
+2. 从队列中弹出一个顶点v, 使scratch[v]++, 并且计算如下,   
     1. 遍历v的所有邻接顶点k, 对于每一个k, 计算如下,     
-        1. if ( dist[v] + weight(v, k) < dist[k] ) {   
-              if ( scratch[k] 是偶数 ) {  
-                 表示k不在队列里面   
-                 将k入队    
-                 scratch[k] = scratch[v] + 1  
-              }else {  
-                 表示k已经在队列里面   
-                 if ( scratch[v] + 1 > scratch[k] ){  //奇怪,可能是为了保持scratch的单调递增才有这个条件判断     
-                    scratch[k] = scratch[v] + 1   
-                 }  
-              }  
-              if (scratch[k] > 2n){
-                终止算法, 标明有负开销回路
-              }
-              dist[k] = dist[v] + weight(v, k)    
-              path[k] = v  
-            }   
-           }    
+```python
+if ( dist[v] + weight(v, k) < dist[k] ) {   
+   if ( scratch[k] 是偶数 ) {  
+      表示k不在队列里面   
+      将k入队    
+      scratch[k] = scratch[v] + 1  
+   }else {  
+      表示k已经在队列里面   
+      if ( scratch[v] + 1 > scratch[k] ){  //奇怪,可能是为了保持scratch的单调递增才有这个条件判断     
+         scratch[k] = scratch[v] + 1   
+      }  
+   }  
+   if (scratch[k] > 2n){
+     终止算法, 标明有负开销回路
+   }
+   dist[k] = dist[v] + weight(v, k)    
+   path[k] = v  
+ }   
+}    
+```
 
 Complexity: O(n*e)  
 
 ##### Shorest Path for all vertexes
 * an alternative way, execute Dijkstra algorithm for each vertex, complexity is o(n^3)
-* 算法是一种计算顺序的模式  
+* 该算法实质是一种计算顺序的模式  
 * Complexity: o(n^3)
 
 Algorithm:  
@@ -1864,8 +1885,8 @@ Conclusion is the same as before, however, there are differences on version valu
 10. 数据库优化法  
 11. simhash 法   
     比较两篇文章相似度的算法？几个比较传统点的思路：  
-    一种方案是先将两篇文章分别进行分词，得到一系列特征向量，然后计算特征向量之间的距离（可以计算它们之间的欧氏距离、海明距离或者夹角余弦等等），从而通过距离的大小来判断两篇文章的相似度。问题是对于巨量文章或高维特征向量无法有效计算.
-    另外一种方案是传统hash，我们考虑为每一个web文档通过hash的方式生成一个指纹（finger print）, 比较指纹的"距离". 传统的MD5,输入内容一旦出现哪怕轻微的变化，hash值就会发生很大的变化   
+    * 一种方案是先将两篇文章分别进行分词，得到一系列特征向量，然后计算特征向量之间的距离（可以计算它们之间的欧氏距离、海明距离或者夹角余弦等等），从而通过距离的大小来判断两篇文章的相似度。问题是对于巨量文章或高维特征向量无法有效计算.  
+    * 另外一种方案是传统hash，我们考虑为每一个web文档通过hash的方式生成一个指纹（finger print）, 比较指纹的"距离". 传统的MD5,输入内容一旦出现哪怕轻微的变化，hash值就会发生很大的变化   
 
     Hamming Distance，又称汉明距离，在信息论中，两个等长字符串之间的汉明距离是两个字符串对应位置的不同字符的个数。也就是说，它就是将一个字符串变换成另外一个字符串所需要替换的字符个数。例如：1011101 与 1001001 之间的汉明距离是 2。至于我们常说的字符串编辑距离则是一般形式的汉明距离。  求法：异或时，只有在两个比较的位不同时其结果是1 ，否则结果为0，两个二进制“异或”后得到1的个数即为海明距离的大小。  
 
@@ -1880,7 +1901,7 @@ Conclusion is the same as before, however, there are differences on version valu
     根据经验值，对64位的 SimHash值，海明距离在3以内的可认为相似度比较高。  
 
     如何在海量的样本库中查询与其海明距离在3以内的文章呢？  
-    一种方案是查找待查询文本的64位simhash code的所有3位以内变化的组合(四万多次查询,组合值C(64)(3) )  
+    一种方案是查找待查询文本的64位simhash code的所有3位以内变化的组合(四万多次查询,组合值C(64)(3). PS: 应该是C(64)(3) + C(64)(2) + C(64)(1) )  
     另一种方案是预生成库中所有样本simhash code的3位变化以内的组合(大约需要占据4万多倍的原始空间)  
 
     我们可以把 64 位的二进制simhash签名均分成4块，每块16位。如果两个签名的海明距离在 3 以内，它们至少有一块完全相同.   
@@ -1903,7 +1924,7 @@ Conclusion is the same as before, however, there are differences on version valu
 
 * 在2.5亿个整数中找出不重复的整数，注，内存不足以容纳这2.5亿个整数  
   此题的重点是找出不重复的整数, 而非重复的整数, 所以是`2-Bitmap`  
-    方案1：采用2-Bitmap（每个数分配2bit，00表示不存在，01表示出现一次，10表示多次，11无意义）进行，共需内存2^32 * 2 bit=1 GB内存，还可以接受。然后扫描这2.5亿个整数，查看Bitmap中相对应位，如果是00变01，01变10，10保持不变。所描完事后，查看bitmap，把对应位是01的整数输出即可。  
+    方案1：采用2-Bitmap（每个数分配2bit，00表示不存在，01表示出现一次，10表示多次，11无意义）进行，共需内存2^32 * 2 bit=1 GB内存(PS: 2.5亿约等于2^28, 所以位图需要2^28 * 2 bits / 2^3 = 2 ^ 26 Byte, 即62.5MB的内存)，还可以接受。然后扫描这2.5亿个整数，查看Bitmap中相对应位，如果是00变01，01变10，10保持不变。所描完事后，查看bitmap，把对应位是01的整数输出即可。  (1 Byte = 8 bits,  2^30 byte = 1GB.)
     方案2：我们可以将这2^32个数，划分为2^8个小文件。然后在小文件中找出不重复的整数, 然后再进行归并  
 
 * 一个文本文件，大约有一万行，每行一个词，要求统计出其中最频繁出现的前10个词，请给出思想，给出时间复杂度分析  
@@ -1934,16 +1955,16 @@ Hash法在这里用于统计频率或去重
     这里可以使用改进的快速排序, 因为只是求出前10000个数, 每轮迭代时, 如果大的堆里(快速排序会分为2堆)的元素个数N大于10000, 则只需递归排序大的堆, 小的堆不用再排; 否则, 排序大的堆, 同时排出小的堆中的前10000-N个元素, 以此递归下去.  
 
 * 海量数据分布在100台电脑中，想个办法高效统计出这批数据的TOP10  
-    先在各自的机器用hash法统计出现次数, 去除重复的词  
+    先在各自的机器用hash法统计出现次数, `去除重复的词` (PS: 没必要这么复杂, 各个机器去重是必要的, 然后直接求出各个机器的TOP10, 然后合并) 
     然后遍历一遍各个机器的数据，重新hash取模，如此使得同一个元素只出现在单独的一台电脑中，然后采用上面所说的方法，统计每台电脑中各个元素的出现次数找出TOP 10，继而组合100台电脑上的TOP 10，找出最终的TOP 10  
 
 * 有10个文件，每个文件1G，每个文件的每一行存放的都是用户的query，每个文件的query都可能重复。要求你按照query的频度排序  
     1. hash映射分治  
       顺序读取10个文件，按照hash(query)%10的结果将query写入到另外10个文件（记为a0,a1,..a9）中。这样新生成的文件每个的大小大约也1G（假设hash函数是随机的）  
     2. hash_map统计  
-    找一台内存在2G左右的机器，依次对用hash_map(query, query_count)来统计每个query出现的次数。  
+    找一台内存在2G左右的机器，依次对用hash_map(query, query_count)来统计每个query出现的次数。(PS: 不懂, 怎么算出的2G内存)  
     3. 外排序    
-    对于每个文件利用快速/堆/归并排序按照出现次数进行排序，将排序好的query和对应的query_cout输出到文件中，这样得到了10个排好序的文件。最后，对这10个文件进行归并排序  
+    对于每个文件利用快速/堆/归并排序按照出现次数进行排序，将排序好的query和对应的query_cout输出到文件中，这样得到了10个排好序的文件。最后，对这10个文件进行归并排序(PS: 有问题的, 先hash是必要的, 这样才能保证同样的query出现在同一个文件中, MapReduce是先hash, 排序, 再合并的.)
     这一步也可以由分布式框架MapReduce完成  
 
 * 给定a、b两个文件，各存放50亿个url，每个url各占64字节，内存限制是4G，让你找出a、b文件共同的url  
@@ -2045,7 +2066,7 @@ object BitmapAlgorithm extends App {
    * getCertainBit(5, 2)        // 0
    */
   def getCertainBit( input: Int,  k : Int ) = {
-    ( input >> k - 1  ) & 1
+    ( input >> k - 1  ) & 1         // should be very careful, left shift only k-1 bits, but rather k bits
   }
 ```
 
@@ -2053,12 +2074,14 @@ object BitmapAlgorithm extends App {
 
 **log不写底数默认是多少**    
 普通应用都是10，计算机学科是2，算法是2, 编程语言里面是e。  
-高中数学log不允许不写底数。但是有lg=log10和ln=loge。
-value                      |corresponding scale
+高中数学log不允许不写底数。但是有lg=log10和ln=loge。  
+
+value                              |corresponding scale
 ---------------------------|----------------------
-2^10 = 1,024               |KB
-2^20 = 1,048,576           |MB
-2^30 = 1,073,741,824       |GB
+2^10 = 1,024                  |KB
+2^20 = 1,048,576          |MB
+2^30 = 1,073,741,824   |GB
+1 Byte                            | 8 bits
 
 * 递归很适合各种逆序的操作, 比如逆序打印字符串, 链表等等    
 

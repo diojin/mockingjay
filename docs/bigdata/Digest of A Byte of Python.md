@@ -36,6 +36,7 @@
     - [Tuple](#tuple)
     - [Dictionary](#dictionary)
     - [Sequence](#sequence)
+        + [Slicing operation](#slicing-operation)
     - [Set](#set)
     - [More About Strings](#more-about-strings)
 * [Problem Solving](#problem-solving)
@@ -82,7 +83,7 @@ Reading a good Python program feels almost like reading English, although very s
 * Easy to Learn  
 * Free and Open Source  
 * High-level Language  
-never need to bother about the low-level details such as managing the memory used by your program
+`never need to bother about the low-level details such as managing the memory` used by your program
 * Portable  
 Due to its open-source nature, Python has been ported to (i.e. changed to make it work on) many platforms. `All your Python programs can work on any of these platforms without requiring any changes at all if you are careful enough to avoid any system-dependent features`.  
 You can use Python on GNU/Linux, Windows, FreeBSD, Macintosh, Solaris, OS/2, Amiga, AROS, AS/400, BeOS, OS/390, z/OS, Palm OS, QNX, VMS, Psion, Acorn RISC OS, `VxWorks`, `PlayStation`, Sharp Zaurus, Windows CE and PocketPC!  
@@ -90,7 +91,7 @@ You can even use a platform like [Kivy] to create games for your computer and fo
 * Interpreted  
 Python converts the source code into an intermediate form called bytecodes and then translates this into the native language of your computer and then runs it.  
 * Object Oriented  
-* Extensible 
+* Extensible  
 If you need a critical piece of code to run very fast or want to have some piece of algorithm not to be open, you can code that part of your program `in C or C++` and then use it from your Python program.
 * Embeddable  
 You can embed Python within your C/C++ programs to give scripting capabilities for your program's users.
@@ -98,9 +99,11 @@ You can embed Python within your C/C++ programs to give scripting capabilities f
 The Python Standard Library is huge indeed.  
 Besides the standard library, there are various other high-quality libraries which you can find at the [Python Package Index].
 
-* Eric S. Raymond is the author of "The Cathedral and the Bazaar" and is also the person who coined the term Open Source. He says that Python has become his favorite programming language. This article was the real inspiration for my first brush with Python. 
-* `Bruce Eckel` is the author of the famous 'Thinking in Java' and 'Thinking in C++' books. He says that no language has made him more productive than Python. He says that Python is perhaps the only language that focuses on making things easier for the programmer. Read the complete interview for more details. 
-* Peter Norvig is a well-known Lisp author and `Director of Search Quality at Google` (thanks to Guido van Rossum for pointing that out). He says that writing Python is like writing in pseudocode. `He says that Python has always been an integral part of Google. You can actually verify this statement by looking at the Google Jobs page which lists Python knowledge as a requirement for software engineers.`
+>Eric S. Raymond is the author of "The Cathedral and the Bazaar" and is also the person who coined the term Open Source. He says that Python has become his favorite programming language. This article was the real inspiration for my first brush with Python. 
+
+>`Bruce Eckel` is the author of the famous 'Thinking in Java' and 'Thinking in C++' books. He says that no language has made him more productive than Python. He says that Python is perhaps the only language that focuses on making things easier for the programmer. Read the complete interview for more details. 
+
+>Peter Norvig is a well-known Lisp author and `Director of Search Quality at Google` (thanks to Guido van Rossum for pointing that out). He says that writing Python is like writing in pseudocode. `He says that Python has always been an integral part of Google. You can actually verify this statement by looking at the Google Jobs page which lists Python knowledge as a requirement for software engineers.`
 
 ## Installation
 **On Windows **  
@@ -157,12 +160,56 @@ help('len')
 ```
 
 ## Basics  
+The basic types are numbers and strings, and user defined types using classes.  
+* Numbers  
+    - Numbers are mainly of two types - `integers` and `floats`.   
+    - `There is no separate long type`. The `int` type can be an integer of any size.
+    - There are three distinct numeric types: `integers`, `floating` point numbers, and `complex` numbers. In addition, Booleans are a subtype of integers. Integers have unlimited precision. Floating point numbers are usually implemented using double in C; information about the precision and internal representation of floating point numbers for the machine on which your program is running is available in sys.float_info. Complex numbers have a real and imaginary part, which are each a floating point number. To extract these parts from a complex number z, use z.real and z.imag. (The standard library includes additional numeric types, `fractions` that hold rationals, and `decimal` that hold floating-point numbers with user-definable precision.)  
+    the operand with the “narrower” type is widened to that of the other, where integer is narrower than floating point, which is narrower than complex
+* String  
+    - The strings that you use in programs are all objects of the class `str`.
+    - There is no separate `char` data type in Python.
+    - raw String  
+```python
+    r"Newlines are indicated by \n"
+```
+* True/False  
+```python
+if True:
+    print('Yes, it is true')
+```
+* class  
+    - None  
+    Note that a return statement without a value is equivalent to return **None** . **None** is a special type in Python that represents nothingness. Every function implicitly contains a return None statement at the end unless you have written your own return statement.  
+    ```python
+    >>> class Foo(object):
+       def __eq__(self, other):
+           return True
+
+    >>> f = Foo()
+    >>> f == None
+    True
+    >>> f is None
+    False
+    ```
+    - function  
+    `Python is strongly object-oriented in the sense that everything is an object including numbers, strings and functions.`  
+    Just remember that Python treats everything as an object and this includes functions.
 
 ### Numbers
-Numbers are mainly of two types - integers and floats.  
+Numbers are mainly of two types - `integers` and `floats`.  
 Examples of floating point numbers (or floats for short) are 3.23 and 52.3E-4 . The Enotation indicates powers of 10. In this case, `52.3E-4` means `52.3 * 10^-4^`.
 
 `There is no separate long type`. The `int` type can be an integer of any size.  
+
+
+>If you just need a number that's bigger than all others, you can use  
+float('inf')   
+in similar fashion, a number smaller than all others:  
+float('-inf')  
+This works in both python 2 and 3.
+
+>sys.maxint in Python2, sys.maxsize in Python3, not exactly speaking
 
 ### Strings
 You can specify strings using followings:  
@@ -183,8 +230,7 @@ He said "Bond, James Bond."
 Strings Are Immutable.  
 
 >**Note for C/C++ Programmers**  
-There is no separate `char` data type in Python. There is no real need for it and I am
-sure you won't miss it.
+There is no separate `char` data type in Python. There is no real need for it and I am sure you won't miss it.
 
 #### The format method  
 ```python
@@ -218,8 +264,8 @@ print('c')
 ```
 
 ### Escape Sequences
-Use the backslash '\' to escape, and other alternatives, for example,  to escape a single quote, '      
-1. 'What\'s your name?'
+Use the backslash `\` to escape, and other alternatives, for example,  to escape a single quote, '      
+1. `'What\'s your name?'`
 2. "What's your name?"
 
 One thing to note is that in a string, a single backslash at the end of the line indicates that the string is continued in the next line, but no newline is added. For example:
@@ -240,9 +286,9 @@ If you need to specify some strings where no special processing such as escape s
 ```python
 r"Newlines are indicated by \n"
 ```
->**Note for Regular Expression Users**  
-`Always use raw strings when dealing with regular expressions`. Otherwise, a lot of backwhacking may be required. For example, backreferences can be referred to as  
-'\\1' or r'\1' .
+
+**Note for Regular Expression Users**  
+`Always use raw strings when dealing with regular expressions`. Otherwise, a lot of backwhacking may be required. For example, backreferences can be referred to as `'\\1'` or `r'\1'` .
 
 ### Variable
 **There are some rules you have to follow for naming identifiers**:    
@@ -367,7 +413,12 @@ else:
     # after the if statement is executed.
     
 if True:
-print('Yes, it is true')
+    print('Yes, it is true')
+
+if not os.path.exists(target_dir):
+    os.mkdir(target_dir) # make directory
+
+# if not( a and b ):
 ```
 
 There is `no switch statement` in Python. You can use an if..elif..else statement to do the same thing (and in some cases, use a [Dictionary](#dictionary) to do it quickly.  
@@ -394,13 +445,13 @@ We generate this sequence of numbers using the built-in range function.
 For example, range(1,5) gives the sequence [1, 2, 3, 4]  
 Note that range() generates only one number at a time, if you want the full list of numbers, call list() on the range() , for example, list(range(5)) will result in [0, 1, 2, 3, 4]  
 
-Remember that the else part is optional. When included, it is always executed once after the for loop is over unless a break statement is encountered.  
+Remember that the `else` part is optional. When included, `it is always executed once after the for loop is over unless a break statement is encountered`.  
 
 Remember that the for..in loop works for any sequence.  
 
-An important note is that if you break out of a for or while loop, any corresponding loop else block is not executed.
+`An important note is that if you break out of a for or while loop, any corresponding loop else block is not executed`.
 
-The continue statement is used to tell Python to skip the rest of the statements in the current loop block and to continue to the next iteration of the loop.
+The `continue` statement is used to tell Python to skip the rest of the statements in the current loop block and to continue to the next iteration of the loop.
 
 ## Functions
 
@@ -446,7 +497,7 @@ print("now x is {}".format(x))
 ```
 
 ### Default Argument Values
-Note that the default argument value should be a constant. More precisely, the default argument value should be immutable.
+Note that the default argument value should be a constant. More precisely, `the default argument value should be immutable`.
 ```python
 def say(message, times=1):
     print(message * times)
@@ -454,7 +505,7 @@ say('Hello')
 say('World', 5)
 ```
 
-Only those parameters which are at the end of the parameter list can be given default argument values. This is because the values are assigned to the parameters by position. For example, def func(a, b=5) is valid, but def func(a=5, b) is not valid.
+`Only those parameters which are at the end of the parameter list can be given default argument values`. This is because the values are `assigned to the parameters by position`. For example, def func(a, b=5) is valid, but def func(a=5, b) is not valid.
 
 ### Keyword Arguments
 ```python
@@ -467,9 +518,9 @@ func(c=50, a=100)
 ```
 
 ### VarArgs parameters
-When we declare a starred parameter such as *param , then all the `positional arguments` from that point till the end are collected as a tuple called 'param'.  
+When we declare a starred parameter such as *param , then all the `positional arguments` from that point till the end are collected as a `tuple` called 'param'.  
 
-Similarly, when we declare a double-starred parameter such as **param , then all the `keyword arguments` from that point till the end are collected as a dictionary called 'param'.
+Similarly, when we declare a double-starred parameter such as **param , then all the `keyword arguments` from that point till the end are collected as a `dictionary` called 'param'.
 
 ```python
 def total(a=5, *numbers, **phonebook):
@@ -531,19 +582,19 @@ If you have used `help()` in Python, then you have already seen the usage of doc
 Automated tools can retrieve the documentation from your program in this manner. Therefore, I strongly recommend that you use docstrings for any non-trivial function that you write. The **pydoc** command that comes with your Python distribution works similarly to help() using docstrings.
 
 ## Modules
-What if you wanted to reuse a number of functions in other programs that you write? As you might have guessed, the answer is modules.  
+What if you wanted to reuse a number of functions in other programs that you write? As you might have guessed, the answer is **module**s.  
 
-There are various methods of writing modules, but the simplest way is to create a file with a .py extension that contains functions and variables.  
-
-Another method is to `write the modules in the native language in which the Python interpreter itself was written`. For example, you can write modules in the C programming language and when compiled, they can be used from your Python code when using the standard Python interpreter.
+1. `There are various methods of writing modules, but the simplest way is to create a file with a .py extension that contains functions and variables`.  
+2. `Another method is to write the modules in the native language in which the Python interpreter itself was written`.  
+For example, you can write modules in the C programming language and when compiled, they can be used from your Python code when using the standard Python interpreter.
 
 A module can be imported by another program to make use of its functionality. This is how we can use the Python standard library as well.
 
-The **sys** module contains functionality related to the Python interpreter and its environment i.e. the system.
+The **sys** module contains functionality related to `the Python interpreter` and `its environment` i.e. the system.
 
 When Python executes the import sys statement, it looks for the sys module. In this case, it is one of the built-in modules, and hence Python knows where to find it.
 
-If it was not a compiled module i.e. a module written in Python, then the Python interpreter will search for it in the directories listed in its `sys.path` variable. If the module is found, then the statements in the body of that module are run and the module is made available for you to use. Note that `the initialization is done only the first time that we import a module`.
+`If it was not a compiled module` i.e. a module written in Python, then the Python interpreter will search for it in the directories listed in its `sys.path` variable. If the module is found, then `the statements in the body of that module are run` and the module is made available for you to use. Note that `the initialization is done only the first time that we import a module`.
 
 The argv variable in the sys module is accessed using the dotted notation i.e. sys.argv .
 
@@ -562,11 +613,11 @@ The `sys.path` contains the list of directory names where modules are imported f
 Note that the current directory is the directory from which the program is launched. Run `import os; print(os.getcwd())` to find out the current directory of your program.
 
 ### Byte-compiled .pyc files
-Importing a module is a relatively costly affair, so Python does some tricks to make it faster. One way is to create byte-compiled files with the extension .pyc which is an intermediate form that Python transforms the program into. Also, these byte-compiled files are platform independent.
+`Importing a module is a relatively costly affair`, so` Python does some tricks to make it faster`. `One way is to create byte-compiled files with the extension .pyc which is an intermediate form that Python transforms the program into`. Also, `these byte-compiled files are platform independent`.
 
 NOTE: These .pyc files are usually created in the same directory as the corresponding .py files. If Python does not have permission to write to files in that directory, then the .pyc files will not be created.
 
-If you want to directly import the argv variable into your program (to avoid typing the sys.everytime for it), then you can use the from sys import argv statement.
+If you want to directly import the argv variable into your program (to avoid typing the "sys." everytime for it), then you can use the from sys import argv statement.
 >WARNING: In general, avoid using the from..import statement, use the import statement instead. This is because your program will avoid name clashes and will be more readable.
 
 ```python
@@ -574,7 +625,7 @@ from math import sqrt
 print("Square root of 16 is", sqrt(16))
 ```
 
-Every module has a name and statements in a module can find out the name of their module. This is handy for the particular purpose of figuring out whether the module is being run standalone or being imported. As mentioned previously, when a module is imported for the first time, the code it contains gets executed. We can use this to make the module behave in different ways depending on whether it is being used by itself or being imported from another module. This can be achieved using the `__name__` attribute of the module.
+Every module has a name, and statements in a module can find out the name of their module. This is handy for the particular purpose of figuring out whether the module is being run standalone or being imported. `As mentioned previously, when a module is imported for the first time, the code it contains gets executed`. We can use this to make the module behave in different ways depending on whether it is being used by itself or being imported from another module. This can be achieved using the `__name__` attribute of the module.
 
 `Example (save as module_using_name.py ):`  
 ```python
@@ -621,7 +672,8 @@ You could also use:
 ```python
 from mymodule import *
 ```
-This will import all public names such as say_hi but would not import __version__ because it starts with double underscores.   
+`This will import all public names such as say_hi but would not import __version__ because it starts with double underscores`.   
+
 **WARNING**:  Remember that you should avoid using import-star.
 
 >Zen of Python  
@@ -673,9 +725,9 @@ Built-in dir() function returns list of names defined by an object. If the objec
 Notice that the list of imported modules of current modules is also part of dir().
 
 ### Packages
-By now, you must have started observing the hierarchy of organizing your programs. Variables usually go inside functions. Functions and global variables usually go inside modules. What if you wanted to organize modules? That's where packages come into the picture.
+By now, you must have started observing the hierarchy of organizing your programs. Variables usually go inside functions. Functions and global variables usually go inside modules. What if you wanted to organize modules? That's where **packages** come into the picture.
 
-Packages are just folders of modules with a special `__init__.py` file that indicates to Python that this folder is special because it contains Python modules.
+**Packages** `are just folders of modules with a special` **__init__.py** `file that indicates to Python that this folder is special because it contains Python modules`.
 
 Let's say you want to create a package called 'world' with subpackages 'asia', 'africa', etc. and these subpackages in turn contain modules like 'india', 'madagascar', etc.
 ```html
@@ -721,12 +773,14 @@ print('I bought the', olditem)
 print('My shopping list is now', shoplist)
 ```
 
-Then, we sort the list by using the sort method of the list. It is important to understand that this method affects the list itself and does not return a modified list - this is different from the way strings work. This is what we mean by saying that `lists are mutable` and that `strings are immutable`.
+Then, we sort the list by using the sort method of the list. It is important to understand that `this method affects the list itself` and does not return a modified list - this is different from the way strings work. This is what we mean by saying that `lists are mutable` and that `strings are immutable`.
 
 ### Tuple
 Tuples are used to hold together multiple objects. `Think of them as similar to lists, but without the extensive functionality that the list class gives you`. `One major feature of tuples is that they are immutable` like strings i.e. you cannot modify tuples.
 
-Tuples are defined by specifying items separated by commas within an optional pair of parentheses.
+Tuples are defined by specifying items separated by commas within an `optional` pair of parentheses.
+
+PS: tuple can hold different types of objects
 
 ```python
 # I would recommend always using parentheses
@@ -735,9 +789,11 @@ Tuples are defined by specifying items separated by commas within an optional pa
 # Explicit is better than implicit.
 zoo = ('python', 'elephant', 'penguin')
 print('Number of animals in the zoo is', len(zoo))
+# PS: tuple can hold different types of objects
 new_zoo = 'monkey', 'camel', zoo # parentheses not required but are a good idea
 print('Number of cages in the new zoo is', len(new_zoo))
 print('All animals in new zoo are', new_zoo)
+#note that a tuple within a tuple does not lose its identity
 print('Animals brought from old zoo are', new_zoo[2])
 print('Last animal brought from old zoo is', new_zoo[2][2])
 print('Number of animals in the new zoo is',
@@ -751,7 +807,7 @@ singleton = (2 , )
 You have to specify it using a comma following the first (and only) item so that Python can differentiate between a tuple and a pair of parentheses surrounding the object in an expression.
 
 ### Dictionary
-Note that you can use only immutable objects (like strings) for the keys of a dictionary but you can use either immutable or mutable objects for the values of the dictionary.
+Note that you can use only `immutable objects (like strings) for the keys of a dictionary` but you can use `either immutable or mutable objects for the values of the` Dictionary.
 
 The dictionaries that you will be using are instances/objects of the **dict** class.
 
@@ -813,6 +869,12 @@ print('Item 1 to 3 is', shoplist[1:3])              ## ['mango', 'carrot']
 print('Item 2 to end is', shoplist[2:])
 print('Item 1 to -1 is', shoplist[1:-1])
 print('Item start to end is', shoplist[:])
+print(shoplist[0::2])  # ['apple', 'carrot']
+
+# slicing with step
+teststr = "abcdefg"
+print(teststr[2:5:2])     ## ce
+print(teststr[::-1])        ## gfedcba
 
 # Slicing on a string #
 print('characters 1 to 3 is', name[1:3])
@@ -823,8 +885,10 @@ print('characters start to end is', name[:])
 
 The index can also be a negative number, in which case, the position is calculated from the end of the sequence. Therefore, shoplist[-1] refers to the last item in the sequence and shoplist[-2] fetches the second last item in the sequence.
 
-The slicing operation is used by specifying the name of the sequence followed by an optional pair of numbers separated by a colon within square brackets. Remember the numbers are optional but the colon isn't. ( PS: [Inclusive: exclusive) )   
-**WARNING**: slicing operation returns a copy of original sequence. 
+#### Slicing operation
+
+The slicing operation is used by specifying the name of the sequence followed by an optional pair of numbers separated by a colon within square brackets. Remember the numbers are optional but the colon isn't. ( PS: [Inclusive: exclusive), fully form is [start_inclusive : end_exclusive : step])   
+**WARNING**: `slicing operation returns a copy of original sequence`. 
 
 ### Set
 Sets are unordered collections of simple objects.  
@@ -861,9 +925,9 @@ print(delimiter.join(mylist))
 ## Problem Solving
 
 **Copy and zip files**:  
-PS: import statement can be at anyplace of a source file, not only at the top  
-PS: backslash is required for plus operation extending more than one line.  
-On careful observation, we see that the single logical line has been split into two physical lines but we have not specified that these two physical lines belong together. Remember that we can specify that the logical line continues in the next physical line by the use of a backslash at the end of the physical line.
+PS: import statement can be at any place of a source file, not only at the top  
+PS: backslash is required for plus(+) operation extending more than one line.  
+On careful observation, we see that the single `logical line` has been split into two `physical line`s but we have not specified that these two physical lines belong together. Remember that we can specify that the logical line continues in the next physical line by the use of a backslash at the end of the physical line.
 
 ```python
 import os
@@ -918,10 +982,10 @@ print(p)            ## <__main__.Person instance at 0x10171f518>
 
 p.say_hi()
 ```
-It tells us that we have an instance of the Person class in the __main__ module.
+It tells us that we have an instance of the Person class in the `__main__` module.
 
-**The __init__ method**  
-The __init__ method is run as soon as an object of a class is instantiated (i.e. created). The method is useful to do any initialization (i.e. passing initial values to your object) you want to do with your object.
+The `__init__` method    
+The `__init__` method is run as soon as an object of a class is instantiated (i.e. created). The method is useful to do any initialization (i.e. passing initial values to your object) you want to do with your object.
 
 The data part, i.e. fields, are nothing but ordinary variables that are `bound to the namespaces of the classes and objects`. This means that these names are valid within the context of these classes and objects only. That's why they are called name spaces.
 
@@ -962,8 +1026,20 @@ droid2.how_many()
 # they are typos obviously, lack of parenthesis, but surprisingly there were no errors
 droid1.say_hi
 Robot.how_many
+
+class A(object): 
+    def foo(self): 
+        print "executing foo(%s)" % self 
+ 
+    @classmethod 
+    def class_foo(cls): 
+        print "executing class_foo(%s)" % cls 
+ 
+    @staticmethod 
+    def static_foo(): 
+        print "executing static_foo()" 
 ```
-Also note that an object variable with the same name as a class variable will hide the class variable!
+`Also note that an object variable with the same name as a class variable will hide the class variable!`
 
 Instead of `Robot.population` , we could have also used `self.__class__.population` because every object refers to its class via the `self.__class__` attribute.
 
@@ -975,16 +1051,44 @@ We have marked the how_many method as a class method using a **decorator**.
 
 In this program, we also see the use of docstrings for classes as well as methods. We can access the class docstring at runtime using `Robot.__doc__` and the method docstring as `Robot.say_hi.__doc__`
 
-`All class members are public`. One exception: If you use data members with names `using the double underscore prefix such as __privatevar` , Python uses name-mangling to effectively make it a private variable.
+`All class members are public`. One exception: If you use `data members` with names `using the double underscore prefix such as __privatevar` , Python uses name-mangling to effectively make it a private variable.
 
-All class members (including the data members) are public and all the methods are virtual in Python.
+`All class members (including the data members) are public and all the methods are virtual in Python.`
+
+PS: 静态方法其实和普通的方法一样，只不过在调用的时候需要使用类或者实例。之所以需要静态方法，是因为有时候需要将一组逻辑上相关的函数放在一个类里面，便于组织代码结构。一般如果一个方法不需要用到self，那么它就适合用作静态方法
+
+PS: there is no interface in Python
 
 ### Inheritance
-To use inheritance, we specify the base class names in a tuple following the class name in the class definition (for example, class Teacher(SchoolMember) ). Next, we observe that the `__init__` method of the base class is explicitly called using the self variable so that we can initialize the base class part of an instance in the subclass. Python does not automatically call the constructor of the base class.   
+To use inheritance, we specify the base class names `in a tuple` following the class name in the class definition (for example, class Teacher(SchoolMember) ). Next, we observe that the `__init__` method of the base class is explicitly called using the self variable so that we can initialize the base class part of an instance in the subclass. `Python does not automatically call the constructor of the base class`.   
 
-In contrast, if we have not defined an __init__ method in a subclass, Python will call the constructor of the base class automatically.
+`In contrast, if we have not defined an __init__ method in a subclass, Python will call the constructor of the base class automatically.`
+
+For polymorphism/virtual methods, Python always starts looking for methods in the actual subclass type first, and if it doesn’t find anything, it starts looking at the methods in the subclass’s base classes, `one by one in the order they are specified in the tuple` (here we only have 1 base class, but you can have multiple base classes) in the class definition.
 
 A note on terminology - if more than one class is listed in the inheritance tuple, then it is called `multiple inheritance`.
+
+```python
+class SchoolMember:
+        '''Represents any school member.'''
+        def __init__(self, name, age):
+                self.name = name
+                self.age = age
+                print('(Initialized SchoolMember: {})'.format(self.name))
+        def tell(self):
+                '''Tell my details.'''
+                print('Name:"{}" Age:"{}"'.format(self.name, self.age), end=" ")
+
+class Teacher(SchoolMember):
+        '''Represents a teacher.'''
+        def __init__(self, name, age, salary):
+                SchoolMember.__init__(self, name, age)
+                self.salary = salary
+                print('(Initialized Teacher: {})'.format(self.name))
+        def tell(self):
+                SchoolMember.tell(self)
+                print('Salary: "{:d}"'.format(self.salary))
+```
 
 ## Input and Output
 ```python
@@ -1033,12 +1137,12 @@ while True:
 f.close()
 ```
 
-The mode can be a read mode ( 'r' ), write mode ( 'w' ) or append mode ( 'a' ). We can also specify whether we are reading, writing, or appending in text mode ( 't' ) or binary mode ( 'b' ). There are actually many more modes available and help(open) will give you more details about them. By default, open() considers the file to be a 't'ext file and opens it in 'r'ead mode.
+The mode can be a read mode ( 'r' ), write mode ( 'w' ) or append mode ( 'a' ). We can also specify whether we are reading, writing, or appending in `text mode ( 't' )` or `binary mode ( 'b' )`. There are actually many more modes available and help(open) will give you more details about them. By default, open() considers the file to be a 't'ext file and opens it in 'r'ead mode.
 
-We read in each line of the file using the readline method in a loop. This method returns a complete line including the newline character at the end of the line. When an empty string is returned, it means that we have reached the end of the file and we 'break' out of the loop.
+We read in each line of the file using the readline method in a loop. `This method returns a complete line including the newline character at the end of the line`. When an empty string is returned, it means that we have reached the end of the file and we 'break' out of the loop.
 
 ### Pickle
-Python provides a standard module called pickle which you can use to store any plain Python object in a file and then get it back later. This is called storing the object persistently.
+Python provides a standard module called pickle which you can use to store any plain Python object in a file and then get it back later. This is called storing the object persistently. (PS: python's serialization lib, bearing the same weakness as JAVA serialization)
 
 ```python
 import pickle
@@ -1116,9 +1220,9 @@ else:                                           # if no exception, this is execu
 finally:
     print('do some clearup in finally')
 ```
-The except clause can handle a single specified error or exception, or a parenthesized list of errors/exceptions. If no names of errors or exceptions are supplied, it will handle all errors and exceptions.  
+`The except clause` can handle a single specified error or exception, or a parenthesized list of errors/exceptions. `If no names of errors or exceptions are supplied, it will handle all errors and exceptions`.  
 
-You can also have an else clause associated with a try..except block. The else clause is executed if no exception occurs.
+You can also have an else clause associated with a try..except block. `The else clause is executed if no exception occurs`.
 
 You can raise exceptions using the raise statement by providing the name of the error/exception and the exception object that is to be thrown.
 
@@ -1134,7 +1238,7 @@ finally:
     print("(Cleaning up: Closed the file)")
 ```
 
-Notice that a variable assigned a value of 0 or None or a variable which is an empty sequence or collection is considered False by Python. This is why we can use `if: f` in the code above.  
+`Notice that a variable assigned a value of 0 or None or a variable which is an empty sequence or collection is considered False by Python`. This is why we can use `if f:` in the code above.  
 Also note that we use `sys.stdout.flush()` after print so that it prints to the screen immediately.
 
 ### The with statement
@@ -1222,21 +1326,21 @@ This also means the fastest way to swap two variables in Python is:
 ### Special Methods
 There are certain methods such as the `__init__` and `__del__` methods which have special significance in classes.
 
-Special methods are used to mimic certain behaviors of built-in types. For example, if you want to use the `x[key] indexing operation` for your class (just like you use it for lists and tuples), then all you have to do is implement the `__getitem__()` method and your job is done.
+`Special methods are used to mimic certain behaviors of built-in types`. For example, if you want to use the `x[key] indexing operation` for your class (just like you use it for lists and tuples), then all you have to do is implement the `__getitem__()` method and your job is done.
 
 Some useful special methods are listed in the following table. If you want to know about all the special methods, see the [Special method names].
 
-* __init__(self, ...)  
+* `__init__(self, ...)`  
 This method is called just before the newly created object is returned for usage.
-* __del__(self)  
+* `__del__(self)`  
 Called just before the object is destroyed (`which has unpredictable timing, so avoid using this`)
-* __str__(self)  
+* `__str__(self)`  
 Called when we use the print function or when str() is used.
-* __lt__(self, other)  
+* `__lt__(self, other)`  
 Called when the less than operator (<) is used. Similarly, there are special methods for all the operators (+, >, etc.)
-* __getitem__(self, key)  
+* `__getitem__(self, key)`  
 Called when x[key] indexing operation is used.
-* __len__(self)  
+* `__len__(self)`  
 Called when the built-in len() function is used for the sequence object.  
 
 ### Single Statement Blocks
@@ -1457,6 +1561,8 @@ If you're an experienced Python programmer, High Performance Python will guide y
 [Learning Python]:http://shop.oreilly.com/product/0636920028154.do "Learning Python, 5th Edition Powerful Object-Oriented Programming"
 [Head First Python]:http://shop.oreilly.com/product/0636920003434.do "Head First Python A Brain-Friendly Guide"
 [Dive into Python]:http://www.diveintopython.net/ "Dive Into Python"
+[Machine Learning for Hackers]:http://shop.oreilly.com/product/0636920018483.do "Machine Learning for Hackers Case Studies and Algorithms to Get You Started"
+[Doing Data Science]:http://shop.oreilly.com/product/0636920028529.do "Doing Data Science Straight Talk from the Frontline"
 [kivy]:https://kivy.org/#home "Kivy - Open source Python library for rapid development of applications that make use of innovative user interfaces, such as multi-touch apps."
 [Python Package Index]:https://pypi.python.org/pypi "PyPI - the Python Package Index"
 [PyCharm Educational Edition]:https://www.jetbrains.com/pycharm-edu/ "PyCharm Educational Edition"
@@ -1479,7 +1585,7 @@ If you're an experienced Python programmer, High Performance Python will guide y
 [PyToolz library]:http://toolz.readthedocs.io/en/latest/ "PyToolz library"
 [Functional programming chapter in 'Dive Into Python' book]:http://www.diveintopython.net/functional_programming/index.html "Functional programming chapter in 'Dive Into Python' book"
 [The Elements of Python Style]:https://github.com/amontalenti/elements-of-python-style "The Elements of Python Style"
-[python_big_picture_img_1]:/resources/img/java/python_big_picture_1 "python_big_picture_1"
+[python_big_picture_img_1]:/resources/img/java/python_big_picture_1.png "python_big_picture_1"
 [Python Big Picture]:http://slott-softwarearchitect.blogspot.ca/2013/06/python-big-picture-whats-roadmap.html "Python Big Picture"
 [Norvig's list of Infrequently Asked Questions]:http://norvig.com/python-iaq.html "Norvig's list of Infrequently Asked Questions"
 [Python Interview Q & A]:http://dev.fyicenter.com/Interview-Questions/Python/index.html "Python Interview Q & A"

@@ -25,7 +25,7 @@ ___
     - [ ] :arrow_right_hook: :one: very compacted game time
     - [ ] :arrow_right_hook: :two: mixture of multiple learning subjects per day
     - [ ] :arrow_right_hook: :two: 有没有内推网, 或者朋友可以帮忙内推
-    - [ ] :arrow_right_hook: :two: install jupiter notebook
+    - [ ] :arrow_right_hook: :two: install jupter notebook
 
 - [ ] :heart_eyes_cat: go over session from 2017-09-17
     - [ ] :arrow_right_hook: :one: Browse IT market news every day
