@@ -7,7 +7,7 @@
 * [Going Over](#going-over)
     - [Chapter 1. String](#chapter-1-string)
         + [字符串包含](#字符串包含)
-            * [素数相乘][test1]
+            * [素数相乘][素数相乘]
 * [Miscellaneous](#miscellaneous)
 
 ## Going Over
