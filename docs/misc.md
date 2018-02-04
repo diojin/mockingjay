@@ -234,14 +234,24 @@ git tools
 
 
 ### MarkDown Language
-**How to jump to internal link**  
+* How to jump to internal link  
 ```xml
 [Back To Indexes](#indexes)   
 [for comprehension](#for-comprehension)
 ```
+* How to add newline in table  
+embed entire HTML codes, or simply use `<br>`   
+* Tow ways to use menu navigation
+```html
+* [Chapter 1. String](#chapter-1-string)
+    - [字符串包含](#字符串包含)
+        + [素数相乘][素数相乘]
+## Chapter 1. String
+### 字符串包含
 
-**How to add newline in table**  
-embed entire HTML codes, or simply use <br>  
+---
+[素数相乘]:https://github.com/julycoding/The-Art-Of-Programming-By-July/blob/master/ebook/zh/01.02.md/#解法三 "素数相乘"
+```
 
 ---
 
