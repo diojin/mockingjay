@@ -132,7 +132,7 @@ OSI             |TCP/IP 4层  |Application                                      
 表示层         |应用层          |SNMP,Telnet                                                             |--
 会话层         |--                 |RPC,X Windows,DNS,SMTP                                        |单工, 半/全双工
 传输层         |传输层          |TCP,UDP,SPX                                                             |最重要的一层, 段(Segment), 流量控制
-网络层         |网际层          |路由器,IP,ARP,RIP,OSPF                                            |网络地址->物理地址, 包(Package), 数据包和路由更新包
+网络层         |网际层          |路由器,IP,ICMP, ARP, RARP, RIP,OSPF                      |网络地址->物理地址, 包(Package), 数据包和路由更新包
 数据链路层  |网络接口层   |交换机,MAC,PPP,SDLC,HDLC,帧中继,STP                     |帧(Frame), 流量控制
 物理层         |网络接口层   |集线器(Hub),IEEE 802.1A, IEEE802.2到IEEE802.11  |--
 

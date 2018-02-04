@@ -40,6 +40,10 @@ ___
     - [ ] :arrow_right_hook: :four: Algorithms
         - [x] :arrow_right_hook: :one: ~~go over what's been prepared~~
         - [ ] :arrow_right_hook: :two: check new algorithm for some time every day
+            - [ ] :arrow_right_hook: :one: "编程之法  面试和算法心得"
+            - [ ] :arrow_right_hook: :two: "微软面试100题系列"
+            - [ ] :arrow_right_hook: :three: 十五个经典算法研究与总结、目录+索引
+            - [ ] :arrow_right_hook: :four: 刷leetcode或cc150(150 Programming Questions and Solutions)
     - [x] :arrow_right_hook: :five: ~~Java concurrency in Action~~
     - [ ] :arrow_right_hook: :six: Coupang & Morgan Project
         - [ ] :arrow_right_hook: :one: Coupang Projects
@@ -231,15 +235,21 @@ DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  impleme
 #### Algorithm learning roadmap
 ##### suggestion from July
 - [x] :cat: :one: 掌握一门编程语言
-- [ ] :cat: :two: 过一遍微软面试100题系列
+- [ ] :cat: :two: 过一遍"微软面试100题系列"
 - [ ] :cat: :three: 苦补数据结构基础 -- 低优先级  
     有需要看特定章节  
     如果学数据结构，可以看我们在大学里学的任一本数据结构教材都行，包括链表、数组、字符串、矩阵、树、图等等   
+    如果你觉得实在不够上档次，那么可以再看看《STL源码剖析》  
 - [ ] :cat: :four:看算法导论  -- 低优先级   
     有需要看特定章节  
-    如果你已经学完了一本数据结构教材，那么建议你着重看贪心、动态规划、图论等内容，这3个议题每一个议题都大有题目可出。同时，熟悉常用算法的时间复杂度。     
-
-- [ ] :cat: :five: 刷leetcode或cc150或编程艺术系列  -- 低优先级
+    《算法导论》上的前大部分的章节都在阐述一些经典常用的数据结构和典型算法（如二分查找，快速排序、Hash表），以及一些高级数据结构（诸如红黑树、B树），如果你已经学完了一本数据结构教材，那么建议你着重看贪心、动态规划、图论等内容，这3个议题每一个议题都大有题目可出。同时，熟悉[常用算法的时间复杂度]。     
+- [ ] :cat: :five: 刷leetcode或cc150(150 Programming Questions and Solutions)或编程艺术系列  -- 低优先级
+    如主要在国外找工作，推荐两个编程面试网站：一个是国外一网站leetcode，它上面有个OJ对于找工作的同学来说非常值得一刷https://oj.leetcode.com/；另外一个是http://www.careercup.com/，而后这个网站的创始人写了本书，叫《careercup cracking coding interview》，最终这本英文书被图灵教育翻译出版为《程序员面试金典》  
+    若如果是国内找工作，则郑重推荐编程之法github版，尤其是在博客版本基础上精简优化的我的新书《编程之法》。除此之外，还可看看《编程之美》，与《剑指offer》。  
+- [ ] :cat: :six: 故如果做到了上文中的5个步骤，还远远不够，最后，我推荐一份非算法的书单，以此为大家查漏补缺(不必全部看完，欢迎大家补充)：  
+    1. 《深入理解计算机系统》
+    2. W.Richard Stevens著的《TCP/IP详解三卷》，《UNIX网络编程二卷》，《UNIX环境高级编程：第2版》，详见此豆瓣页面；
+    3. 你如果要面机器学习一类的岗位，建议看看相关的算法（如[支持向量机通俗导论(理解SVM的三层境界)]，收录于新书《编程之法》第7.1节），及老老实实补补数学基础，包括微积分、线性代数、概率论与数理统计（除了教材，推荐一本《数理统计学简史》）、矩阵论（推荐《矩阵分析与应用》）等..
 
 ##### references
 * 编程之法：面试和算法心得  --- july的书, 貌似有一定难度, 有git版
@@ -249,6 +259,8 @@ DiscountCoupabgBookingAdapter.getBookings(List<Long> bookingIds)    —  impleme
 * 编程珠玑      ---     更像是好的基础算法和数据结构的大学教程, 可以替代我已有的大学教程
 * 程序员面试宝典第四版    ---   综合类基础书, 偏向C++, 看其中的网络及数据库部分等
 * Java程序员面试宝典   ---  太基础, 看看特定章节, 比如网络, EJB等
+
+
 
 ### DONE
 ___
@@ -298,3 +310,5 @@ ___
 
 ---
 [The-Art-Of-Programming-By-July]:https://github.com/julycoding/The-Art-Of-Programming-By-July/blob/master/ebook/zh/Readme.md "The-Art-Of-Programming-By-July"
+[常用算法的时间复杂度]:http://bigocheatsheet.com/ "常用算法的时间复杂度"
+[支持向量机通俗导论(理解SVM的三层境界)]:http://blog.csdn.net/v_july_v/article/details/7624837 "如支持向量机通俗导论(理解SVM的三层境界)"
