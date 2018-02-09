@@ -25,7 +25,7 @@ ___
     - [ ] :arrow_right_hook: :one: very compacted game time
     - [ ] :arrow_right_hook: :two: mixture of multiple learning subjects per day
     - [ ] :arrow_right_hook: :two: 有没有内推网, 或者朋友可以帮忙内推
-    - [ ] :arrow_right_hook: :two: install jupter notebook
+    - [x] :arrow_right_hook: :two: ~~install jupter notebook~~
 
 - [ ] :heart_eyes_cat: go over session from 2017-09-17
     - [ ] :arrow_right_hook: :one: Browse IT market news every day
@@ -44,6 +44,7 @@ ___
             - [ ] :arrow_right_hook: :two: "微软面试100题系列"
             - [ ] :arrow_right_hook: :three: 十五个经典算法研究与总结、目录+索引
             - [ ] :arrow_right_hook: :four: 刷leetcode或cc150(150 Programming Questions and Solutions)
+            - [x] :arrow_right_hook: :five: ~~计数排序~~ 
     - [x] :arrow_right_hook: :five: ~~Java concurrency in Action~~
     - [ ] :arrow_right_hook: :six: Coupang & Morgan Project
         - [ ] :arrow_right_hook: :one: Coupang Projects

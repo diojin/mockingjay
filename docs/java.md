@@ -5,6 +5,7 @@
     - [Misc](#concurrent-misc)
         + [Immutable Class](#immutable-class)
         + [thread dump](#thread-dump)
+            * [thread status](#thread-status)
         + [Linux Thread Model](#linux-thread-model)
         + [How to safely interrupt a thread](#how-to-safely-interrupt-a-thread)
 * [Servlet & JSP](#servlet--jsp)
@@ -339,7 +340,7 @@ __垃圾回收算法:__
 
 Web Service是基于网络的、分布式的模块化组件，它执行特定的任务，遵守具体的技术规范，这些规范使得Web Service能与其他兼容的组件进行互操作。
 
-WSDL是一种 XML 格式，用于将网络服务描述为一组端点，这些端点对包含面向文档信息或面向过程信息的消息进行操作。这种格式首先对操作和消息进行抽象描述，然后将其绑定到具体的网络协议和消息格式上以定义端点。相关的具体端点即组合成为抽象端点（服务）。
+**WSDL**是一种 XML 格式，用于将网络服务描述为一组端点，这些端点对包含面向文档信息或面向过程信息的消息进行操作。这种格式首先对操作和消息进行抽象描述，然后将其绑定到具体的网络协议和消息格式上以定义端点。相关的具体端点即组合成为抽象端点（服务）
 
 WebService使用WSDL来描述自身，调用者通过WSDL即可以了解WebService的调用方法。  
 因为这些特征，WEBService具有了两个很大的优势：一是提供了方便的交互，二是实现松散联接。
@@ -366,8 +367,6 @@ SOAP协议（Simple Object Access Protocal,简单对象访问协议）,它是一
 
 **JAXM(Java API for XML Messaging)** 是为SOAP通信提供访问方法和传输机制的API  
 　
-**WSDL**是一种 XML 格式，用于将网络服务描述为一组端点，这些端点对包含面向文档信息或面向过程信息的消息进行操作。这种格式首先对操作和消息进行抽象描述，然后将其绑定到具体的网络协议和消息格式上以定义端点。相关的具体端点即组合成为抽象端点（服务）
-
 **UDDI**是一种规范，Universal Description Discovery and Integration, 它主要提供基于Web Service的注册和发现机制，为Web服务提供三个重要的技术支持：
 1. 标准、透明、专门描述Web服务的机制
 2. 调用Web服务的机制
@@ -375,7 +374,7 @@ SOAP协议（Simple Object Access Protocal,简单对象访问协议）,它是一
 
 ##### RMI vs IIOP
 
-分布式计算系统要求运行在不同地址空间不同主机上的对象互相调用。各种分布式系统都有自己的调用协议，如CORBA的IIOP(Internet InterORB Protocol), MTS的DCOM。那么EJB组件呢？ Socket, PRC and RMI
+分布式计算系统要求运行在不同地址空间不同主机上的对象互相调用。各种分布式系统都有自己的调用协议，如CORBA的IIOP(Internet Inter-ORB Protocol), MTS的DCOM。那么EJB组件呢？ Socket, PRC and RMI
 
 在Java里提供了完整的Socket通讯接口，但Socket要求客户端和服务端必须进行**应用级协议**的编码交换数据，采用sockets是非常麻烦的。 
 
@@ -441,7 +440,7 @@ contract-last| yes | short
 
 ### JMS
 #### Message Broker
-[For more information][jms-message-broker-1]
+[For more information][jms-message-broker-1]  
 Message broker is an intermediary program module that translates a message from the formal messaging protocol of the sender to the formal messaging protocol of the receiver. Message brokers are elements in telecommunication networks where software applications communicate by exchanging formally-defined messages. Message brokers are a building block of Message oriented middleware.
 
 A message broker is an architectural pattern for message **validation, transformation and routing**.[1] It mediates communication amongst applications, minimizing the mutual awareness that applications should have of each other in order to be able to exchange messages, effectively implementing **decoupling**.
@@ -473,7 +472,7 @@ AMQP的原始用途只是为金融界提供一个可以彼此协作的消息协�
 
 Exchange接收消息生产者(Message Producer)发送的消息根据不同的路由算法将消息发送往Message queue。Message queue会在消息不能被正常消费时缓存这些消息，具体的缓存策略由实现者决定，当message queue与消息消费者(Message consumer)之间的连接通畅时，Message queue有将消息转发到consumer的责任。
 
-一个broker中会存在多个Message queue，Exchange怎样知道它要把消息发送到哪个Message queue中去呢? 这就是上图中所展示`Binding`的作用。Message queue的创建是由client application控制的，在创建Message queue后需要确定它来接收并保存哪个Exchange路由的结果。Binding是用来关联Exchange与Message queue的域模型。Client application控制Exchange与某个特定Message queue关联，并将这个queue接受哪种消息的条件绑定到Exchange，这个条件也叫Binding key或是 Criteria。
+一个broker中会存在多个Message queue，Exchange怎样知道它要把消息发送到哪个Message queue中去呢? 这就是上图中所展示`Binding`的作用。Message queue的创建是由client application控制的，在创建Message queue后需要确定它来接收并保存哪个Exchange路由的结果。`Binding是用来关联Exchange与Message queue的域模型`。Client application控制Exchange与某个特定Message queue关联，并将这个queue接受哪种消息的条件绑定到Exchange，这个条件也叫Binding key或是 Criteria。
 
 在与多个Message queue关联后，Exchange中就会存在一个路由表，这个表中存储着每个Message queue所需要消息的限制条件。Exchange就会检查它接受到的每个Message的Header及Body信息，来决定将Message路由到哪个queue中去。Message的Header中应该有个属性叫Routing Key，它由Message发送者产生，提供给Exchange路由这条Message的标准。Exchange根据不同路由算法有不同有Exchange Type。比如有Direct类似，需要Binding key等于Routing key；也有Binding key与Routing key符合一个模式关系；也有根据Message包含的某些属性来判断。一些基础的路由算法由AMQP所提供，client application也可以自定义各种自己的`扩展路由算法`。
 
@@ -888,7 +887,7 @@ __Java默认提供的三个ClassLoader__
 2. Extension ClassLoader：称为扩展类加载器，负责加载Java的扩展类库，默认加载JAVA_HOME/jre/lib/ext/目下的所有jar。
 3. App ClassLoader(System ClassLoader)：称为系统类加载器，负责加载应用程序classpath目录下的所有jar和class文件。
 
-注意： 除了Java默认提供的三个ClassLoader之外，用户还可以根据需要定义自已的ClassLoader，而这些自定义的ClassLoader都必须继承自java.lang.ClassLoader类，也包括Java提供的另外二个ClassLoader（Extension ClassLoader和App ClassLoader）在内，但是Bootstrap ClassLoader不继承自ClassLoader，因为它不是一个普通的Java类，底层由C++编写，已嵌入到了JVM内核当中，当JVM启动后，Bootstrap ClassLoader也随着启动，负责加载完核心类库后，并构造Extension ClassLoader和App ClassLoader类加载器。
+注意： 除了Java默认提供的三个ClassLoader之外，用户还可以根据需要定义自已的ClassLoader，而这些自定义的ClassLoader都必须继承自java.lang.ClassLoader类，也包括Java提供的另外二个ClassLoader（Extension ClassLoader和App ClassLoader）在内，`但是Bootstrap ClassLoader不继承自ClassLoader，因为它不是一个普通的Java类，底层由C++编写，已嵌入到了JVM内核当中，当JVM启动后，Bootstrap ClassLoader也随着启动，负责加载完核心类库后，并构造Extension ClassLoader和App ClassLoader类加载器`。
 
 __ClassLoader加载类的原理__
 1. 原理介绍  

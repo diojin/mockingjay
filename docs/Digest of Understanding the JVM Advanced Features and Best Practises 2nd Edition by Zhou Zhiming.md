@@ -66,13 +66,14 @@ JAVA 8       | --               |2013   | Lambda, Coin(语言细节进化)??, Ji
         -Xss: 栈内存大小  
         -XX:PermSize 和 -XX:MaxPermSize, Perm区(方法区)大小
     8. Direct Memory 内存分配                                       -- 59/80  
-        * Unsafe.getUnsafe() 方法只有在引导类加载器才返回非空实例, 所以用反射调用  
-        * DirectByteBuffer 发生OutOfMemoryError时并非直接分配内存, 而是计算会溢出就抛异常  
+        * Unsafe.getUnsafe() 方法只有在引导类加载器才返回非空实例, 所以用反射调用, 并通过Unsafe类的实例分配Direct Memory内存  
+        * 通过DirectByteBuffer分配内存发生OutOfMemoryError时并非直接分配内存, 而是计算会溢出就抛异常, 真正的内存分配动作是由Unsafe.allocateMemory()来完成  
         * -XX:MaxDirectMemorySize, 指定Direct Memory大小, 没设置时其值与-Xmx一样  
+        * Direct Memory OOM时, 特征是Heap Dump小, 但直接间接引用了NIO  
         
-    9. 除了堆外其他需要注意OOM的内存区域列表                         -- 137/158  
+    9. 除了JAVA堆和永久代以外, 其他需要注意OOM的内存区域列表                         -- 137/158  
         * 线程栈: -Xss    
-        * Direct Memory  
+        * Direct Memory(NIO)  
         * JNI代码  
             如果用JNI调用本地库代码, 本地库使用的内存不再堆中          
         * Socket缓存区          
@@ -167,7 +168,8 @@ JAVA 8       | --               |2013   | Lambda, Coin(语言细节进化)??, Ji
                 时间长, 并发
             - 缺点  
             1. 影响吞吐量, 占用CPU资源  
-            2. 产生浮动碎片, 有可能Concurrent Mode Failure  
+            2. 产生浮动垃圾, 有可能Concurrent Mode Failure  
+            "浮动垃圾": 在并发清除阶段, 用户新申请的内存  
             -XX:CMSInitiatingOccupancyFraction, default is 68%  
             Concurrent Mode Failure时会用Serial Old进行回收  
             3. Mark-Sweep算法, 有碎片  
@@ -199,57 +201,57 @@ JAVA 8       | --               |2013   | Lambda, Coin(语言细节进化)??, Ji
 
     6. 垃圾收集器参数总结                                           --  90/111  
 
-Parameters              |Scope      |Usage
-------------------------|-----------|------------------------------------------
--XX:+UseConcMarSweepGC  |--         |CMS + ParNew + Serial Old  
--XX:+UseParNewGC        |--         |ParNew + Serial Old
--XX:+UseSerialGC        |--         |Client模式默认, Serial + Serial Old  
--XX:+UseParallelGC      |--         |Server模式默认, Parallel Scanvenge + Serial Old(PS Mark Sweep)  
--XX:+UseParallelOld     |--         |Parallel Scanvenge + Par Old  
--XX:ParallelGCThreads   |Young      |Restrict number of GC threads
--XX:MaxGCPauseMillis    |PS GC      |Try to make GC Pause not exceed it
--XX:GCTimeRatio         |PS GC      |=Non GC Time / GC Time, value in (0, 100) 
--XX:+UseAdaptiveSizePolicy|PS GC    |No need to give other parameters, such as -Xmn, -XX:SurvivorRatio, -XX:PretenureSizeThreadhold, and etc  
--Xmn                    |Young      |Size of young generation  
--Xss                    |--         |Stack size  
--XX:PermSize, -XX:MaxPermSize| Perm |Perm区(方法区)大小  
--XX:MaxDirectMemorySize |Direct Memory|指定Direct Memory大小, 没设置时值与-Xmx一样
--XX:SurvivorRatio       |Young      |= Eden Size/(1 Survivor Size),default is 8
--XX:PretenureSizeThreadhold|Young   |直接晋升到年老代的对象的大小  
--XX:MaxTenuringThreadhold|Young     |晋升到年老代的对象的年龄, 即经历多少次Minor GC后晋升, 默认是15    
--XX:+AlwaysTenure       |--         |去掉Survivor, 直接进入年老代. 等效于 -XX:MaxTenuringThreadhold = 0 && -XX:SurvivorRatio = 65536  
--XX:ParallelGCThreads   |--         |并发内存回收的线程数  
--XX:HandlePromotionFailure|Young    |--
--XX:CMSInitiatingOccupancyFraction|CMS | memory percentage before CMS starts SerialOld GC  
--XX:CMSFullGCsBeforeCompaction|CMS  |a compaction start after how many Full GCs, deafult is enabled
--XX:+UseCMSCompactAtFullCollection|CMS |a compaction start after any Full GC, default is 0, means compaction every time  
--XX:+DisableExplicitGC  |--         |GC doesn't response to System.gc() call
--XX:+HeapDumpOnOutOfMemoryError|--  |--  
--XX:+PrintAssembly      |--         |与HSDIS一起, 打印汇编代码  
--XX:+PrintGCApplicationStoppedTime|-|--
--XX:+PrintReferenceGC   |--         |可以看到各个阶段GC的耗时
--XX:+PrintGCDateStamps  |--         |--
--verbosegc              |--         |--
--Xloggc:{path}          |--         |--
--XX:+UseG1GC            |--         |--
--XX:+PrintGCDetails     |--         |--
--XX:+PrintGCTimeStamps  |--         |--  
--Xverify:none           |--         |禁止字节码验证的过程(关闭大部分验证, 以减少类加载时间)  
--Xint                   |--         |强制虚拟机运行于解释模式  
--Xcomp                  |--         |优先用编译器, 编译器无法进行时用解释器  
--XX:+TieredCompilation  |--         |开启分层编译后, 1.7默认开启, 1.6手工开启  
--XX:CompileThreshold    |--         |方法调用计数器额阀值, Client模式1500, Server模式10000  
--XX:+UseCounterDecay    |--         |方法调用计数器用到, 使用热度衰减, GC时进行衰减, 默认使用  
--XX:CounterHalfLifeTime |--         |方法调用计数器用到, 热度衰减的半衰期    
--XX:+PrintCompilation   |--         |prints out a message when dynamic compilation runs
+Parameters                                          |Scope      |Usage
+-------------------------------------------|-----------|---------------------------------------------------------------------------------------------
+-XX:+UseConcMarSweepGC                 |--             |CMS + ParNew + Serial Old  
+-XX:+UseParNewGC                             |--            |ParNew + Serial Old
+-XX:+UseSerialGC                               |--             |`Client模式默认, Serial + Serial Old`  
+-XX:+UseParallelGC                             |--             |`Server模式默认, Parallel Scanvenge + Serial Old(PS Mark Sweep)`  
+-XX:+UseParallelOld                            |--             |Parallel Scanvenge + Par Old  
+-XX:ParallelGCThreads                       |Young       |Restrict number of GC threads
+-XX:+UseG1GC                                    |--             |--
+-XX:MaxGCPauseMillis                        |PS GC       |Try to make GC Pause not exceed it
+-XX:GCTimeRatio                                |PS GC      |=Non GC Time / GC Time, 0 < value < 100 
+-XX:+UseAdaptiveSizePolicy              |PS GC       |No need to give other parameters, such as -Xmn, -XX:SurvivorRatio, -XX:PretenureSizeThreadhold, and etc  
+-Xmn                                                  |Young       |Size of young generation  
+-Xss                                                   |--             |Stack size  
+-XX:PermSize, -XX:MaxPermSize      | Perm       |Perm区(方法区)大小  
+-XX:MaxDirectMemorySize               |Direct Memory|指定Direct Memory大小, 没设置时值与-Xmx一样
+-XX:SurvivorRatio                             |Young       |= Eden Size/(1 Survivor Size),default is 8
+-XX:PretenureSizeThreadhold          |Young       |直接晋升到年老代的对象的大小  
+-XX:MaxTenuringThreadhold            |Young       |晋升到年老代的对象的年龄, 即经历多少次Minor GC后晋升, 默认是15    
+`-XX:+AlwaysTenure`                        |--             |去掉Survivor, 直接进入年老代. 等效于 -XX:MaxTenuringThreadhold = 0 && -XX:SurvivorRatio = 65536  
+-XX:ParallelGCThreads                      |--             |并发内存回收的线程数  
+-XX:HandlePromotionFailure             |Young       |--
+-XX:CMSInitiatingOccupancyFraction|CMS       | memory percentage before CMS starts SerialOld GC  
+-XX:CMSFullGCsBeforeCompaction    |CMS        |a compaction start after how many Full GCs, deafult is enabled
+-XX:+UseCMSCompactAtFullCollection|CMS      |a compaction start after any Full GC, default is 0, means compaction every time  
+-XX:+DisableExplicitGC                        |--          |GC doesn't response to System.gc() call
+-XX:+HeapDumpOnOutOfMemoryError|--         |--  
+-XX:+PrintAssembly                             |--          |与HSDIS一起, 打印汇编代码  
+`-XX:+PrintGCApplicationStoppedTime` |-            |--
+`-XX:+PrintReferenceGC`                       |--          |可以看到各个阶段GC的耗时
+-XX:+PrintGCDateStamps                    |--          |--
+-verbosegc                                           |--          |--
+-Xloggc:{path}                                      |--          |--
+-XX:+PrintGCDetails                            |--          |--
+-XX:+PrintGCTimeStamps                    |--          |--  
+-Xverify:none                                       |--          |禁止字节码验证的过程(关闭大部分验证, 以减少类加载时间)  
+-Xint                                                    |--          |强制虚拟机运行于解释模式  
+-Xcomp                                                |--           |优先用编译器, 编译器无法进行时用解释器  
+-XX:+TieredCompilation                      |--           |开启分层编译后, 1.7默认开启, 1.6手工开启  
+-XX:CompileThreshold                         |--          |方法调用计数器额阀值, Client模式1500, Server模式10000  
+-XX:+UseCounterDecay                       |--          |方法调用计数器用到, 使用热度衰减, GC时进行衰减, 默认使用  
+-XX:CounterHalfLifeTime                   |--          |方法调用计数器用到, 热度衰减的半衰期    
+-XX:+PrintCompilation                         |--          |prints out a message when dynamic compilation runs
 
     7. GC 日志                                                -- 89  
-```json
+```html
 129.766: [GC [PSYoungGen: 11756344K->5242875K(36700160K)] 14071993K->8388334K(120586240K), 4.5868930 secs] [Times: user=24.95 sys=77.69, real=4.58 secs] 
 
 134.353: [Full GC (System) [PSYoungGen: 5242875K->0K(36700160K)] [ParOldGen: 3145459K->6652526K(83886080K)] 8388334K->6652526K(120586240K) [PSPermGen: 41235K->41166K(82432K)], 13.7703680 secs] [Times: user=127.21 sys=5.89, real=13.77 secs]
 ```
-    
+
         * `[Full GC (System)`:  GC triggered by System.gc()  
         * `[DefNew`: Default new generation, Serial收集器  
         * `[PSYoungGen`: Parallel Scanvenge收集器  
@@ -262,6 +264,7 @@ Parameters              |Scope      |Usage
             sys: 系统态消耗的CPU时间  
             real: Wall Clock Time, 墙钟时间, 包括CPU时间+等待时间  
             多线程的CPU时间(user+sys)会叠加, real 时间不会, 所以可以看到user + sys > real   
+
     8. GC log的一些示例以及对分配内存空间规则               -- 92/113  
         * 对象优先在Eden区分配  
         * 大对象直接分配在年老代(PretenureSizeThreadhold)      
@@ -273,16 +276,17 @@ Parameters              |Scope      |Usage
                     若开启并且年老代最大连续空间大于历代晋升年老代对象平均大小, 则Minor GC  
                     否则, Full GC  
 4. 虚拟机性能监控及故障处理工具                                       -- 101/122  
+
 Command/Tools       |Usage
---------------------|----------------------------------------------------------
-jps                 |相当于专门看java的ps  
-jstat               |GC以及JIT Compiler相关信息收集  
-jinfo               |配置信息, 运行参数或properties的值等, 可以运行时修改它们  
-jmap                |生成heap dump, 查看finalize队列和heap信息  
-jhat                |启动http server用于分析heap dump  
-jstack              |thread dump
-jconsole            |--
-VirtualVM           |--  
+-----------------------|----------------------------------------------------------
+jps                           |相当于专门看java的ps  
+`jstat`                    |GC以及JIT Compiler相关信息收集  
+jinfo                        |配置信息, 运行参数或properties的值等, 可以运行时修改它们  
+jmap                        |生成heap dump, 查看`finalize队列`和heap信息  
+jhat                         |启动http server用于分析heap dump  
+jstack                      |thread dump
+jconsole                   |--
+VirtualVM                |--  
 
     1. HSDIS及-XX:+PrintAssembly                                    -- 111  
         打印汇编代码  
@@ -293,13 +297,12 @@ VirtualVM           |--
 
 5. 调优案例分析与实战                                                 -- 132  
     1. JBossCache分布式缓存的同步异常导致的内存溢出                     -- 135  
-        减少缓存的写操作(貌似与写操作无关, 是JBossCache自身的问题)   
+        JBossCache自身的问题, 减少缓存的写操作   
         12g/14s  
     2. Direct Memory的回收机制和溢出                                -- 137/158  
         逆向AJAX技术: 也称为Comet或Server Side Push  
         CometD 1.1.1 大量利用NIO操作Direct Memory  
         Direct Memory 不是在其快满了的时候回收, 而是在Full GC时"顺手"回收  
-
     3. 除了堆外其他需要注意OOM的内存区域列表                         -- 137/158  
         * 线程栈  
         * Direct Memory  
@@ -308,7 +311,7 @@ VirtualVM           |--
         * Socket缓存区          
         * 虚拟机和GC的额外开销       
     4. java调用shell创建新进程带来的性能问题                          -- 138  
-        Runtime.getRuntime().exec()调用shell创建新进程, 频繁调用性能影响很大  
+        Runtime.getRuntime().exec()调用shell创建`新进程`, 频繁调用性能影响很大  
     5. 如何去掉Survivor区                                          --  140/161  
         -XX:+AlwaysTenure, 或者 ( -XX:MaxTenuringThreadhold = 0 && -XX:SurvivorRatio = 65536 )  
     6. Windows最小化时虚拟内存Swap带来的GC等待                       -- 141  
@@ -342,7 +345,7 @@ VirtualVM           |--
         5. 卸载  
         加载, 验证, 准备, 初始化和卸载这5个阶段顺序是确定的, 其它阶段顺序可变  
         比如解析可以在初始化以后, 为了支持动态绑定或晚期绑定  
-    2. 触发类初始化的场景                                            -- 210/231  
+    2. 触发类"初始化"(加载, 验证, 准备在其之前也开始)的场景                                            -- 210/231  
         或称类的主动引用, 其他为类的被动引用, 不触发类初始化  
         有且只有5中  
         1. new, 访问static字段(非常量)或方法  
@@ -360,6 +363,7 @@ VirtualVM           |--
 ```
         If name denotes an array class, the component type of the array class is loaded but not initialized.      
         3. 静态字段在编译时进入常量池中, 在其被引用时, 其类的初始化不会被触发                                     -- 213/234  
+
     3. 接口初始化的特殊说明                                        -- 213/234  
         接口父类不必要初始化, 只有其使用时才初始化  
     4. Class Loading阶段虚拟机完成的3件事                          -- 214/235  
@@ -381,7 +385,7 @@ VirtualVM           |--
             最复杂的一步  
             基于数据流和控制流分析的语义验证  
         4. 符号引用验证  
-            在Resolution(解析)阶段发生的时候    
+            在Resolution(解析)阶段发生的时候进行验证    
             在把符号引用转化成直接引用之前  
             对类自身以外的信息进行的匹配性校验, 例如    
                 1. 常量池引用  
@@ -415,7 +419,8 @@ VirtualVM           |--
         4. `<clinit>()`方法是同步的
         5. 接口无静态块, 它的`<clinit>()`于类基本类似, 其父类`<clinit>()`不需要被优先调用, 它的实现类不需要优先调用接口的`<clinit>()`      
     10. 类加载器                                                 -- 227  
-        每个类加载器都有独立的类命名空间  
+        只用于类的加载阶段, 但作用超出这个阶段.  
+        每个类加载器都有独立的类命名空间, 类本身与类加载器一起确定的类的唯一性  
         1. Parent Delegation Model                             -- 231/252  
         2. Thread Context ClassLoader                          -- 233/254  
         3. OSGi -- Java模块化的"标准"                           -- 234/255  
@@ -451,9 +456,9 @@ VirtualVM           |--
             字符串相加替换为StringBuffer或StringBuilder  
             实例构造器`<init>()`及类构造器`<clinit>()`的生成  
             实例构造器`<init>()`及类构造器`<clinit>()`的执行顺序:      -- 310  
-            1. 父类构造器
-            2. 变量赋值
-            3. 语句块( {} 或 static{} )  
+            1. 父类构造器(<clinit>() 或 <init>())
+            2. 变量赋值(类变量 或 实例变量)
+            3. 语句块( static{} 或 {} )  
     2. java的语法糖  
         1. 泛型与类型擦除                                             -- 315  
             1.6及以上的编译器, 支持Signature属性, 它保存了参数化信息.   
@@ -531,7 +536,7 @@ VirtualVM           |--
             }
 ```
             默认情况下, 方法调用计数器统计的是一段时间执行频率, 不是绝对次数.   
-            -XX:+UseCounterDecay, 使用热度衰减, GC时进行衰减    
+            -XX:+UseCounterDecay, 使用热度衰减, `GC时进行衰减`    
             -XX:CounterHalfLifeTime, 半衰期  
         * 回边计数器                                                 -- 335  
 ![jvm_jit_back_edge_counter_img_1]  
@@ -637,7 +642,7 @@ VirtualVM           |--
     5. 线程的实现方式  
         1. 使用内核线程  
             轻量级进程(LWP, Light Weight Process), 内核线程的编程接口  
-            用户态核态切换, 调度有操作系统完成  
+            用户态核态切换, 调度由操作系统完成  
         2. 用户线程  
             部分高性能数据库有用户线程实现, 但总的说, 应用这种模式的已经很少了  
             没有用户态与核态的切换, 调度用户实现  

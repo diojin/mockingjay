@@ -98,12 +98,12 @@ class Singleton1d0 {
 /**
  * 2, 懒汉写法, lazy initialization
  * Double-Checked Locking
- * thread safe, performance god
+ * thread safe, performance good
  */
 @ThreadSafe
 class Singleton1d2 {
-    // volatile is not mandatory, it is thread safe even without it, 
-    // however, the times to enter CS is reduced when using it
+    // volatile is not mandatory, it is thread safe even without it
+    // however, the chances to enter CS is reduced when using it
     private static volatile Singleton1d2 instance = null;
     private static final Object lock = new Object();
     private Singleton1d2(){}

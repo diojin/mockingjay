@@ -100,9 +100,9 @@ The Core Container consists of the spring-core, spring-beans, spring-context, sp
 
 The spring-core and spring-beans modules provide the fundamental parts of the framework,including the IoC and Dependency Injection features. The __BeanFactory__ is a sophisticated implementation of the factory pattern. It removes the need for programmatic singletons and allows you to decouple the configuration and specification of dependencies from your actual program logic.
 
-The Context (spring-context) module builds on the solid base provided by the Core and Beans modules: it is a means to access objects in a framework-style manner that is **similar to a JNDI registry**. The Context module **inherits its features from the Beans module** and adds support for **internationalization** (using, for example, resource bundles), **event propagation**, **resource loading**, and **the transparent creation of contexts** by, for example, a Servlet container. The Context module **also supports Java EE features such as EJB, JMX, and basic remoting**. The **ApplicationContext** interface is the focal point of the Context module. **spring-context-support**provides support for `integrating common third-party libraries` into a Spring application context for caching (EhCache, Guava, JCache), mailing (JavaMail), scheduling (CommonJ, Quartz) and template engines (FreeMarker, JasperReports,Velocity).
+The Context (spring-context) module builds on the solid base provided by the Core and Beans modules: it is a means to access objects in a framework-style manner that is **similar to a JNDI registry**. The Context module **inherits its features from the Beans module** and adds support for **internationalization** (using, for example, resource bundles), **event propagation**, **resource loading**, and **the transparent creation of contexts** by, for example, a Servlet container. The Context module **also supports Java EE features such as EJB, JMX, and basic remoting**. The **ApplicationContext** interface is the focal point of the Context module. **spring-context-support** provides support for `integrating common third-party libraries` into a Spring application context for caching (EhCache, Guava, JCache), mailing (JavaMail), scheduling (CommonJ, Quartz) and template engines (FreeMarker, JasperReports,Velocity).
 
-The **spring-expression** module provides a powerful Expression Language for `querying and manipulating an object graph at runtime`. It is an extension of the unified expression language (unified EL) as specified in the JSP 2.1 specification. The language supports setting and getting property values, property assignment, `method invocation`, accessing the content of arrays, collections and indexers,logical and arithmetic operators, named variables, and retrieval of objects by name from Spring’s IoC container. It also supports list projection and selection as well as common list aggregations.
+The **spring-expression** module provides a powerful Expression Language for `querying and manipulating an object graph at runtime`. It is an extension of the unified expression language (unified EL) as specified in the JSP 2.1 specification. The language supports setting and getting property values, property assignment, `method invocation`, accessing the content of arrays, collections and indexers,logical and arithmetic operators, named variables, and retrieval of objects by name from Spring’s IoC container. It also supports list projection and selection as well as `common list aggregations`.
 
 **AOP and Instrumentation**  
 The **spring-aop** module provides an AOP Alliance-compliant aspect-oriented programming implementation allowing you to define, for example, method interceptors and pointcuts to cleanly decouple code that implements functionality that should be separated. Using source-level metadata functionality, you can also incorporate behavioral information into your code, in a manner similar to that of .NET attributes.
@@ -132,7 +132,7 @@ The Web layer consists of the spring-web, **spring-webmvc**, spring-websocket, a
 
 The spring-web module provides basic web-oriented integration features such as multipart file upload functionality and the initialization of the IoC container using Servlet listeners and a web-oriented application context. It also contains an HTTP client and the web-related parts of Spring’s remoting support.
 
-The spring-webmvc module (also known as the Web-Servlet module) contains **Spring’s modelview-controller (MVC)** and **REST Web Services implementation** for web applications. Spring’s MVC framework provides a clean separation between domain model code and web forms and integrates with all of the other features of the Spring Framework.
+The spring-webmvc module (also known as the Web-Servlet module) contains **Spring’s model-view-controller (MVC)** and **REST Web Services implementation** for web applications. Spring’s MVC framework provides a clean separation between domain model code and web forms and integrates with all of the other features of the Spring Framework.
 
 The spring-webmvc-portlet module (also known as the Web-Portlet module) provides the MVC implementation to be used in a Portlet environment and mirrors the functionality of the spring-webmvc module.
 
@@ -180,11 +180,11 @@ The similar apply to destroy processes,
 注解实现Bean配置主要用来进行如依赖注入、生命周期回调方法定义等，不能消除XML文件中的Bean元数据定义，且`基于XML配置中的依赖注入的数据将覆盖基于注解配置中的依赖注入的数据`
 
 ##### @ComponentScan
-Configures component scanning directives for use with @Configuration classes. Provides support parallel with Spring XML's <context:component-scan> element.
+Configures component scanning directives for use with @Configuration classes. Provides support parallel with Spring XML's `<context:component-scan>` element.
 
 It can be used with AnnotationConfigApplicationContext.
 
-Note that the <context:component-scan> element has an annotation-config attribute, however this annotation does not. This is because in almost all cases when using @ComponentScan, default annotation config processing (e.g. processing @Autowired and friends) is assumed. Furthermore, when using AnnotationConfigApplicationContext, annotation config processors are always registered, meaning that any attempt to disable them at the @ComponentScan level would be ignored. 
+Note that the `<context:component-scan>` element has an annotation-config attribute, however this annotation does not. This is because in almost all cases when using @ComponentScan, default annotation config processing (e.g. processing @Autowired and friends) is assumed. Furthermore, when using AnnotationConfigApplicationContext, annotation config processors are always registered, meaning that any attempt to disable them at the @ComponentScan level would be ignored. 
 
 ```xml
 
@@ -204,8 +204,8 @@ Note that the <context:component-scan> element has an annotation-config attribut
 ```
 
 ```java
-import com.coupang.configuration.CommonApplicationContextConfig;
-import com.coupang.configuration.ConfigurationPropertiesApplicationContextInitializer;
+import com.coupon.configuration.CommonApplicationContextConfig;
+import com.coupon.configuration.ConfigurationPropertiesApplicationContextInitializer;
 
 @Configuration
 @Import({CommonApplicationContextConfig.class, MyJpaRepositortyConfigSinglePackage.class})
@@ -295,7 +295,7 @@ As an alternative to registering @Configuration classes directly against an Anno
    <bean class="com.acme.AppConfig"/>
 </beans>
 ```
-In the example above, <context:annotation-config/> is required in order to enable ConfigurationClassPostProcessor and other annotation-related post processors that facilitate handling @Configuration classes. 
+In the example above, `<context:annotation-config/>` is required in order to enable ConfigurationClassPostProcessor and other annotation-related post processors that facilitate handling @Configuration classes. 
 
 3. Via component scanning  
 @Configuration is meta-annotated with @Component, therefore @Configuration classes are candidates for component scanning (typically using Spring XML's `<context:component-scan/>` element) and therefore may also take advantage of @Autowired/@Inject at the field and method level (but not at the constructor level). 
@@ -355,7 +355,7 @@ Externalized values may be 'wired into' @Configuration classes using the @Value 
      }
  }
 ```
-This approach is most useful when using Spring's PropertySourcesPlaceholderConfigurer, usually enabled via XML with <context:property-placeholder/>. See the section below on composing @Configuration classes with Spring XML using @ImportResource, see @Value Javadoc, and see @Bean Javadoc for details on working with BeanFactoryPostProcessor types such as PropertySourcesPlaceholderConfigurer. 
+This approach is most useful when using Spring's PropertySourcesPlaceholderConfigurer, usually enabled via XML with `<context:property-placeholder/>`. See the section below on composing @Configuration classes with Spring XML using @ImportResource, see @Value Javadoc, and see @Bean Javadoc for details on working with BeanFactoryPostProcessor types such as PropertySourcesPlaceholderConfigurer. 
 
 __Composing @Configuration classes__  
 1. With the @Import annotation  
@@ -489,7 +489,7 @@ public class UserAction extends BaseAction<User>{
 
 * org.springframework.web.servlet.mvc.Controller  
 Base Controller interface, representing a component that receives HttpServletRequest and HttpServletResponse instances just like a HttpServlet but is able to participate in an MVC workflow. Controllers are comparable to the notion of a Struts Action. 
-Not used in coupang project.
+Not used in coupon project.
 
 ##### @Service
 org.springframework.stereotype.Service
@@ -997,7 +997,7 @@ Spring是一个轻量级的`控制反转(IoC)`和`面向切面(AOP)`的容器框
 
 Scope用来声明容器中的对象的存货时间。即容器在对象在进入其相应的scope之前，生成并装配这些对象，在该对象不再处于这些scope的限定之后，容器通常会销毁这些对象。
 
-Sprign容器最初提供了两种bean的scope类型：singletoon和prototype。自Spring2.0之后，引入了另外三种scope类型，即request、session和global session类型。这三种类型只能再web中使用。Moreover, Spring supports customized scope
+Sprign容器最初提供了两种bean的scope类型：singleton和prototype。自Spring2.0之后，引入了另外三种scope类型，即request、session和global session类型。这三种类型只能再web中使用。Moreover, Spring supports customized scope
 
 * ConfigurableBeanFactory.SCOPE_SINGLETON  
 * ConfigurableBeanFactory.SCOPE_PROTOTYPE  
@@ -1290,9 +1290,9 @@ To create a factory bean, all you have to do is to implement the **FactoryBean**
 By extending the AbstractFactoryBean class, your factory bean can simply override the **createInstance()** method to create the target bean instance. In addition, you have to return the target bean’s type in the getObjectType() method for the auto-wiring feature to work properly.
 
 Factory beans are mostly used to implement framework facilities. Here are some examples:
-1. When looking up an object (such as a data source) from JNDI, you can use JndiObjectFactoryBean.
-2. When using classic Spring AOP to create a proxy for a bean, you can use ProxyFactoryBean.
-3. When creating a Hibernate session factory in the IoC container, you can use LocalSessionFactoryBean.
+1. When looking up an object (such as a data source) from JNDI, you can use `JndiObjectFactoryBean`.
+2. When using classic Spring AOP to create a proxy for a bean, you can use `ProxyFactoryBean`.
+3. When creating a Hibernate session factory in the IoC container, you can use `LocalSessionFactoryBean`.
 
 In most cases, you **rarely** have to write any custom factory beans, because they are framework-specific and `cannot be used outside the scope of the Spring IoC container`.
 
@@ -1344,13 +1344,13 @@ Luckily, Spring has an autoproxy facility that enables the container to generate
 
 Spring comes with two classes that provide this support: BeanNameAutoProxyCreator and DefaultAdvisorAutoProxyCreator.
 
-* BeanNameAutoProxyCreator
+* BeanNameAutoProxyCreator  
     Wild card match bean name
 
-* DefaultAdvisorAutoProxyCreator
+* DefaultAdvisorAutoProxyCreator  
     It is important to point out this proxy creator only works with advisors. If you remember, an advisor is a construct that combines a pointcut and advice. The DefaultAdvisorAutoProxyCreator needs the advisors to let it know what beans it should advise.
 
-* AspectJAwareAdvisorAutoProxyCreator
+* AspectJAwareAdvisorAutoProxyCreator  
 
 __Examples of different proxy creating methods:__  
 
@@ -1444,7 +1444,7 @@ Controller. To figure out which controller should handle the request, Dispatcher
 
 * The **ModelAndView** can either contain a View object or a logical name of a View object. If the ModelAndView object contains the logical name of a View, the Dispatcher-Servlet queries a **ViewResolver** (5) to look up the View object that will render the response. 
 
-* Finally, the DispatcherServlet dispatches the request to the View
+* Finally, the DispatcherServlet dispatches the "request" (PS: data from Controller) to the View
 object (6) indicated by the ModelAndView object. The View object is responsible for rendering a response back to the client.
 
 ### Hibernate
@@ -1458,14 +1458,14 @@ object (6) indicated by the ModelAndView object. The View object is responsible 
     - 对大数据量查询时，慎用list()(HibernateTemplate.find)或者iterator()(HibernateTemplate.iterate)返回查询结果. 对于大数据量，使用Query.scroll()(ScrollableResults)可以得到较好的处理速度以及性能。而且直接对结果集向前向后滚动??
     - Dynamic Update/Insert 如果选定，则生成Update/Insert SQL 时不包含未发生变动的字段属性，这样可以在一定程度上提升SQL执行效能.
     - 在编写代码的时候请，对将POJO的getter/setter方法设定为public，如果设定为private，Hibernate将无法对属性的存取进行优化，只能转而采用传统的反射机制进行操作，这将导致大量的性能开销（特别是在1.4之前的Sun JDK版本以及IBM JDK中，反射所带来的系统开销相当可观） 
+* Collection 及 mapping的正确使用  
+    - In well-designed Hibernate domain models, most collections are in fact one-to-many associations with inverse="true".  
+    - For inverse collections  
+        Bags and lists are the most efficient inverse collections.  
+    - For non-inverse collections  
+        After observing that arrays cannot be lazy, you can conclude that lists, maps and idbags are the most performant (non-inverse) collection types, with sets not far behind. You can expect sets to be the most common kind of collection in Hibernate applications. This is because the "set" semantics are most natural in the relational model.  
+    - 由于多对多关联的性能不佳（由于引入了中间表，一次读取操作需要反复数次查询），因此在设计中应该避免大量使用  
     - Avoid join duplicates (AKA cartesian products) due to `joins along two or more parallel to-many associations`; `use Exists-subqueries, multiple queries or fetch="subselect"` (see (2)) instead - whatever is most appropriate in the specific situation. Join duplicates are already pretty bad in plain SQL, but things get even worse when they occur within Hibernate, because of unnecessary mapping workload and child collections containing duplicates.
-* Collection 及 mapping的正确使用
-    - In well-designed Hibernate domain models, most collections are in fact one-to-many associations with inverse="true".
-    - For inverse collections 
-        Bags and lists are the most efficient inverse collections.
-    - For non-inverse collections
-        After observing that arrays cannot be lazy, you can conclude that lists, maps and idbags are the most performant (non-inverse) collection types, with sets not far behind. You can expect sets to be the most common kind of collection in Hibernate applications. This is because the "set" semantics are most natural in the relational model.
-    - 由于多对多关联的性能不佳（由于引入了中间表，一次读取操作需要反复数次查询），因此在设计中应该避免大量使用
 
 * Cascade 的设定. 对含有关联的PO（持久化对象）时，若default-cascade="all"或者 “save-update”，新增PO时，请注意对PO中的集合的赋值操作，因为有可能使得多执行一次update操作??
 
@@ -1505,11 +1505,11 @@ use projections and fetch into flat DTOs (e.g. via **AliasToBeanResultTransforme
 * 事务控制  
     事务方面对性能有影响的主要包括:事务方式的选用，事务隔离级别以及锁的选用   
     - 事务方式选用  
-        如果不涉及多个事务管理器事务的话，不需要使用JTA，只有JDBC的事务控制就可以。
+        如果不涉及多个事务管理器事务的话，不需要使用JTA，只有JDBC的事务控制就可以。  
 　　- 事务隔离级别  
-        参见标准的SQL事务隔离级别
+        参见标准的SQL事务隔离级别  
 　　- 锁的选用  
-        悲观锁(一般由具体的事务管理器实现)，对于长事务效率低，但安全。乐观锁(一般在应用级别实现)，如在HIBERNATE中可以定义VERSION字段，显然，如果有多个应用操作数据，且这些应用不是用同一种乐观锁机制，则乐观锁会失效。
+        悲观锁(一般由具体的事务管理器实现)，对于长事务效率低，但安全。乐观锁(一般在应用级别实现)，如在HIBERNATE中可以定义VERSION字段，显然，如果有多个应用操作数据，且这些应用不是用同一种乐观锁机制，则乐观锁会失效。  
 
 * 如果是超大的系统，建议生成htm文件。加快页面提升速度。
 
@@ -1658,7 +1658,7 @@ Obtain the specified lock level upon the given object.
 This may be used to 
 * perform a version check (**LockMode.READ**) 
 * to upgrade to a pessimistic lock (**LockMode.PESSIMISTIC_WRITE**)
-* to simply reassociate a transient instance with a session (**LockMode.NONE**)
+* to simply reassociate a transient(?? shouldn't it be detached) instance with a session (**LockMode.NONE**)
  
 This operation cascades to associated instances if the association is mapped with cascade="lock".
 
@@ -2027,12 +2027,12 @@ Keep repeat the select statements....depend how many stock records in your table
 
 If you have 20 stock records in the database, the Hibernate’s default fetching strategies will generate 20+1 select statements and hit the database.
 
-1) Select statement to retrieve all the Stock records.
-2) Select its related collection
-3) Select its related collection
-4) Select its related collection
-…
-21) Select its related collection
+1) Select statement to retrieve all the Stock records.  
+2) Select its related collection  
+3) Select its related collection  
+4) Select its related collection   
+…  
+21) Select its related collection  
 
 The generated queries are not efficient and caused a serious performance issue.
 
@@ -2260,7 +2260,7 @@ The SQL statements are issued in the following order:
 
 An exception is that objects using native ID generation are inserted when they are saved.
 
-Except when you explicitly flush(), there are absolutely no guarantees about when the Session executes the JDBC calls, only the order in which they are executed. However, Hibernate does guarantee that the Query.list(..) will never return stale or incorrect data.
+Except when you explicitly flush(), there are absolutely no guarantees about when the Session executes the JDBC calls, only the order in which they are executed. However, `Hibernate does guarantee that the Query.list(..) will never return stale or incorrect data`.
 
 ### Struts
 
@@ -2327,8 +2327,7 @@ Struts 2的工作流程相对于Struts 1要简单，与WebWork框架基本相同
 * ForwardActon: 该类用来整合Struts 和其他业务逻辑组件，通常只对请求作有效 
 性检查
 * IncludeAction: 用于引入其他的资源和页面
-* SwitchAction: 用于从一个模块转换至另一个模块，如果应用分成多个模块时， 
-就可以使用SwitchAction 完成模块之间的切换
+* SwitchAction: 用于从一个模块转换至另一个模块, 如果应用分成多个模块时, 就可以使用SwitchAction 完成模块之间的切换
 
 ##### Struts Pros and Cons
 __Pros:__  
@@ -2339,15 +2338,15 @@ __Pros:__
 5. 页面导航逻辑配置在配置文件中.
 
 __Cons:__  
-1. 转到展示层时，需要配置forward，每一次转到展示层，相信大多数都是直接转到jsp，而涉及到转向，需要配置forward, 注意，每次修改配置之后，要求重新部署整个项目.
+1. 转到展示层时，需要配置forward，每一次转到展示层，相信大多数都是直接转到jsp，而涉及到转向，`需要配置forward, 注意，每次修改配置之后，要求重新部署整个项目`.
 2. Struts 的Action必需是thread－safe方式，它仅仅允许一个实例去处理所有的请求
-3. 测试不方便. Struts的每个Action都同Web层耦合在一起，这样它的测试依赖于Web容器，单元测试也很难实现。不过有一个Junit的扩展工具Struts TestCase可以实现它的单元测试
+3. 测试不方便.  Struts的每个Action都同Web层耦合在一起，这样它的测试依赖于Web容器，单元测试也很难实现。不过有一个Junit的扩展工具Struts TestCase可以实现它的单元测试  
 4. 类型的转换. Struts的FormBean把所有的数据都作为String类型，它可以使用工具Commons-Beanutils进行类型转化。但它的转化都是在Class级别，而且转化的类型是不可配置的。类型转化时的错误信息返回给用户也是非常困难的
 5. 对Servlet的依赖性过强. Struts处理Action时必需要依赖ServletRequest 和ServletResponse，所有它摆脱不了Servlet容器。
 6. 前端表达式语言方面.Struts集成了JSTL，所以它主要使用JSTL的表达式语言来获取数据。可是JSTL的表达式语言在Collection和索引属性方面处理显得很弱。 
-7. 对Action执行的控制困难. Struts创建一个Action，如果想控制它的执行顺序将会非常困难。甚至你要重新去写Servlet来实现你的这个功能需求
-8. 对Action 执行前和后的处理. Struts处理Action的时候是基于class的hierarchies，很难在action处理前和后进行操作。PS: AOP support 
-9. 对事件支持不够. 表单对象不支持字段级别的事件, 如果要支持, 要通过结合JavaScript也是可以转弯实现的.
+7. 对Action执行的控制困难.   Struts创建一个Action，如果想控制它的执行顺序将会非常困难。甚至你要重新去写Servlet来实现你的这个功能需求
+8. 对Action 执行前和后的处理. Struts处理Action的时候是基于class的hierarchies，很难在action处理前和后进行操作。PS: `AOP support` 
+9. 对`事件支持不够`. `表单对象不支持字段级别的事件`, 如果要支持, 要通过结合JavaScript也是可以转弯实现的.
 
 ### Miscellaneous
 

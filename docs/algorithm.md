@@ -15,6 +15,7 @@
         + [MergeSort](#mergesort)
         + [RadixSort](#radixsort)
         + [BucketSort](#bucketsort)
+        + [Counting Sort](#counting-sort)
             * [Value Distribution Sort](#value-distribution-sort)
         + [External Sort](#external-sort)
             * [Huffman Merge Algorithm](#huffman-merge-algorithm)
@@ -74,8 +75,11 @@ Selection Sort  |O(n^2)         |O(n^2)         |O(n^2)         |O(1)       |N
 Shell Sort      |O(n)           |O((nlog(n))^2) |O((nlog(n))^2) |O(1)       |N
 Bucket Sort     |O(n+k)         |O(n+k)         |O(n^2)         |O(n)       |Y
 Radix Sort      |O(nk)          |O(nk)          |O(nk)          |O(n+k)     |Y
+Counting Sort |O(n+k)         |O(n+k)        |O(n+k)          |O(k)       |Y
 
 ![algorithm_sorting_1]  
+![algorithm_sorting_3]  
+[Big-O Complexity Chart]  
 ![algorithm_sorting_2]  
 
 快速排序比大部分排序算法都要快。尽管我们可以在某些特殊的情况下写出比快速排序快的算法，但是就通常情况而言，没有比它更快的了。快速排序是递归的，对于内存非常有限的机器来说，它不是一个好的选择。
@@ -490,8 +494,42 @@ Here array is the array to be sorted and n is the number of buckets to use. The 
 
 `A common optimization is to put the unsorted elements of the buckets back in the original array first, then run insertion sort over the complete array`; because insertion sort's runtime is based on how far each element is from its final position, the number of comparisons remains relatively small, and the memory hierarchy is better exploited by storing the list contiguously in memory.
 
+##### Counting Sort
+计数排序  
+An additional iteration of input is required to get the max element k, complexity is o(n)  
+```python
+# variables:
+#    input -- the array of items to be sorted; 
+#    key(x) -- function that returns the key for item x
+#    k -- a number such that all keys are in the range 0..k-1
+#    count -- an array of numbers, with indexes 0..k-1, initially all zero
+#    output -- an array of items, with indexes 0..n-1
+#    x -- an individual input item, used within the algorithm
+#    total, oldCount, i -- numbers used within the algorithm
+
+# calculate the histogram of key frequencies:
+for x in input:
+    count[key(x)] += 1
+
+# calculate the starting index for each key:
+total = 0
+for i in range(k):   # i = 0, 1, ... k-1
+    oldCount = count[i]
+    count[i] = total
+    total += oldCount
+
+# copy to output array, preserving order of inputs with equal keys:
+for x in input:
+    output[count[key(x)]] = x
+    count[key(x)] += 1
+
+return output
+```
+
 ###### Value Distribution Sort
-Suppose value range of input dataset K is from u to v, [u, v]
+This is an implementation of counting sort in reverse order, but still with same complexity and is stable.
+
+Suppose value range of input dataset K is from u to v, [u, v], (indeed min value u is unrequired)
 
 **Distribute(K, n, u, v, S)**  
 S: output  
@@ -2100,6 +2138,8 @@ value                              |corresponding scale
 [distributed_vector_clock_3]:/resources/img/java/algorithm_vector_clock_1.png "Example of a system of vector clocks"
 [algorithm_sorting_1]:/resources/img/java/algorithm_sorting_complexity_1.png "Array Sorting Algorithms Complexity Chart"
 [algorithm_sorting_2]:/resources/img/java/algorithm_sorting_complexity_2.png "Array Sorting Algorithms Complexity & Stability Chart"
+[algorithm_sorting_3]:/resources/img/java/algorithm_sorting_complexity_3.png "Array Sorting Algorithms Complexity"
+[Big-O Complexity Chart]:http://bigocheatsheet.com/ "Big-O Complexity Chart"
 [algorithm_graph_mst_prime_1]:/resources/img/java/algorithm_mst_prime_1.png "graph_mst_prime"
 [algorithm_graph_mst_kruskar_1]:/resources/img/java/algorithm_mst_kruskar_1.png "graph_mst_kruskar"
 [algorithm_bloom_filter_1]:/resources/img/java/algorithm_large_data_bloom_filter_1.png "bloom filter"

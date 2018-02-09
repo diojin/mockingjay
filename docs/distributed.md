@@ -47,25 +47,25 @@
 
 ## Terms
 
-**Personally identifiable information (PII)** is any data that could potentially identify a specific individual. Any information that can be used to distinguish one person from another and can be used for de-anonymizing anonymous data can be considered PII. 
+**Personally identifiable information (PII)** is any data that could potentially identify a specific individual. Any information that can be used to distinguish one person from another and can be used for de-anonymizing anonymous data can be considered PII.   
 
-The abbreviation **viz.** (or viz without a full stop), short for the Latin videlicet, is used as a synonym for "namely", "that is to say", "to wit", or "as follows".
+The abbreviation **viz.** (or viz without a full stop), short for the Latin videlicet, is used as a synonym for "namely", "that is to say", "to wit", or "as follows".  
 
-__On-premises software__ (sometimes abbreviated as "on-prem") is installed and runs on computers on the premises (in the building) of the person or organization using the software, rather than at a remote facility such as a server farm or cloud. On-premises software is sometimes referred to as “shrinkwrap” software, and off-premises software is commonly called “software as a service” ("SaaS") or “cloud computing”.
+__On-premises software__ (sometimes abbreviated as "on-prem") is installed and runs on computers on the premises (in the building) of the person or organization using the software, rather than at a remote facility such as a server farm or cloud. On-premises software is sometimes referred to as “shrinkwrap” software, and off-premises software is commonly called “software as a service” ("SaaS") or “cloud computing”.   
 
-__Fan-in__ is the number of inputs a gate can handle  
-fan-in network 输入网络
-fan-in factor 输入端数
+__Fan-in__ is the number of inputs a gate can handle    
+fan-in network 输入网络   
+fan-in factor 输入端数   
 
-__Network-attached storage (NAS)__ is a type of dedicated file storage device that provides local-area network local area network (LAN) nodes with file-based shared storage through a standard Ethernet connection. NAS devices, which typically do not have a keyboard or display, are configured and managed with a browser-based utility program. Each NAS resides on the LAN as an independent network node and has its own IP address.
+__Network-attached storage (NAS)__ is a type of dedicated file storage device that provides local-area network (LAN) nodes with file-based shared storage through a standard Ethernet connection. NAS devices, which typically do not have a keyboard or display, are configured and managed with a browser-based utility program. Each NAS resides on the LAN as an independent network node and has its own IP address.  
 
-__Fraud Detection Systems(FDS)__ Cases of card companies breaching their customers’ personal information are on the rise. Therefore, the Korea Financial Supervisory Service advised PG (Payment Gateway) companies, as well as card companies, to build Fraud Detection Systems (hereafter FDS), and FDS has become a necessary part of all the Korean payment systems. 
+__Fraud Detection Systems(FDS)__ Cases of card companies breaching their customers’ personal information are on the rise. Therefore, the Korea Financial Supervisory Service advised PG (Payment Gateway) companies, as well as card companies, to build Fraud Detection Systems (hereafter FDS), and FDS has become a necessary part of all the Korean payment systems.   
 
-__TeraStream__ A Simplified "IP Network" Service Delivery Model
+__TeraStream__ A Simplified "IP Network" Service Delivery Model   
 
-__SPOF__: Single point of failure
+__SPOF__: Single point of failure   
 
-__C10k__: its a name given to the issue of optimizing the web server software to handle large number of requsts at one time. In the range of 10,000 requests at a time, hence the name
+__C10k__: its a name given to the issue of optimizing the web server software to handle large number of requsts at one time. In the range of 10,000 requests at a time, hence the name   
 
 ### Cluster
 
@@ -74,7 +74,7 @@ __C10k__: its a name given to the issue of optimizing the web server software to
 __幂等方法(Idempotent methods)__  
 幂等函数，或幂等方法，是指可以使用相同参数重复执行，并能获得相同结果的函数。这些函数不会影响系统状态，也不用担心重复执行会对系统造成改变。例如，“getUsername()”函数就是一个幂等函数，“deleteFile()”函数就不是。“幂等”是HTTP Session和EJB Failover的一个重要概念。
 
-__负载均衡(load balance)__  
+__负载均衡(load balance)__   
 负载均衡是集群技术中重要的一部分。通过将请求分发到不同的服务器，它提供了可同时获得高可用性和更高性能的服务的方法。简单的负载均衡器可以是一个Servlet或一些插件，复杂的负载均衡器可能是高级的嵌入了SSL加速器的硬件设备。
 除了分发请求之外，负载均衡器还负责执行一些重要的任务：
 1. `“会话持久”`用来确保用户会话生命周期在一台服务器上的完整性。
@@ -266,7 +266,7 @@ SOA是一种软件设计准则，一种实现松耦合，高可复用性和粗�
 `Web Service是实现SOA的技术之一`。也可以不用Web service来实现SOA应用：例如，用一些传统的技术，像Java RMI，EJB，JMS消息等。但是Web service提供的是标准的平台无关的服务，这些服务采用HTTP、XML、SOAP、WSDL和UDDI技术，因此可以带来J2EE和.NET这些异构技术（heterogeneous technologies）之间的互操作性。
 
 ### Grid computing
-网格计算是通过Internet把分散在各处的硬件、软件、信息资源连结成为一个巨大的整体,从而使得人们能够利用地理上分散于各处的资源,完成各种大规 模的、复杂的计算和数据处理的任务。网格计算建立的是一种新型的Internet基础支撑结构,目标是将与Internet互联的计算机设施社会化。网格计算的发展非常迅速,数据网格、服务网格、计算网格等各种网格系统在全球范围内得到广泛的研究和实施。网格计算无疑是分布式计算技术通向计算时代的一个非常重要的里程碑。  
+网格计算是通过Internet把分散在各处的硬件、软件、信息资源连结成为一个巨大的整体,从而使得人们能够利用地理上分散于各处的资源,完成各种大规模的、复杂的计算和数据处理的任务。网格计算建立的是一种新型的Internet基础支撑结构,目标是将与Internet互联的计算机设施社会化。网格计算的发展非常迅速,数据网格、服务网格、计算网格等各种网格系统在全球范围内得到广泛的研究和实施。网格计算无疑是分布式计算技术通向计算时代的一个非常重要的里程碑。  
 
 网格的体系结构是有效进行网格计算的重要基础,到目前为止比较重要的网格体系结构有两个:  
 1. 一个是以Globus项目为代表的五层沙漏结构,它是一个以协议为中心的框架
@@ -438,8 +438,8 @@ __A cloud computing architecture example__
 
 #### Data streaming
 
-Streaming data and real-time analytics
-Easily handle millions of events per second with in-stream ETL and analytics
+Streaming data and real-time analytics  
+Easily handle millions of events per second with in-stream ETL and analytics   
 
 It’s not enough anymore to simply perform historical analysis and batch reports. In situations where you need to make well-informed decisions in real-time, the data and insights must also be timely and immediately actionable. Cloud::Streams lets you process data as it flows into your application, powering `real-time dashboards` and `on-the-fly analytics` and `delivering data seamlessly to Hadoop clusters and NoSQL databases`. Single-purpose ETL solutions are rapidly being replaced with `multi-node, multi-purpose data integration platforms` — the universal glue that connects systems together and makes Big Data analytics feasible. Cloud::Streams is a linearly scalable, fault-tolerant distributed routing framework for data integration, collection, and streaming data processing. Ready-to-go integration connectors allow you to tap into virtually any internal or external data source that your application needs.
 
@@ -612,13 +612,13 @@ This protocol is the most basic of the Paxos family. Each instance of the Basic 
 
 1. Phase 1
     1. Phase 1a: Prepare  
-    A Proposer (the leader) creates a proposal identified with a number N. This number must be greater than any previous proposal number used by this Proposer. Then, it sends a Prepare message containing this proposal to a Quorum of Acceptors. The Proposer decides who is in the Quorum.
+    A Proposer (the leader) creates a proposal identified with a number N. This number must be greater than any previous proposal number used by this Proposer. Then, it sends a Prepare message containing this proposal to `a Quorum of Acceptors`. The Proposer decides who is in the Quorum.
     2. Phase 1b: Promise  
     If the proposal's number N is higher than any previous proposal number received from any Proposer by the Acceptor, then the Acceptor must return a promise to ignore all future proposals having a number less than N. If the Acceptor accepted a proposal at some point in the past, it must include the previous proposal number and previous value in its response to the Proposer.  
     Otherwise, the Acceptor can ignore the received proposal. It does not have to answer in this case for Paxos to work. However, for the sake of optimization, sending a denial (Nack) response would tell the Proposer that it can stop its attempt to create consensus with proposal N.
 2. Phase 2
     1. Phase 2a: Accept Request  
-    If a Proposer receives enough promises from a Quorum of Acceptors, it needs to set a value to its proposal. If any Acceptors had previously accepted any proposal, then they'll have sent their values to the Proposer, who now must set the value of its proposal to t`he value associated with the highest proposal number` reported by the Acceptors. If none of the Acceptors had accepted a proposal up to this point, then the Proposer may choose any value for its proposal.  
+    If a Proposer receives enough promises from a Quorum of Acceptors, it needs to set a value to its proposal. If any Acceptors had previously accepted any proposal, then they'll have sent their values to the Proposer, who now must set the value of its proposal to `the value associated with the highest proposal number` reported by the Acceptors. If none of the Acceptors had accepted a proposal up to this point, then the Proposer may choose any value for its proposal.  
     The Proposer sends an Accept Request message to a Quorum of Acceptors with the chosen value for its proposal.
     2. Phase 2b: Accepted  
     If an Acceptor receives an Accept Request message for a proposal N, it must accept it if and only if it has not already promised to any prepare proposals having an identifier greater than N. In this case, it should register the corresponding value v and` send an Accepted message to the Proposer and every Learner.` Else, it can ignore the Accept Request.  
@@ -646,7 +646,7 @@ __Another message flow chart from other resource:__
 
 PS: there are some notices,   
 * MaxN and AcceptedN should be same thing in Basic Paxos
-* in 1st flow, acceptor notices all proposers and learners, however, in 2nd flow, proposer does the job
+* in 1st flow, acceptor notices all proposers and learners, however, in 2nd flow, proposer notices the learners
 
 至于Paxos中一直提到的一个全局唯一且递增的proposer number，其如何实现，引用如下：  
 >如何产生唯一的编号呢？在《Paxos made simple》中提到的是让所有的Proposer都从不相交的数据集合中进行选择，例如系统有5个Proposer，则可为每一个Proposer分配一个标识j(0~4)，则每一个proposer每次提出决议的编号可以为5*i + j(i可以用来表示提出议案的次数)
@@ -692,12 +692,12 @@ __Message flow: Fast Byzantine Multi-Paxos, steady state__
 1. database replication, log replication等  
 如bdb的数据复制就是使用paxos兼容的算法。`Paxos最大的用途就是保持多个节点数据的一致性`
 2. naming (and directory) service  
-如大型系统内部通常存在多个接口服务相互调用。通常的做法有
-* static  
-通常的实现是将服务的ip/hostname写死在配置中，当service发生故障时候，通过手工更改配置文件或者修改DNS指向的方法来解决。缺点是可维护性差，内部的单元越多，故障率越大
-* LVS双机冗余的方式  
-缺点是所有单元需要双倍的资源投入  
-通过Paxos算法来管理所有的naming服务，则可保证high available分配可用的service给client。象ZooKeeper还提供watch功能，即watch的对象发生了改变会自动发notification, 这样所有的client就可以使用一致的，高可用的接口
+如大型系统内部通常存在多个接口服务相互调用。通常的做法有  
+    * static  
+    通常的实现是将服务的ip/hostname写死在配置中，当service发生故障时候，通过手工更改配置文件或者修改DNS指向的方法来解决。缺点是可维护性差，内部的单元越多，故障率越大
+    * LVS双机冗余的方式  
+    缺点是所有单元需要双倍的资源投入  
+    通过Paxos算法来管理所有的naming服务，则可保证high available分配可用的service给client。象ZooKeeper还提供watch功能，即watch的对象发生了改变会自动发notification, 这样所有的client就可以使用一致的，高可用的接口
 3. config配置管理  
 * 通常手工修改配置文件的方法，这样容易出错，也需要人工干预才能生效，所以节点的状态无法同时达到一致。
 * 大规模的应用都会实现自己的配置服务，比如用http web服务来实现配置中心化。它的缺点是更新后所有client无法立即得知，各节点加载的顺序无法保证，造成系统中的配置不是同一状态。
@@ -724,7 +724,7 @@ Also called __Byzantine fault tolerance__
 __关于拜占庭将军问题，一个简易的非正式描述如下：__  
 拜占庭帝国想要进攻一个强大的敌人，为此派出了10支军队去包围这个敌人。这个敌人虽不比拜占庭帝国，但也足以抵御5支常规拜占庭军队的同时袭击。基于一些原因，这10支军队不能集合在一起单点突破，必须在分开的包围状态下同时攻击。他们任一支军队单独进攻都毫无胜算，除非有至少6支军队同时袭击才能攻下敌国。他们分散在敌国的四周，依靠通信兵相互通信来协商进攻意向及进攻时间。困扰这些将军的问题是，他们不确定他们中是否有叛徒，叛徒可能擅自变更进攻意向或者进攻时间。在这种状态下，拜占庭将军们能否找到一种分布式的协议来让他们能够远程协商，从而赢取战斗？这就是著名的拜占庭将军问题。
 
-应该明确的是，拜占庭将军问题中并不去考虑通信兵是否会被截获或无法传达信息等问题，即消息传递的信道绝无问。`Lamport已经证明了在消息可能丢失的不可靠信道上试图通过消息传递的方式达到一致性是不可能的`。所以，`在研究拜占庭将军问题的时候，我们已经假定了信道是没有问题的`，并在这个前提下，去做一致性和容错性相关研究。如果需要考虑信道是有问题的，这涉及到了另一个相关问题：两军问题。
+应该明确的是，拜占庭将军问题中并不去考虑通信兵是否会被截获或无法传达信息等问题，即消息传递的信道绝无问题。`Lamport已经证明了在消息可能丢失的不可靠信道上试图通过消息传递的方式达到一致性是不可能的`。所以，`在研究拜占庭将军问题的时候，我们已经假定了信道是没有问题的`，并在这个前提下，去做一致性和容错性相关研究。如果需要考虑信道是有问题的，这涉及到了另一个相关问题：两军问题。
 
 形式化条件的推演:  
 定义一个变量vi，作为其他将军收到的第i个将军的命令值；j将军会将把自己的判断作为vj。可以想象，由于叛徒的存在，各个将军收到的vi值不一定是相同的。之后，定义一个函数来处理向量(v1,v2,…,vn)，代表了多数人的意见(majority(v1,v2,...,vn))，各将军用这个函数的结果作为自己最终采用的命令。至此，我们可以利用这些定义来形式化这个问题，用以匹配一致性和正确性
@@ -1189,7 +1189,7 @@ __缓存数据的淘汰__
  
 两者各有优劣，第一种的缺点是维护大量缓存的key是比较麻烦的，第二种的缺点就是每次用户请求过来都要判断缓存失效，逻辑相对比较复杂，具体用哪种方案，大家可以根据自己的应用场景来权衡。
 
-缓存预热可以防止缓存穿透和雪崩
+缓存预热可以防止缓存雪崩
 
 ---
 [distributed_misc_1]:http://www.enterprise-technology.net/network3.htm "p2p vs cs"

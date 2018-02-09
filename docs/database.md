@@ -408,7 +408,7 @@ salesman_name VARCHAR2(30),
 sales_amount NUMBER(10),
 sales_date DATE)
 COMPRESS
-PARTITION BY RANGE(sales_date) —- partition key
+PARTITION BY RANGE(sales_date)   -- partition key
 (PARTITION sales_jan2000 VALUES LESS THAN(TO_DATE(’02/01/2000′,’DD/MM/YYYY’)),
 PARTITION sales_feb2000 VALUES LESS THAN(TO_DATE(’03/01/2000′,’DD/MM/YYYY’)),
 PARTITION sales_mar2000 VALUES LESS THAN(TO_DATE(’04/01/2000′,’DD/MM/YYYY’)),
@@ -419,7 +419,7 @@ CREATE TABLE sales
 sale_year INT NOT NULL,
 sale_month INT NOT NULL,
 sale_day INT NOT NULL )
-PARTITION BY RANGE (sale_year, sale_month, sale_day) –partition key
+PARTITION BY RANGE (sale_year, sale_month, sale_day) --partition key
 ( PARTITION sales_q1 VALUES LESS THAN (1999, 04, 01) TABLESPACE tsa,
 PARTITION sales_q2 VALUES LESS THAN (1999, 07, 01) TABLESPACE tsb,
 PARTITION sales_q3 VALUES LESS THAN (1999, 10, 01) TABLESPACE tsc,
@@ -475,7 +475,7 @@ Index指的是索引分区内的索引键值指向的记录都对应到基表的
 
 Global Index是指索引分区与表分区相互独立，不存在索引分区和表分区之间的一一对应关系  
 
-若分区索引的partition key 是基表(Base table)的partition key的严格左前缀，则称之为Local Prefixed Index。  
+若索引分区索引的partition key 是基表(Base table)的partition key的严格左前缀，则称之为Local Prefixed Index。  
 
 若索引分区的partition key不是基表partition key的严格左前缀(left prefix)，则称之为Local Non-prefixed Index。
 
@@ -585,7 +585,7 @@ A nonclustered index is a special type of index in which the logical order of th
 
 缺省情况下建立的索引是非聚簇索引，但有时它并不是最佳的。在非群集索引下，数据在物理上随机存放在数据页上。合理的索引设计要建立在对各种查询的分析和预测上。一般来说：   
 1. 有大量重复值、且经常有范围查询（ > ,< ，> =,< =）和order by、group by发生的列，可考虑建立群集索引 
-2. 组合索引要尽量使关键查询形成索引覆盖，其前导列一定是使用最频繁的列
+2. 组合索引要尽量使关键查询形成索引覆盖，`其前导列一定是使用最频繁的列`
 
 下表给出了何时使用聚簇索引与非聚簇索引???:  
 
@@ -621,7 +621,7 @@ Typically, clustering tables is not appropriate in the following situations:
 ###### Oracle Indexed Clusters
 `An indexed cluster is a table cluster that uses an index to locate data.` `The cluster index is a B-tree index on the cluster key`. A cluster index must be created before any rows can be inserted into clustered tables.
 
-Assume that you create the cluster employees_departments_cluster with the cluster key department_id, as shown in Example. Because the HASHKEYS clause is not specified, this cluster is an indexed cluster. Afterward, you create an index namedidx_emp_dept_cluster on this cluster key.
+Assume that you create the cluster employees_departments_cluster with the cluster key department_id, as shown in Example. Because the HASHKEYS clause is not specified, this cluster is an indexed cluster. Afterward, you create an index named idx_emp_dept_cluster on this cluster key.
 
 ```sql
 CREATE CLUSTER employees_departments_cluster
