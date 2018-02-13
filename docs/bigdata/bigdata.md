@@ -96,7 +96,7 @@ export  HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
 export  HADOOP_OPTS="$HADOOP_OPTS -Djava.library.path=$HADOOP_HOME/lib:$HADOOP_COMMON_LIB_NATIVE_DIR"
 ```
 
-however, if it is 32bit system and hadoop is 64bit, you need to compile 32bit hadoop ([bitdata-hadoop-compile-1]) and override libraries under lib/native  
+however, if it is 32bit system and hadoop is 64bit, you need to compile 32bit hadoop ([bigdata-hadoop-compile-1]) and override libraries under lib/native  
 ```shell
 $ file ../lib/native/libhadoop.so.1.0.0    # verify bit of hadoop
 ```
@@ -560,4 +560,4 @@ CCP Data Engineer Exam (DE575) 数据工程师认证
 [7-most-common-hadoop-and-spark-projects-1]:https://www.infoworld.com/article/2969911/application-development/the-7-most-common-hadoop-and-spark-projects.html "The 7 most common Hadoop and Spark projects"
 [bigdata-spark-vs-storm-1]:http://blog.csdn.net/yown/article/details/55000097 "spark与storm比对与选型"
 [bigdata-certifications-1]:https://www.cio.com/article/3209911/certifications/big-data-certifications-that-will-pay-off.html "BigData Certification"
-[bitdata-hadoop-compile-1]:http://blog.csdn.net/young_kim1/article/details/50269501 "本地编译Hadoop2.7.1源码总结和问题解决"
+[bigdata-hadoop-compile-1]:http://blog.csdn.net/young_kim1/article/details/50269501 "本地编译Hadoop2.7.1源码总结和问题解决"

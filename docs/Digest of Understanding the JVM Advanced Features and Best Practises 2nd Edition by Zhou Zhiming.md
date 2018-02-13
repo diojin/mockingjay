@@ -176,7 +176,7 @@ JAVA 8       | --               |2013   | Lambda, Coin(语言细节进化)??, Ji
             使用STW的compaction: -XX:+UseCMSCompactAtFullCollection, -XX:CMSFullGCsBeforeCompaction   
             ![jvm_gc_cms_img_1]  
         * Garbage First(G1)                                         -- 84/105  
-            - Young & Tenured Generation
+            - 概念上的Young & Tenured Generation
             - 面向服务器, 兼顾吞吐量与响应时间  
             - 整体看基于标记-整理算法, 局部看(两个Region间看)是复制算法, 无碎片  
             - 可预测的停顿, 指定在给定M毫秒时间内, 回收时间不超过N毫秒  
@@ -208,8 +208,7 @@ Parameters                                          |Scope      |Usage
 -XX:+UseSerialGC                               |--             |`Client模式默认, Serial + Serial Old`  
 -XX:+UseParallelGC                             |--             |`Server模式默认, Parallel Scanvenge + Serial Old(PS Mark Sweep)`  
 -XX:+UseParallelOld                            |--             |Parallel Scanvenge + Par Old  
--XX:ParallelGCThreads                       |Young       |Restrict number of GC threads
--XX:+UseG1GC                                    |--             |--
+-XX:+UseG1GC                                    |--             |--  
 -XX:MaxGCPauseMillis                        |PS GC       |Try to make GC Pause not exceed it
 -XX:GCTimeRatio                                |PS GC      |=Non GC Time / GC Time, 0 < value < 100 
 -XX:+UseAdaptiveSizePolicy              |PS GC       |No need to give other parameters, such as -Xmn, -XX:SurvivorRatio, -XX:PretenureSizeThreadhold, and etc  
@@ -221,6 +220,7 @@ Parameters                                          |Scope      |Usage
 -XX:PretenureSizeThreadhold          |Young       |直接晋升到年老代的对象的大小  
 -XX:MaxTenuringThreadhold            |Young       |晋升到年老代的对象的年龄, 即经历多少次Minor GC后晋升, 默认是15    
 `-XX:+AlwaysTenure`                        |--             |去掉Survivor, 直接进入年老代. 等效于 -XX:MaxTenuringThreadhold = 0 && -XX:SurvivorRatio = 65536  
+-XX:ParallelGCThreads                       |Young       |Restrict number of GC threads
 -XX:ParallelGCThreads                      |--             |并发内存回收的线程数  
 -XX:HandlePromotionFailure             |Young       |--
 -XX:CMSInitiatingOccupancyFraction|CMS       | memory percentage before CMS starts SerialOld GC  

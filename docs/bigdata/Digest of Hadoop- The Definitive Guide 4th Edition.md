@@ -5518,7 +5518,7 @@ hive> LOAD DATA LOCAL INPATH 'tmp/data.txt' OVERWRITE INTO TABLE records;
 ```
 Running this command tells Hive to put the specified local file in its warehouse directory. `This is a simple filesystem operation`. `There is no attempt, for example, to parse the file and store it in an internal database format`, because `Hive does not mandate any particular file format. Files are stored verbatim; they are not modified by Hive`.
 
-In this example, we are storing Hive tables on the local filesystem (fs.defaultFS is set to its default value of file:///). Tables are stored as directories under Hive’s warehouse directory, which is controlled by the `hive.metastore.warehouse.dir` property and defaults to /user/hive/warehouse. Thus, the files for the records table are found in the /user/hive/warehouse/records directory on the local filesystem(PS: the table name in this example happens to be records):   
+In this example, we are storing Hive tables on the local filesystem (fs.defaultFS is set to its default value of file:///). Tables are stored as directories under Hive’s warehouse directory, which is controlled by the `hive.metastore.warehouse.dir` property and defaults to /user/hive/warehouse. Thus, the files for the records table are found in the /user/hive/warehouse/records directory on the local filesystem(PS: the table name in this example happens to be "records"):   
 ```shell
 $ ls /user/hive/warehouse/records/ 
 data.txt
@@ -5594,12 +5594,12 @@ The Hive equivalent of hadoop jar, a convenient way to run Java applications tha
 `By default, the metastore is run in the same process as the Hive service`. Using this service, it is possible to run the metastore as a standalone (remote) process. Set the METASTORE_PORT environment variable (or use the -p command-line option) to specify the port the server will listen on (defaults to 9083).
 
 ### Hive clients
-If you run Hive as a server (hive --service hiveserver2), there are a number of different mechanisms for connecting to it from applications (the relationship between Hive clients and Hive services is illustrated in Figure 17-1):  
+If you run Hive as a server (`hive --service hiveserver2`), there are a number of different mechanisms for connecting to it from applications (the relationship between Hive clients and Hive services is illustrated in Figure 17-1):  
 * Thrift Client  
 `The Hive server is exposed as a Thrift service`, so it’s possible to `interact with it using any programming language that supports Thrift`. `There are third-party projects providing clients for Python and Ruby`; for more details, see the Hive wiki.  
 * JDBC driver  
 Hive provides a `Type 4 (pure Java) JDBC driver`, defined in the class `org.apache.hadoop.hive.jdbc.HiveDriver`. When configured with a JDBC URI of the form `jdbc:hive2://host:port/dbname`, a Java application will connect to a Hive server running in a separate process at the given host and port. (`The driver makes calls to an interface implemented by the Hive Thrift Client using the Java Thrift bindings.`)  
-You may alternatively choose to connect to Hive via JDBC in embedded mode using the URI jdbc:hive2://. In this mode, Hive runs in the same JVM as the application invoking it; there is no need to launch it as a standalone server, since it does not use the Thrift service or the Hive Thrift Client.  
+You may alternatively choose to connect to Hive via JDBC in `embedded mode` using the URI jdbc:hive2://. In this mode, Hive runs in the same JVM as the application invoking it; there is no need to launch it as a standalone server, since it does not use the Thrift service or the Hive Thrift Client.  
 The Beeline CLI uses the JDBC driver to communicate with Hive. 
 * ODBC driver  
 An ODBC driver allows applications that support the ODBC protocol (such as `business intelligence software`) to connect to Hive. The Apache Hive distribution does not ship with an ODBC driver, but several vendors make one freely available. (Like the JDBC driver, ODBC drivers use Thrift to communicate with the Hive server.) 
@@ -5716,7 +5716,7 @@ The implicit conversion rules can be summarized as follows. Any numeric type can
 You can perform explicit type conversion using `CAST`. For example, CAST('1' AS INT) will convert the string '1' to the integer value 1. If the cast fails—as it does in CAST('X' AS INT), for example—the expression returns NULL.
 
 ### Hive Tables
-A Hive table is logically made up of the data being stored and the associated metadata describing the layout of the data in the table. The data typically resides in HDFS, although it may reside in any Hadoop filesystem, including the local filesystem or S3. Hive stores the metadata in a relational database and not in, say, HDFS.
+A Hive table is logically made up of the data being stored and the associated metadata describing the layout of the data in the table. The data typically resides in HDFS, although it may `reside in any Hadoop filesystem`, including the local filesystem or S3. Hive stores the metadata in a relational database and not in, say, HDFS.
 
 #### Managed Tables and External Tables
 When you create a table in Hive, by default Hive will manage the data, which means that Hive `moves the data` into its warehouse directory(managed tables). Alternatively, you may create an external table, which tells Hive to `refer to` the data that is at an existing location outside the warehouse directory.  
@@ -5880,7 +5880,7 @@ There are two dimensions that govern table storage in Hive: `the row format and 
 * The row format  
 The row format dictates how rows, and the fields in a particular row, are stored. In Hive parlance, the row format is defined by a **SerDe**, a portmanteau word for a Serializer-Deserializer.  
 When `acting as a deserializer, which is the case when querying a table`, a SerDe will deserialize a row of data from the bytes in the file to objects used internally by Hive to operate on that row of data. `When used as a serializer, which is the case when performing an INSERT or CTAS (see “Importing Data” on page 500)(PS: short for Creat Table As Select)`, the table’s SerDe will serialize Hive’s internal representation of a row of data into the bytes that are written to the output file.  
-The table’s SerDe is not used for the load operation.
+`The table’s SerDe is not used for the load operation`.
 
 * The file format  
 The file format dictates the container format for fields in a row. The simplest format is a plain-text file, but there are row-oriented and column-oriented binary formats available, too.  
@@ -6076,8 +6076,8 @@ import sys
 
 for line in sys.stdin:
     (year, temp, q) = line.strip().split()
-if (temp != "9999" and re.match("[01459]", q)):
-    print "%s\t%s" % (year, temp)
+    if (temp != "9999" and re.match("[01459]", q)):
+        print "%s\t%s" % (year, temp)
 ```
 
 We can use the script as follows:  
@@ -6185,7 +6185,7 @@ DESCRIBE EXTENDED view_name
 Views in Hive are read-only, so there is no way to load or insert data into an underlying base table via a view.
 
 ### Hive User-Defined Functions
-A user-defined function (UDF) have to be written in Java, the language that Hive itself is written in. For other
+`A user-defined function (UDF) have to be written in Java, the language that Hive itself is written in`. For other
 languages, consider using a `SELECT TRANSFORM` query, which allows you to stream data through a user-defined script.
 
 There are 3 types of UDF in Hive: (regular) UDFs, user-defined aggregate functions (UDAFs), and user-defined table-generating functions (UDTFs). They differ in the number of rows that they accept as input and produce as output.
@@ -6657,6 +6657,15 @@ Scan: keyvalues={row3/data:3/1414932826566/Put/vlen=6/mvcc=0}
 #### HBase Clients: MapReduce
 HBase classes and utilities in the `org.apache.hadoop.hbase.mapreduce` package facilitate using HBase as a source and/or sink in MapReduce jobs. The **TableInputFormat** class makes splits on region boundaries so maps are handed a single region to work on. The **TableOutputFormat** will write the result of the reduce into HBase.  
 
+PS:  In short,   
+* getting from HBase  
+    - TableInputFormat
+    - Mapper subclasses TableMapper, key is ImmutableByteWritable  
+* storing to HBase  
+    - TableOutputFormat
+    - Mapper merely outputs a list of PUT by context.write(null, PUT)
+    - no Reducer
+
 ```java
 public class SimpleRowCounter extends Configured implements Tool {
     static class RowCounterMapper extends TableMapper<ImmutableBytesWritable, Result> {
@@ -6813,7 +6822,7 @@ Bulk loading is a two-step process.
 * The first step uses **HFileOutputFormat2** to `write HFiles to an HDFS directory using a MapReduce job`.  
 Since rows have to be written in order, the job must perform `a total sort` (see “Total Sort” on page 259) of the row keys. The `configureIncrementalLoad()` method of HFileOutputFormat2 does all the necessary configuration for you.  
 * The second step of the bulk load involves moving the HFiles from HDFS into an existing HBase table.  
-The table can be live during this process. The example code includes a class called HBaseTemperatureBulkImporter for loading the observation data using a bulk load.
+The table can be live during this process. The example code includes a class called **HBaseTemperatureBulkImporter** for loading the observation data using a bulk load.
 
 #### HBase Online Queries
 To implement the online query application, we will use the HBase Java API directly.
@@ -6926,7 +6935,7 @@ Move from local workstation to a shared, remotely hosted MySQL instance with a w
 * Service becomes more popular; too many reads hitting the database  
 Add **memcached** to cache common queries. Reads are now no longer strictly ACID; cached data must expire.
 * Service continues to grow in popularity; too many writes hitting the database  
-Scale MySQL vertically by buying a beefed-up server with 16 cores, 128 GB of RAM, and banks of 15k RPM hard drives. Costly.
+Scale MySQL vertically by buying a `beefed-up server` with 16 cores, 128 GB of RAM, and banks of 15k RPM hard drives. Costly.
 * New features increase query complexity; now we have too many joins  
 Denormalize your data to reduce joins. (That’s not what they taught me in DBA school!)
 * Rising popularity swamps the server; things are too slow  
@@ -6964,7 +6973,7 @@ Similarly, the Hadoop datanode has an upper bound on the number of threads it ca
 
 HBase runs a web server on the master to present a view on the state of your running cluster. By default, it listens on port 60010.  
 
-Hadoop has a metrics system that can be used to emit vitals over a period to a context (this is covered in “Metrics and JMX” on page 331). Enabling Hadoop metrics, and in particular tying them to Ganglia or emitting them via JMX, will give you views on what is happening on your cluster, both currently and in the recent past. HBase also adds metrics of its own—request rates, counts of vitals, resources used. See the file hadoopmetrics2- hbase.properties under the HBase conf directory.
+Hadoop has a metrics system that can be used to emit vitals over a period to a context (this is covered in “Metrics and JMX” on page 331). Enabling Hadoop metrics, and in particular tying them to Ganglia or emitting them via JMX, will give you views on what is happening on your cluster, both currently and in the recent past. HBase also adds metrics of its own—request rates, counts of vitals, resources used. See the file `hadoopmetrics2- hbase.properties` under the HBase conf directory.
 
 At StumbleUpon, the first production feature deployed on HBase was keeping counters for the stumbleupon.com frontend. Counters were previously kept in MySQL, but the rate of change was such that drops were frequent, and the load imposed by the counter writes was such that web designers self imposed limits on what was counted. Using the incrementColumnValue() method on HTable, counters can be incremented many thousands of times a second.  
 

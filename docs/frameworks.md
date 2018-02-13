@@ -355,7 +355,7 @@ Externalized values may be 'wired into' @Configuration classes using the @Value 
      }
  }
 ```
-This approach is most useful when using Spring's PropertySourcesPlaceholderConfigurer, usually enabled via XML with `<context:property-placeholder/>`. See the section below on composing @Configuration classes with Spring XML using @ImportResource, see @Value Javadoc, and see @Bean Javadoc for details on working with BeanFactoryPostProcessor types such as PropertySourcesPlaceholderConfigurer. 
+This approach is most useful when using Spring's **PropertySourcesPlaceholderConfigurer**, usually enabled via XML with `<context:property-placeholder/>`. See the section below on composing @Configuration classes with Spring XML using @ImportResource, see @Value Javadoc, and see @Bean Javadoc for details on working with BeanFactoryPostProcessor types such as PropertySourcesPlaceholderConfigurer. 
 
 __Composing @Configuration classes__  
 1. With the @Import annotation  
@@ -752,9 +752,9 @@ ANNOTATION|PACKAGE|SOURCE
 @Qualifier  |javax.inject        |Java
 @Autowired  |org.springframework.bean.factory    |Spring
 
-When I looked under the hood I determined that the ‘@Autowired’ and ‘@Inject’ annotation behave identically. Both of these annotations use the ‘AutowiredAnnotationBeanPostProcessor’ to inject dependencies. ‘@Autowired’ and ‘@Inject’ can be used interchangeable to inject Spring beans. 
+When I looked under the hood I determined that the `@Autowired` and `@Inject` annotation behave identically. Both of these annotations use the **AutowiredAnnotationBeanPostProcessor** to inject dependencies. @Autowired and @Inject can be used interchangeable to inject Spring beans. 
 
-However the ‘@Resource’ annotation uses the ‘CommonAnnotationBeanPostProcessor’ to inject dependencies. Even though they use different post processor classes they all behave nearly identically. Below is a summary of their **execution paths**.
+However the **@Resource** annotation uses the **CommonAnnotationBeanPostProcessor** to inject dependencies. Even though they use different post processor classes they all behave nearly identically. Below is a summary of their **execution paths**.
 
 __@Autowired and @Inject__ 
 1. Matches by Type
@@ -766,7 +766,7 @@ __@Resource__
 2. Matches by Type
 3. Restricts by Qualifiers (ignored if match is found by name)
 
-While it could be argued that ‘@Resource’ will perform faster by name than ‘@Autowired’ and ‘@Inject’, it would be negligible. This isn’t a sufficient reason to favor one syntax over the others. I do however favor the ‘@Resource’ annotation for it’s concise notation style.
+While it could be argued that `@Resource` will perform faster by name than @Autowired and @Inject, it would be negligible. This isn’t a sufficient reason to favor one syntax over the others. I do however favor the @Resource annotation for it’s concise notation style.
 
 ```java
 @Resource(name="person")
@@ -780,8 +780,8 @@ While it could be argued that ‘@Resource’ will perform faster by name than �
 
 Spring Annotation Style Best Practices
 1. Explicitly name your component [@Component(“beanName”)]
-2. Use ‘@Resource’ with the ‘name’ attribute [@Resource(name=”beanName”)]
-3. Avoid ‘@Qualifier’ annotations unless you want to create a list of similar beans. For example you may want to mark a set of rules with a specific ‘@Qualifier’ annotation. This approach makes it simple to inject a group of rule classes into a list that can be used for processing data.
+2. Use @Resource with the name attribute [@Resource(name=”beanName”)]
+3. Avoid @Qualifier annotations unless you want to create a list of similar beans. For example you may want to mark a set of rules with a specific @Qualifier annotation. This approach makes it simple to inject a group of rule classes into a list that can be used for processing data.
 4. Scan specific packages for components `<context:component-scan base-package=”com.sourceallies.person” />`.   
 While this will result in more component-scan configurations, it reduces the chance that you’ll add unnecessary components to your Spring context.
 
@@ -801,11 +801,11 @@ Marks a constructor, field, setter method or config method as to be autowired by
 
 @Autowired 标注作用于 Map 类型时，如果 Map 的 key 为 String 类型，则 Spring 会将容器中所有类型符合 Map 的 value 对应的类型的 Bean 增加进来，用 Bean 的 id 或 name 作为 Map 的 key值。
 
-@Autowired 还有一个作用就是，如果将其标注在 BeanFactory 类型、ApplicationContext 类型、ResourceLoader 类型、ApplicationEventPublisher 类型、MessageSource 类型上，那么 Spring 会自动注入这些实现类的实例，不需要额外的操作。
+@Autowired 还有一个作用就是(so is @Inject)，如果将其标注在 BeanFactory 类型、ApplicationContext 类型、ResourceLoader 类型、ApplicationEventPublisher 类型、MessageSource 类型上，那么 Spring 会自动注入这些实现类的实例，不需要额外的操作。
 
 ##### @Required 
 
-Marks a `method (typically a JavaBean setter method)` as being 'required': that is, the setter method must be configured to be dependency-injected with a value. 
+Marks a `method (typically a JavaBean setter method)` as being required: that is, the setter method must be configured to be dependency-injected with a value. 
 
 @Required注解检查 但他只检查属性是否已经设置而不会测试属性是否非空
 
