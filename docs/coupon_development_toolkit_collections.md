@@ -39,8 +39,8 @@
 [Back To Indexes](#indexes)  
 ### Android Misc
 #### WebView
-* The WebView Strategy for Creating Mobile Apps
-[***The WebView Strategy for Creating Mobile Apps***][webview_strategy]
+* The WebView Strategy for Creating Mobile Apps   
+[***The WebView Strategy for Creating Mobile Apps***][webview_strategy]  
 __THE CHALLENGE__  
 Both Android and iPhone (iOS) development are separate beasts. For example, if you create an Android app, you must rewrite it as a port to iPhone. `All that hard work x2`. It isnâ€™t ideal, but we do what we have to do to work around the limitations imposed on what we can develop.
 
@@ -118,7 +118,7 @@ If your WebView connects with an external host, what happens if the device is NO
 Apache JMeter may be used to test performance both on static and dynamic resources, Web dynamic applications.  
 It can be used to `simulate a heavy load on a server, group of servers, network` or object to test its strength or to `analyze overall performance under different load types`.
 
-JMeter is a software that can perform load test, performance-oriented business (functional) test, regression test, etc., on different protocols or technologies.
+JMeter is a software that can `perform load test, performance-oriented business (functional) test, regression test`, etc., on different protocols or technologies.
 
 __Apache JMeter features include__:  
 * Ability to load and performance test many different applications/server/protocol types:  
@@ -201,11 +201,11 @@ There are two kinds of functions
 __Referencing Variables and Functions__
 Referencing a variable in a test element is done by `bracketing the variable name with '${' and '}'`.
 
-Functions are referenced in the same manner, but by convention, the names of functions begin with "__" to avoid conflict with user value names.
+Functions are referenced in the same manner, but by convention, the names of functions begin with `"__"` to avoid conflict with user value names.
 
-Some functions take arguments to configure them, and these go in parentheses, comma-delimited. If the function takes no arguments, the parentheses can be omitted. For example âˆ’  
+Some functions take arguments to configure them, and these go in parentheses, comma-delimited. If the function takes no arguments, the parentheses can be omitted.  
 
-If a function parameter contains a comma, then make sure you escape this with "\" as shown below  
+If a function parameter contains a comma, then make sure you escape this with `"\"` as shown below  
 ```javascript
 ${__BeanShell(vars.put("name"\,"value"))}
 ```
@@ -358,8 +358,8 @@ URL rewrite
 
 ### Nginx Use Case 1
 
-ADC -> Nginx  -> Tomcat (production env)
-LVS -> Nginx  -> Tomcat (IT env)
+ADC -> Nginx  -> Tomcat (production env)   
+LVS -> Nginx  -> Tomcat (IT env)   
 1. ADC is device and LVS is software. They are both the LB(Load Balance) solution of Coupon
 2. Nginx is just used as a Web Server and Reverse Proxy.
 3. Tomcat is the real application (10001, 20001)
@@ -556,6 +556,7 @@ Marathon is a production-grade container orchestration platform for Mesosphereâ€
 * `MaxGauge` for MySQL/Oracle monitoring  
 * `Upsource` for code review
 
+![coupon data backup strategy]  
 
 ---
 [webview_strategy]:http://www.human-element.com/webview-strategy-creating-mobile-apps-part-13/ "Webview Strategy"
@@ -584,3 +585,4 @@ Marathon is a production-grade container orchestration platform for Mesosphereâ€
 [AWS]:http://searchaws.techtarget.com/definition/Amazon-Web-Services "What is AWS"
 [Kryo_Serializers_Git_1]:https://github.com/magro/kryo-serializers "Kryo_Serializers_Git_1"
 [HTTP Pipelining vs Domain Sharding]:https://www.fir3net.com/Networking/Protocols/http-pipelining-vs-domain-sharding.html "HTTP Pipelining vs Domain Sharding"
+[coupon data backup strategy]:"/resources/img/misc/compound data backup strategy.png" "coupon data backup strategy"

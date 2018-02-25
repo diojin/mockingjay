@@ -279,6 +279,22 @@
         + [Online Queries](#hbase-online-queries)
     - [HBase Versus RDBMS](#hbase-versus-rdbms)
     - [HBase Praxis](#hbase-praxis)
+* [Chapter 21. ZooKeeper](#chapter-21-zookeeper)
+    - [Installing and Running ZooKeeper](#installing-and-running-zookeeper)
+    - [The ZooKeeper Service](#the-zookeeper-service)
+        + [Zookeeper Data Model](#zookeeper-data-model)
+        + [Zookeeper operations](#zookeeper-operations)
+        + [Zookeeper Implementation](#zookeeper-implementation)
+        + [Zookeeper Consistency](#zookeeper-consistency)
+        + [ZooKeeper Session](#zookeeper-session)
+            * [ZooKeeper Time](#zookeeper-time)
+        + [ZooKeeper States](#zookeeper-states)
+    - [ZooKeeper State](#zookeeper-state)
+        + [A Configuration Service](#a-configuration-service)
+        + [The Resilient ZooKeeper Application](#the-resilient-zookeeper-application)
+        + [A Lock Service](#a-lock-service)
+    - [ZooKeeper in Production](#zookeeper-in-production)
+        + [ZooKeeper Configuration](#zookeeper-configuration)
 * [Miscellaneous](#miscellaneous)
 
 ## 0. Recommendations
@@ -301,12 +317,20 @@ In this chapter, we only scratched the surface of what’s possible with HBase. 
 
 The HBase project was started toward the end of 2006 by Chad Walters and Jim Kellerman at Powerset. It was modeled after Google’s Bigtable, which had just been published. Fay Chang et al., “Bigtable: A Distributed Storage System for Structured Data,” November 2006. [Bigtable: A Distributed Storage System for Structured Data,]  
 
+However, this section is not exhaustive, so you should consult the [ZooKeeper Administrator’s Guide] for detailed, up-to-date instructions, including supported platforms, recommended hardware, maintenance procedures, dynamic reconfiguration (to change the servers in a running ensemble), and configuration properties.
+
+For more in-depth information about ZooKeeper, see [ZooKeeper] by Flavio Junqueira and Benjamin Reed (O’Reilly, 2013).
+
+
 ### Useful URLs
-http://node-manager-host:8042/logs/userlogs.
-http://resource-manager-host:8088/
-http://resource-manager-host:8088/conf shows the configuration that the resource manager is running with.
-http://resource-manager-host:8088/logLevel and set the log name
-For example, you can get a thread dump for a resource manager from http://resource-manager-host:8088/stacks
+* http://node-manager-host:8042/logs/userlogs  
+* http://resource-manager-host:8088/  
+    - http://resource-manager-host:8088/conf shows the configuration that the resource manager is running with.  
+    - http://resource-manager-host:8088/logLevel and set the log name  
+    - http://resource-manager-host:8088/stacks,  where you can get a thread dump for a resource manager  
+* http://datanode:50075/blockScannerReport   
+* http://namenode-host:50070/jmx , where you can view namenode metrics.
+
 
 ## 1. Meet Hadoop
 The approach taken by MapReduce may seem like a brute-force approach. The premise is that the `entire dataset—or at least a good portion of it—`can be processed for each query. But this is its power. MapReduce is a batch query processor, and the ability to run an ad hoc query against your whole dataset and get the results in a reasonable time is transformative.
@@ -998,7 +1022,7 @@ If a queue waits for as long as its minimum share preemption timeout without rec
 2. fair share preemption timeout  
 Likewise, if a queue remains below `half of its fair share` for as long as the fair share preemption timeout, then the scheduler may preempt other containers.  
 #### Delay Scheduling
-All the YARN schedulers try to honor locality requests. On a busy cluster, if an application requests a particular node, there is a good chance that other containers are running on it at the time of the request. The obvious course of action is to immediately loosen the locality requirement and allocate a container on the same rack. However, it has been observed in practice that waiting a short time (no more than a few seconds) can dramatically increase the chances of being allocated a container on the requested node, and therefore increase the efficiency of the cluster. This feature is called delay scheduling, and it is supported by both the Capacity Scheduler and the Fair Scheduler.  
+All the YARN schedulers try to honor locality requests. On a busy cluster, if an application requests a particular node, there is a good chance that other containers are running on it at the time of the request. The obvious course of action is to immediately loosen the locality requirement and allocate a container on the same rack. However, it has been observed in practice that waiting a short time (no more than a few seconds) can dramatically increase the chances of being allocated a container on the requested node, and therefore increase the efficiency of the cluster. This feature is called delay scheduling, and it is `supported by both the Capacity Scheduler and the Fair Scheduler`.  
 
 `Every node manager in a YARN cluster periodically sends a heartbeat request to the resource manager—by default, one per second`. Heartbeats carry information about the node manager’s running containers and the resources available for new containers, so each heartbeat is a potential **scheduling opportunity** for an application to run a container.  
 
@@ -2726,7 +2750,7 @@ Another failure mode is the sudden exit of the task JVM, in this case, the `node
 
 If a Streaming process hangs, the node manager will kill it (along with the JVM that launched it) only in the following circumstances: either `yarn.nodemanager.container-executor.class` is set to org.apache.hadoop.yarn.server.nodemanager.LinuxContainerExecutor, or the default container executor is being used and the setsid command is available on the system (so that the task JVM and any processes it launches are in the same process group). `In any other case, orphaned Streaming processes will accumulate on the system`, which will impact utilization over time.
 
-When the application master is notified of a task attempt that has failed, it will reschedule execution of the task. `The application master will try to avoid rescheduling the task on a node manager where it has previously failed`. Furthermore, if a task fails four times (by default), it will not be retried again. (`mapreduce.map.maxattempts` property for map tasks and `mapreduce.reduce.maxattempts` for reduce tasks). 
+`When the application master is notified of a task attempt that has failed, it will reschedule execution of the task`. `The application master will try to avoid rescheduling the task on a node manager where it has previously failed`. Furthermore, if a task fails four times (by default), it will not be retried again. (`mapreduce.map.maxattempts` property for map tasks and `mapreduce.reduce.maxattempts` for reduce tasks). 
 
 A task attempt may also be killed, which is different from it failing. A task attempt may be killed because it is a speculative duplicate, or because the node manager it was running on failed and the application master marked all the task attempts running on it as killed. Killed task attempts do not count against the number of attempts to run the task.
 
@@ -5642,9 +5666,9 @@ Schema on write makes `query time performance faster because the database can in
 #### Updates, Transactions, and Indexes
 Updates, transactions, and indexes are mainstays of traditional databases. Yet, until recently, these features have not been considered a part of Hive’s feature set. This is because Hive was built to operate over HDFS data using MapReduce, where `full-table scans are the norm and a table update is achieved by transforming the data into a new table`. For a data warehousing application that runs over large portions of the dataset, this works well.  
 
-Hive has long supported `adding new rows in bulk` to an existing table by using INSERT INTO to add new data files to a table. From release 0.14.0, finer-grained changes are possible, so you can call INSERT INTO TABLE...VALUES to `insert small batches of values` computed in SQL. In addition, it is possible to `UPDATE and DELETE rows` in a table.  
+Hive has long supported `adding new rows in bulk` to an existing table by using INSERT INTO to add new data files to a table. From release 0.14.0, finer-grained changes are possible, so you can call INSERT INTO TABLE...VALUES to `insert small batches of values` computed in SQL. In addition, `it is possible to UPDATE and DELETE rows` in a table.  
 
-`HDFS does not provide in-place file updates`, so changes resulting from inserts, updates, and deletes are stored in small delta files. Delta files are periodically merged into the base table files by MapReduce jobs that are run in the background `by the metastore`. These features only work `in the context of transactions` (introduced in Hive 0.13.0), so the table they are being used on needs to have transactions enabled on it. Queries reading the table are guaranteed to see a consistent snapshot of the table.  
+`HDFS does not provide in-place file updates`, so changes resulting from inserts, updates, and deletes are stored in small delta files. `Delta files are periodically merged into the base table files by MapReduce jobs` that are run in the background `by the metastore`. These features only work `in the context of transactions` (introduced in Hive 0.13.0), so the table they are being used on needs to have transactions enabled on it. Queries reading the table are guaranteed to see a consistent snapshot of the table.  
 
 `Hive also has support for table- and partition-level locking.` Locks prevent, for example, one process from dropping a table while another is reading from it. `Locks are managed transparently using ZooKeeper,` so the user doesn’t have to acquire or release them, although it is possible to get information about which locks are being held via the SHOW LOCKS statement. By default, locks are not enabled.  
 
@@ -5828,7 +5852,7 @@ Here we are using the user ID to determine the bucket (which Hive does by `hashi
 
 This optimization (map-side join) also works when `the number of buckets in the two tables are multiples of each other; they do not have to have exactly the same number of buckets`.
 
-`The data within a bucket may additionally be sorted by one or more columns. This allows even more efficient map-side joins, since the join of each bucket becomes an efficient merge sort`. The syntax for declaring that a table has sorted buckets is:  
+`The data within a bucket may additionally be sorted by one or more columns. This allows even more efficient map-side joins, since the join of each bucket becomes an efficient merge sort`(PS: for hadoop map side join, the tables are required to be sorted by same keys, which are joint keys). The syntax for declaring that a table has sorted buckets is:  
 ```sql
 CREATE TABLE bucketed_users (id INT, name STRING) 
 CLUSTERED BY (id) SORTED BY (id ASC) INTO 4 BUCKETS;
@@ -6177,7 +6201,7 @@ SELECT sales.*, things.*
 FROM sales JOIN things ON (sales.id = things.id);
 ```
 If `one table is small enough to fit in memory`, as things is here, Hive can load it into memory to perform the join in each of the mappers. This is called a map join.   
-`The job to execute this query has no reducers`, so this query would not work for a RIGHT or FULL OUTER JOIN, since absence of matching can be detected only in `an aggregating (reduce) step` across all the inputs.   
+`The job to execute this query has no reducers`, so `this query would not work for a RIGHT or FULL OUTER JOIN, since absence of matching can be detected only in an aggregating (reduce) ste` across all the inputs`.   
 Map joins can take advantage of bucketed tables (see “Buckets” on page 493), since a mapper working on a bucket of the left table needs to load only the corresponding buckets of the right table to perform the join. The syntax for the join is the same as for the in-memory case shown earlier; however, you also need to enable the optimization with the following:  
 ```sql
 SET hive.optimize.bucketmapjoin=true;
@@ -6985,9 +7009,468 @@ Similarly, the Hadoop datanode has an upper bound on the number of threads it ca
 
 HBase runs a web server on the master to present a view on the state of your running cluster. By default, it listens on port 60010.  
 
-Hadoop has a metrics system that can be used to emit vitals over a period to a context (this is covered in “Metrics and JMX” on page 331). Enabling Hadoop metrics, and in particular tying them to Ganglia or emitting them via JMX, will give you views on what is happening on your cluster, both currently and in the recent past. HBase also adds metrics of its own—request rates, counts of vitals, resources used. See the file `hadoopmetrics2- hbase.properties` under the HBase conf directory.
+Hadoop has a metrics system that can be used to emit vitals over a period to a context (this is covered in “Metrics and JMX” on page 331). Enabling Hadoop metrics, and in particular tying them to Ganglia or emitting them via JMX, will give you views on what is happening on your cluster, both currently and in the recent past. HBase also adds metrics of its own—request rates, counts of vitals, resources used. See the file `hadoopmetrics2-hbase.properties` under the HBase conf directory.
 
 At StumbleUpon, the first production feature deployed on HBase was keeping counters for the stumbleupon.com frontend. Counters were previously kept in MySQL, but the rate of change was such that drops were frequent, and the load imposed by the counter writes was such that web designers self imposed limits on what was counted. Using the incrementColumnValue() method on HTable, counters can be incremented many thousands of times a second.  
+
+## Chapter 21. ZooKeeper
+ZooKeeper also has the following characteristics:  
+1. ZooKeeper is simple  
+ZooKeeper is, at its core, a `stripped-down filesystem` that exposes a few simple operations and `some extra abstractions`, such as ordering and notifications.   
+2. ZooKeeper is expressive  
+The ZooKeeper primitives are a rich set of building blocks that can be used to build a large class of coordination data structures and protocols. Examples include distributed queues, distributed locks, and leader election among a group of peers.  
+3. ZooKeeper is highly available   
+4. ZooKeeper facilitates loosely coupled interactions  
+ZooKeeper interactions support participants that do not need to know about one another. For example, ZooKeeper can be used as a rendezvous mechanism so that processes that otherwise don’t know of each other’s existence (or network details) can discover and interact with one another. `Coordinating parties may not even be contemporaneous`, since one process may leave a message in ZooKeeper that is read by another after the first has shut down.   
+5. ZooKeeper is a library  
+ZooKeeper provides an open source, shared repository of implementations and recipes of `common coordination patterns`. Individual programmers are spared the burden of writing common protocols themselves (which is often difficult to get right). Over time, the community can add to and improve the libraries, which is to everyone’s benefit.   
+6. ZooKeeper is highly performant, too.   
+At Yahoo!, where it was created, the throughput for a ZooKeeper cluster has been benchmarked at over 10,000 operations per second for write-dominant workloads generated by hundreds of clients. For workloads where reads dominate, which is the norm, the throughput is several times higher.
+
+### Installing and Running ZooKeeper
+
+```shell
+$ tar -xzvf zookeeper-x.y.z.tar.gz -C /usr/local
+# add following settings to environment variables
+$ export ZOOKEEPER_HOME=/usr/local/zookeeper-x.y.z
+$ export PATH=$PATH:$ZOOKEEPER_HOME/bin
+```
+
+Before running the ZooKeeper service, we need to set up a configuration file. The configuration file is conventionally called `zoo.cfg` and placed in the $ZOOKEEPER_HOME/conf subdirectory or in the directory defined by the ZOOCFGDIR environment variable, if set). Here’s an example:  
+```properties
+tickTime=2000
+dataDir=/Users/tom/zookeeper
+clientPort=2181
+```
+
+This is a standard Java properties file, and the three properties defined in this example are the minimum required for running ZooKeeper in standalone mode. Briefly, tickTime is the basic time unit in ZooKeeper (specified in milliseconds), dataDir is the local filesystem location where ZooKeeper stores persistent data, and clientPort is the port ZooKeeper listens on for client connections (2181 is a common choice).
+
+With a suitable configuration defined, we are now ready to start a local ZooKeeper server:
+```shell
+$ zkServer.sh start
+```
+To check whether ZooKeeper is running, send the ruok command (“Are you OK?”) to the client port using nc (telnet works, too):
+```shell
+$ echo ruok | nc localhost 2181
+imok
+```
+That’s ZooKeeper saying, “I’m OK.”
+
+Table 21-1 lists the commands, known as the “four-letter words,” for managing ZooKeeper.  
+
+1. `mntr`  
+Lists server statistics in Java properties format, suitable as a source for monitoring systems such as Ganglia and Nagios.
+2. ZooKeeper exposes statistics via JMX.  
+3. There are also monitoring tools and recipes in the src/contrib directory of the distribution.
+4. From version 3.5.0 of ZooKeeper, there is an inbuilt web server for providing the same information as the four-letter words. Visit http://localhost:8080/commands for a list of commands.
+
+One way of understanding ZooKeeper is to `think of it as providing a high-availability filesystem`. It doesn’t have files and directories, but a unified concept of a node, called a **znode**, that `acts both as a container of data (like a file) and a container of other znodes` (like a directory). `Znodes form a hierarchical namespace`. For example, a natural way to build a membership list is to create a parent znode with the name of the group and child znodes with the names of the group members (servers)
+
+```html
+-- /zoo
+    |-- /zoo/duck
+    |-- /zoo/goat
+    |-- /zoo/cow
+```
+
+```java
+public class ConnectionWatcher implements Watcher {
+        private static final int SESSION_TIMEOUT = 5000;
+        protected ZooKeeper zk;
+        private CountDownLatch connectedSignal = new CountDownLatch(1);
+        public void connect(String hosts) throws IOException, InterruptedException {
+                zk = new ZooKeeper(hosts, SESSION_TIMEOUT, this);
+                connectedSignal.await();
+        }
+        @Override
+        public void process(WatchedEvent event) {
+                if (event.getState() == KeeperState.SyncConnected) {
+                        connectedSignal.countDown();
+                }
+        }
+        public void close() throws InterruptedException {
+                zk.close();
+        }
+}
+```
+
+```java
+public class CreateGroup extends ConnectionWatcher {
+        public void create(String groupName) throws KeeperException,
+        InterruptedException {
+                String path = "/" + groupName;
+                String createdPath = zk.create(path, null/*data*/, Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.PERSISTENT);
+                System.out.println("Created " + createdPath);
+        }
+
+        public static void main(String[] args) throws Exception {
+                CreateGroup createGroup = new CreateGroup();
+                createGroup.connect(args[0]);
+                createGroup.create(args[1]);
+                createGroup.close();
+        }
+}
+```
+When the main() method is run, it creates a CreateGroup instance and then calls its connect() method. This method instantiates a new **ZooKeeper** object, which is the central class of the client API and the one that maintains the connection between the client and the ZooKeeper service. The constructor takes three arguments:  
+1. the host address (and optional port, which defaults to 2181) of the ZooKeeper service  
+2. the second is the session timeout in milliseconds (which we set to 5 seconds)
+3. an instance of a **Watcher** object.  
+`The Watcher object receives callbacks from ZooKeeper to inform it of various events`. In this scenario, CreateGroup is a Watcher, so we pass this to the ZooKeeper constructor.
+
+When a ZooKeeper instance is created, it starts a thread to connect to the ZooKeeper service. The call to the constructor returns immediately, so it is important to wait for the connection to be established before using the ZooKeeper object. We make use of Java’s CountDownLatch class (in the java.util.concurrent package) to block until the ZooKeeper instance is ready. This is where the Watcher comes in. The Watcher interface has a single method:  
+```java
+public void process(WatchedEvent event); 
+```
+When the client has connected to ZooKeeper, the Watcher receives a call to its process() method with an event indicating that it has connected.
+
+The create() method. In this method, we create a new ZooKeeper znode using the create() method on the ZooKeeper instance. The arguments it takes are the path (represented by a string), the contents of the znode (a byte array null here), an access control list (or ACL for short, which here is completely open, allowing any client to read from or write to the znode), and the nature of the znode to be created.  
+
+`Znodes may be ephemeral or persistent`. An ephemeral znode will be deleted by the ZooKeeper service when the client that created it disconnects, either explicitly or because the client terminates for whatever reason. A persistent znode, on the other hand, is not deleted when the client disconnects. We want the znode representing a group to live longer than the lifetime of the program that creates it, so we create a persistent znode.
+
+```shell
+$ export CLASSPATH=ch21-zk/target/classes/:$ZOOKEEPER_HOME/*:\
+$ZOOKEEPER_HOME/lib/*:$ZOOKEEPER_HOME/conf
+$ java CreateGroup localhost zoo
+Created /zoo
+```
+
+```java
+public class JoinGroup extends ConnectionWatcher {
+        public void join(String groupName, String memberName) throws KeeperException,
+        InterruptedException {
+                String path = "/" + groupName + "/" + memberName;
+                String createdPath = zk.create(path, null/*data*/, Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.EPHEMERAL);
+                System.out.println("Created " + createdPath);
+        }
+        public static void main(String[] args) throws Exception {
+                JoinGroup joinGroup = new JoinGroup();
+                joinGroup.connect(args[0]);
+                joinGroup.join(args[1], args[2]);
+                // stay alive until process is killed or thread is interrupted
+                Thread.sleep(Long.MAX_VALUE);
+        }
+}
+
+public class ListGroup extends ConnectionWatcher {
+        public void list(String groupName) throws KeeperException,
+        InterruptedException {
+                String path = "/" + groupName;
+                try {
+                        List<String> children = zk.getChildren(path, false);
+                        if (children.isEmpty()) {
+                                System.out.printf("No members in group %s\n", groupName);
+                                System.exit(1);
+                        }
+                        for (String child : children) {
+                                System.out.println(child);
+                        }
+                } catch (KeeperException.NoNodeException e) {
+                        System.out.printf("Group %s does not exist\n", groupName);
+                        System.exit(1);
+                }
+        }
+        public static void main(String[] args) throws Exception {
+                ListGroup listGroup = new ListGroup();
+                listGroup.connect(args[0]);
+                listGroup.list(args[1]);
+                listGroup.close();
+        }
+}
+```
+
+In the list() method, we call getChildren() with a znode path and `a watch flag` to retrieve a list of child paths for the znode, which we print out. `Placing a watch on a znode causes the registered Watcher to be triggered if the znode changes state`. Although we’re not using it here, watching a znode’s children would permit a program to get notifications of members joining or leaving the group, or of the group being deleted.
+
+```shell
+$ java ListGroup localhost zoo
+No members in group zoo
+
+$ java JoinGroup localhost zoo duck &
+$ java JoinGroup localhost zoo cow &
+$ java JoinGroup localhost zoo goat &
+$ goat_pid=$!
+
+$ java ListGroup localhost zoo
+goat
+duck
+cow
+
+$ kill $goat_pid
+$ java ListGroup localhost zoo
+duck
+cow
+```
+
+```shell
+$ zkCli.sh -server localhost ls /zoo
+[cow, duck]
+```
+
+`ZooKeeper will delete a znode only if the version number specified is the same as the version number of the znode it is trying to delete` — an optimistic locking mechanism that allows clients to detect conflicts over znode modification. You can bypass the version check, however, by using a version number of –1 to delete the znode regardless of its version number.  
+```java
+zk.delete(path, -1);
+```
+
+`There is no recursive delete operation in ZooKeeper`, so you have to delete child znodes before parents.
+
+`Znodes are referenced by paths`, which in ZooKeeper are represented as slash-delimited Unicode character strings, `like filesystem paths in Unix`. Paths must be absolute, so they must begin with a slash character. Furthermore, they are canonical, which means that each path has a single representation, and so paths do not undergo resolution. In ZooKeeper, “.” does not have this special meaning and is actually illegal as a path component(neither does ".."). The string `“zookeeper” is a reserved word` and may not be used as a path component. In particular, ZooKeeper uses the /zookeeper subtree to store management information, such as information on quotas.  
+
+### The ZooKeeper Service
+#### Zookeeper Data Model
+ZooKeeper maintains a hierarchical tree of nodes called znodes. A znode stores data and has an associated ACL. ZooKeeper is designed for coordination (which typically uses small datafiles), not high-volume data storage, so there is `a limit of 1 MB` on the amount of data that may be stored in any znode. 
+
+Data access(read/write) is atomic.  
+
+ZooKeeper does not support an append operation.
+
+Znodes have some properties that are very useful for building distributed applications.
+1. Ephemeral znodes  
+An ephemeral znode may not have children, not even ephemeral ones.  
+Even though `ephemeral nodes are tied to a client session`, they are visible to all clients(subject to their ACL policies, of course).  
+2. Sequence numbers   
+A sequential znode is given a sequence number by ZooKeeper as a part of its name. If a znode is created with the sequential flag set, then the value of `a monotonically increasing counter` (maintained by the parent znode)(PS: may not at same incremental interval) is appended to its name.  
+Sequence numbers can be used to `impose a global ordering` on events in a distributed system and may be used by the client to infer the ordering. In A Lock Service, you will learn how to `use sequential znodes to build a shared lock`.  
+3. Watch  
+Watches allow clients to `get notifications` when a znode changes in some way. Watches are set by operations on the ZooKeeper service and are triggered by other operations on the service.   
+Watchers are triggered only once.(PS: need to register the same again for merely 1 more notification, so on and so forth).  
+In A Configuration Service demonstrating how to use watches to update configuration across a cluster
+
+#### Zookeeper operations
+
+**Table 21-2. Operations in the ZooKeeper service**  
+
+Operation                           |Description
+-------------------------------|---------------------------------------------------------------------------------------------------------------------
+create                                 |Creates a znode (the parent znode must already exist)
+delete                                 |Deletes a znode (the znode must not have any children)
+exists                                  |Tests whether a znode exists and retrieves its metadata
+getACL, setACL                   |Gets/sets the ACL for a znode
+getChildren                         |Gets a list of the children of a znode
+getData, setData                |Gets/sets the data associated with a znode
+sync                                    |Synchronizes a client’s view of a znode with ZooKeeper
+
+Update operations in ZooKeeper are conditional. A `delete` or `setData` operation has to specify the `version number` of the znode that is being updated (which is found from a previous exists call). If the version number does not match, the update will fail. `Updates are a nonblocking operation`, so a client that loses an update (because another process updated the znode in the meantime) can decide whether to try again or take some other action, and it can do so without blocking the progress of any other process.
+
+Although ZooKeeper can be viewed as a filesystem, there are some filesystem primitives that it does away with `in the name of simplicity`. Because files are small and are written and read in their entirety, there is `no need to provide open, close, or seek operations`.  
+
+The sync operation is not like fsync() in POSIX filesystems. As mentioned earlier, writes in ZooKeeper are atomic, and a successful write operation is guaranteed to have been written to persistent storage on `a majority of ZooKeeper servers`. However, `it is permissible for reads to lag the latest state of the ZooKeeper service, and the sync operation exists to allow a client to bring itself up to date`.
+
+* Multiupdate  
+`multi`, that batches together multiple primitive operations into a single unit that either succeeds or fails in its entirety.
+
+There are two core language bindings for ZooKeeper clients, one for Java and one for C; there are also contrib bindings for Perl, Python, and REST clients. For each binding, there is a choice between performing operations `synchronously` or `asynchronously`.  
+```java
+// synchronous API
+public Stat exists(String path, Watcher watcher) throws KeeperException, InterruptedException
+// Asynchronous API
+public void exists(String path, Watcher watcher, StatCallback cb, Object ctx)
+```
+In the Java API, all the asynchronous methods have void return types, since the result of the operation is conveyed `via a callback`.
+
+**SHOULD I USE THE SYNCHRONOUS OR ASYNCHRONOUS API?**   
+Both APIs offer the same functionality, so the one you use is `largely a matter of style`. The asynchronous API is appropriate if you have an `event-driven programming model`, for example.  
+`The asynchronous API allows you to pipeline requests, which in some scenarios can offer better throughput`.(PS: a bit like CompletionService) Imagine that you want to read a large batch of znodes and process them independently. Using the synchronous API, each read would block until it returned, whereas with the asynchronous API, you can fire off all the asynchronous reads very quickly and process the responses in a separate thread as they come back.
+
+* Watch triggers  
+The read operations exists, getChildren, and getData may have watches set on them, and the watches are triggered by write operations: create, delete, and setData. ACL operations do not participate in watches.  
+
+![hadoop_zookeeper_watch_triggers_img_1]   
+
+To discover which children have changed after a NodeChildrenChanged event, you need to call getChildren again to retrieve the new list of children. Similarly, to discover the new data for a NodeDataChanged event, you need to call getData. `In both of these cases, the state of the znodes may have changed between receiving the watch event and performing the read operation`, so you should bear this in mind when writing applications.
+
+* ACLs  
+There are a few authentication schemes that ZooKeeper provides:
+1. digest  
+The client is authenticated by a username and password.
+2. sasl  
+The client is authenticated using Kerberos.
+3. ip  
+The client is authenticated by its IP address.
+
+In addition, ZooKeeper has a pluggable authentication mechanism, which makes it possible to integrate third-party authentication systems if needed.  
+
+#### Zookeeper Implementation
+The ZooKeeper service can run in two modes.   
+1. In standalone mode, there is a single ZooKeeper server, which is useful for testing due to its simplicity (it can even be embedded in unit tests) but provides no guarantees of high availability or resilience.  
+2. replicated mode  
+In production, ZooKeeper runs in replicated mode on a cluster of machines called an ensemble. ZooKeeper achieves high availability through replication, and can provide a service as long as `a majority of` the machines in the ensemble are up.
+
+Conceptually, ZooKeeper is very simple: `all it has to do is ensure that every modification to the tree of znodes is replicated to a majority of the ensemble`. If a minority of the machines fail, then a minimum of one machine will survive with the latest state. The other remaining replicas will eventually catch up with this state.
+
+ZooKeeper uses a protocol called **Zab** that runs in two phases, which may be repeated indefinitely:  
+1. Phase 1: Leader election  
+The machines in an ensemble go through a process of electing a distinguished member, called the leader. The other machines are termed followers. This phase is finished once `a majority (or quorum) of followers have synchronized their state with the leader`. 
+2. Phase 2: Atomic broadcast   
+All write requests are forwarded to `the leader, which broadcasts the update to the followers`. When `a majority have persisted the change`, the leader commits the update, and the client gets a response saying the update succeeded. The protocol for achieving consensus is designed to be atomic, so a change either succeeds or fails. `It resembles a two-phase commit`.
+
+**DOES ZOOKEEPER USE PAXOS?** NO.  
+Google’s Chubby Lock Service, which shares similar goals with ZooKeeper, is based on Paxos.
+
+If the leader fails, the remaining machines hold another leader election and continue as before with the new leader. If the old leader later recovers, it then starts as a follower.  
+
+`Leader election is very fast`.
+
+All machines in the ensemble `write updates to disk before updating their in-memory copies of the znode tree`.  
+
+`Read requests may be serviced from any machine, and because they involve only a lookup from memory, they are very fast`.
+
+#### Zookeeper Consistency
+The terms “leader” and “follower” for the machines in an ensemble are apt because they make the point that `a follower may lag the leader by a number of updates`. This is a consequence of the fact that `only a majority and not all members of the ensemble need to have persisted a change before it is committed`.
+
+`Every update` made to the znode tree is given `a globally unique identifier`, called a zxid (which stands for `“ZooKeeper transaction ID”`). Updates are ordered, so if zxid z1 is less than z2, then z1 happened before z2, according to ZooKeeper (which is the single authority on ordering in the distributed system).
+
+![hadoop_zookeeper_consistency_img_1]  
+**Figure 21-2. Reads are satisfied by followers, whereas writes are committed by the leader**  
+
+*The following guarantees for data consistency flow from ZooKeeper’s design*:  
+1. Sequential consistency  
+Updates `from any particular client` are applied in the order that they are sent. This means that if a client updates the znode z to the value a, and in a later operation, it updates z to the value b, then no client will ever see z with value a after it has seen it with value b (if no other updates are made to z).  
+2. Atomicity  
+3. Single system image  
+A client will see the same view of the system, regardless of the server it connects to. This means that if a client connects to a new server during the same session, it will not see an older state of the system than the one it saw with the previous server. When a server fails and a client tries to connect to another in the ensemble, `a server that is behind the one that failed will not accept connections from the client until it has caught up with the failed server`.  
+4. Durability  
+Once an update has succeeded, it will persist and will not be undone. This means updates will survive server failures.  
+5. Timeliness  
+`The lag in any client’s view of the system is bounded`, so it will not be out of date by more than some multiple of tens of seconds. This means that rather than allow a client to see data that is very stale, `a server will shut down, forcing the client to switch to a more up-to-date server`.
+
+For performance reasons, `reads are satisfied from a ZooKeeper server’s memory and do not participate in the global ordering of writes`. This property can lead to the appearance of inconsistent ZooKeeper states from clients that communicate through a mechanism outside ZooKeeper: for example, client A updates znode z from a to a’, A tells B to read z, and B reads the value of z as a, not a’. This is perfectly compatible with the guarantees that ZooKeeper makes (the condition that it does not promise is called `“simultaneously consistent cross-client views”`). To prevent this condition from happening, B should call sync on z before reading z’s value. The sync operation forces the ZooKeeper server to which B is connected to “catch up” with the leader, so that when B reads z’s value, it will be the one that A set (or a later value).
+
+Slightly confusingly, the sync operation is available only as an asynchronous call. This is because you don’t need to wait for it to return, since `ZooKeeper guarantees that any subsequent operation will happen after the sync completes on the server, even if the operation is issued before the sync completes`.(PS: that means for operation sequence sync(); getData(), getData() will get value after sync )
+
+#### ZooKeeper Session
+A ZooKeeper client is configured with the list of servers in the ensemble. On startup, it tries to connect to one of the servers in the list. If the connection fails, it tries another server in the list, and so on, until it either successfully connects to one of them or fails because all ZooKeeper servers are unavailable.  
+
+Once a connection has been made with a ZooKeeper server, the server creates a new `session` for the client. A **session** has `a timeout period that is decided on by the application that creates it`. If the server hasn’t received a request within the timeout period, it may expire the session. 
+
+Sessions are kept alive by the client `sending ping requests` (also known as **heartbeats**) whenever the session is idle for longer than a certain period. (by the ZooKeeper client library).
+
+Failover to another ZooKeeper server is handled automatically by the ZooKeeper client, and crucially, sessions (and associated ephemeral znodes) are still valid after another server takes over from the failed one.
+
+Also, if the application tries to perform an operation while the client is reconnecting to another server, the operation will fail. This underlines the importance of handling connection loss exceptions in real-world ZooKeeper applications.
+
+##### ZooKeeper Time
+1. tick time  
+the fundamental period of time in ZooKeeper and is used by servers in the ensemble to define the schedule on which their interactions run. Other settings are defined in terms of tick time, or are at least constrained by it.  
+The session timeout, for example, may not be less than 2 ticks or more than 20. If you attempt to set a session timeout outside this range, it will be modified to fall within the range.  
+A common tick time setting is 2 seconds (2,000 milliseconds). This translates to an allowable session timeout of between 4 and 40 seconds.  
+2.  session timeout  
+Every session is given a unique identity and password by the server, and if these are passed to ZooKeeper while a connection is being made, it is possible to `recover a session` (as long as it hasn’t expired).  
+`As a general rule, the larger the ZooKeeper ensemble, the larger the session timeout should be`. Connection timeouts, read timeouts, and ping periods are all defined internally as a function of the number of servers in the ensemble, so as the ensemble grows, these periods decrease. Consider increasing the timeout if you experience frequent connection loss.
+
+##### ZooKeeper States
+
+![[hadoop_zookeeper_client_state_img_1]]   
+
+```java
+// ZooKeeper object
+public States getState()
+```
+
+A newly constructed ZooKeeper instance is in the CONNECTING state while it tries to establish a connection with the ZooKeeper service. Once a connection is established, it goes into the CONNECTED state.
+
+The ZooKeeper instance may transition to a third state, CLOSED, if either the close() method is called or the session times out, as indicated by a KeeperState of type Expired.
+
+### Building Applications with ZooKeeper
+#### A Configuration Service
+At the simplest level, ZooKeeper can act as a highly available store for configuration, allowing application participants to retrieve or update configuration files. Using ZooKeeper watches, it is possible to create an active configuration service, where interested clients are notified of changes in configuration.
+
+#### The Resilient ZooKeeper Application
+Every ZooKeeper operation in the Java API declares two types of exception in its throws clause: **InterruptedException** and **KeeperException**.
+
+A **KeeperException** is thrown if the ZooKeeper server signals an error or if there is a communication problem with the server. For different error cases, there are various subclasses of KeeperException. Every subclass of KeeperException has a corresponding code with information about the type of error. For example, for KeeperException.NoNodeException, the code is KeeperException.Code.NONODE (an enum value).
+
+**KeeperExceptions fall into three broad categories**  
+1. State exceptions  
+A state exception occurs when the operation fails because it cannot be applied to the znode tree.
+2. Recoverable exceptions  
+Recoverable exceptions are those from which the application can recover within the same ZooKeeper session. A recoverable exception is manifested by KeeperException.ConnectionLossException, which means that the connection to ZooKeeper has been lost. ZooKeeper will try to reconnect, and in most cases the reconnection will succeed and ensure that the session is intact.   
+The program needs a way of detecting whether its update was applied by encoding information in the znode’s pathname or its data.  
+3. Unrecoverable exceptions   
+In some cases, the ZooKeeper session becomes invalid — perhaps because of a timeout or because the session was closed (both of these scenarios get a KeeperException.SessionExpiredException), or perhaps because authentication failed (KeeperException.AuthFailedException). In any case, all ephemeral nodes associated with the session will be lost, so the application needs to rebuild its state before reconnecting to ZooKeeper.  
+
+#### A Lock Service
+Distributed locks can be used for leader election in a large distributed system, where the leader is the process that holds the lock at any point in time.
+
+To implement a distributed lock using ZooKeeper, we use sequential znodes to impose an order on the processes vying for the lock. The idea is simple:   
+first, designate a lock znode, typically describing the entity being locked on (say, /leader);   
+then, clients that want to acquire the lock create sequential ephemeral znodes as children of the lock znode. At any point in time, the client with the lowest sequence number holds the lock.  
+For example, if two clients create the znodes at /leader/lock-1 and /leader/lock-2 around the same time, then the client that created /leader/lock-1 holds the lock, since its znode has the lowest sequence number. The lock may be released simply by deleting the znode /leader/lock-1; alternatively, if the client process dies, it will be deleted by virtue of being an ephemeral znode. The client that created /leader/lock-2 will then hold the lock because it has the next lowest sequence number. It ensures it will be notified that it has the lock by creating a watch that fires when znodes go away.  
+
+The ZooKeeper service is the arbiter of order because it assigns the sequence numbers. 
+
+**The pseudocode for lock acquisition is as follows**:  
+1. Create an ephemeral sequential znode named `lock-` under the lock znode, and remember its actual pathname (the return value of the create operation).
+2. Get the children of the lock znode and set a watch.
+3. If the pathname of the znode created in step 1 has the lowest number of the children returned in step 2, then the lock has been acquired. Exit.
+4. Wait for the notification from the watch set in step 2, and go to step 2.
+
+`The “herd effect”` refers to a large number of clients being notified of the same event when only a small number of them can actually proceed.   
+
+In this case, only one client will successfully acquire the lock, and the process of maintaining and sending watch events to all clients causes traffic spikes, which put pressure on the ZooKeeper servers.   
+
+To avoid the herd effect, the condition for notification needs to be refined. The key observation for implementing locks is that `a client needs to be notified only when the child znode with the previous sequence number goes away`, not when any child znode is deleted (or created).
+
+Another problem with the lock algorithm as it stands is that it doesn’t handle the case when `the create operation fails due to connection loss`. Recall that in this case we do not know whether the operation succeeded or failed. Creating a sequential znode is a nonidempotent operation, so we can’t simply retry, because if the first create had succeeded we would have an orphaned znode that would never be deleted (until the client session ended, at least). Deadlock would be the unfortunate result.
+
+By embedding an identifier in the znode name, if it suffers a connection loss, it can check to see whether any of the children of the lock node have its identifier in their names. The client’s session identifier is a long integer that is unique for the ZooKeeper service and therefore ideal for the purpose of identifying a client across connection loss events. `The znode name becomes lock-<sessionId>-<sequenceNumber>`.
+
+`If a client’s ZooKeeper session expires`, the ephemeral znode created by the client will be deleted, effectively relinquishing the lock (or at least forfeiting the client’s turn to acquire the lock). The application using the lock should realize that it no longer holds the lock, clean up its state, and then start again by creating a new lock object and trying to acquire it. `Notice that it is the application that controls this process, not the lock implementation`, since it cannot second-guess how the application needs to clean up its state.
+
+ZooKeeper comes with `a production-quality lock implementation` in Java called **WriteLock** that is very easy for clients to use.
+
+#### More Distributed Data Structures and Protocols
+There are many distributed data structures and protocols that can be built with ZooKeeper, such as barriers, queues, and two-phase commit. One interesting thing to note is that these are synchronous protocols, even though we use asynchronous ZooKeeper primitives (such as notifications) to build them.    
+
+The [ZooKeeper website] describes several such data structures and protocols in pseudocode. ZooKeeper comes with implementations of some of these standard recipes (including locks, leader election, and queues); they can be found in the `recipes` directory of the distribution.   
+
+The [Apache Curator project] also provides an extensive set of ZooKeeper recipes, as well as a simplified ZooKeeper client.
+
+[BookKeeper] is a highly available and reliable logging service. It can be used to provide write-ahead logging, which is a common technique for ensuring data integrity in storage systems. In a system using `write-ahead logging`, every write operation is written to the transaction log before it is applied. BookKeeper is a ZooKeeper subproject, and you can find more information on how to use
+it, as well as Hedwig, at http://zookeeper.apache.org/bookkeeper/.
+
+**Hedwig** is a topic-based ipublish-subscribe system built on BookKeeper. Thanks to its ZooKeeper underpinnings, Hedwig is a highly available service and guarantees message delivery even if subscribers are offline for extended periods of time.
+
+### ZooKeeper in Production
+However, this section is not exhaustive, so you should consult the [ZooKeeper Administrator’s Guide] for detailed, up-to-date instructions, including supported platforms, recommended hardware, maintenance procedures, dynamic reconfiguration (to change the servers in a running ensemble), and configuration properties.
+
+ZooKeeper machines should be located to minimize the impact of machine and network failure. In practice, this means that servers should be spread across racks, power supplies, and switches, so that the failure of any one of these does not cause the ensemble to lose a majority of its servers.
+
+For applications that require `low-latency service` (on the order of a few milliseconds), it is important to run all the servers in an ensemble `in a single data center`. `Some use cases don’t require low-latency responses, however, which makes it feasible to spread servers across data centers (at least two per data center) for extra resilience`. Example applications in this category are `leader election and distributed coarse-grained locking`, both of which have relatively infrequent state changes, so the overhead of a few tens of milliseconds incurred by inter-data-center messages is not significant relative to the overall functioning of the service.
+
+ZooKeeper has the concept of an **observer node**, which is `like a non-voting follower`. Because they do not participate in the vote for consensus during write requests, observers allow a ZooKeeper cluster to` improve read performance without hurting write performance`. Observers can be used to good advantage to allow a ZooKeeper cluster to span data centers without impacting latency as much as regular voting followers. This is achieved by placing the voting members in one data center and observers in the other.
+
+ZooKeeper is a highly available system, and it is critical that it can perform its functions in a timely manner. `Therefore, ZooKeeper should run on machines that are dedicated to ZooKeeper alone`. Having other applications contend for resources can cause ZooKeeper’s performance to degrade significantly.
+
+`Configure ZooKeeper to keep its transaction log on a different disk drive from its snapshots`. By default, both go in the directory specified by the dataDir property, but if you specify a location for dataLogDir, the transaction log will be written there. By having its own dedicated device (not just a partition), a ZooKeeper server can maximize the rate at which it writes log entries to disk, which it `does sequentially without seeking`. `Because all writes go through the leader, write throughput does not scale by adding servers, so it is crucial that writes are as fast as possible`.
+
+#### ZooKeeper Configuration
+
+Configurations for zookeeper servers have two parts:  
+1. Each server in the ensemble of ZooKeeper servers has a numeric identifier that is unique within the ensemble and must fall between 1 and 255. The server number is specified in plain text in a file named `myid` in the directory specified by the `dataDir` property.  
+2. The ZooKeeper configuration file must include a line for each server, of the form:  
+```properties
+server.n=hostname:port:port
+```
+The value of n is replaced by the server number. There are two port settings: the first is the port that followers use to connect to the leader, and the second is used for leader election.   
+We also need to give every server all the identities and network locations of the others in the ensemble. Here is a sample configuration for a three-machine replicated ZooKeeper ensemble:   
+```properties
+tickTime=2000
+dataDir=/disk1/zookeeper
+dataLogDir=/disk2/zookeeper
+clientPort=2181
+initLimit=5
+syncLimit=2
+server.1=zookeeper1:2888:3888
+server.2=zookeeper2:2888:3888
+server.3=zookeeper3:2888:3888
+```
+
+Servers listen on three ports: 2181 for client connections; 2888 for follower connections, if they are the leader; and 3888 for other server connections during the leader election phase. When a ZooKeeper server starts up, it reads the `myid` file to determine which server it is, and then reads the configuration file to determine the ports it should listen on and to discover the network addresses of the other servers in the ensemble.   
+
+Clients connecting to this ZooKeeper ensemble should use zookeeper1:2181,zookeeper2:2181,zookeeper3:2181 as the host string in the constructor for the ZooKeeper object.
+
+For more in-depth information about ZooKeeper, see [ZooKeeper] by Flavio Junqueira and Benjamin Reed (O’Reilly, 2013).
 
 ## Miscellaneous
 
@@ -7045,3 +7528,11 @@ At StumbleUpon, the first production feature deployed on HBase was keeping count
 [Apache HBase ™ Reference Guide]:http://hbase.apache.org/book.html "Apache HBase ™ Reference Guide"
 [HBase: The Definitive Guide]:http://shop.oreilly.com/product/0636920014348.do "HBase: The Definitive Guide Random Access to Your Planet-Size Data"
 [HBase in Action]:https://www.manning.com/books/hbase-in-action "HBase in Action"
+[hadoop_zookeeper_watch_triggers_img_1]:/resources/img/java/hadoop_zookeeper_watch_triggers_1.png "Table 21-3. Watch creation operations and their corresponding triggers"
+[hadoop_zookeeper_consistency_img_1]:/resources/img/java/hadoop_zookeeper_consistency_1.png "Figure 21-2. Reads are satisfied by followers, whereas writes are committed by the leader"
+[hadoop_zookeeper_client_state_img_1]:/resources/img/java/hadoop_zookeeper_client_state_1.png "Figure 21-3. ZooKeeper state transitions"
+[Apache Curator project]:http://curator.apache.org/ "Welcome to Apache Curator"
+[ZooKeeper website]:http://zookeeper.apache.org/ "Apache ZooKeeper"
+[BookKeeper]:http://zookeeper.apache.org/bookkeeper/ "BookKeeper"
+[ZooKeeper Administrator's Guide]:http://zookeeper.apache.org/doc/current/zookeeperAdmin.html "ZooKeeper Administrator's Guide"
+[ZooKeeper]:http://shop.oreilly.com/product/0636920028901.do "ZooKeeper Distributed Process Coordination"

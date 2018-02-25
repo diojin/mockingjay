@@ -16,6 +16,7 @@
         + [Spark Streaming vs Storm vs Samza](#spark-streaming-vs-storm-vs-samza)
             * [Spark Voices from others](#spark-voices-from-others)
         + [Spark Learning Materials](#spark-learning-materials)
+        + [Differences between cache, persist and checkpoint](#differences-between-cache-persist-and-checkpoint)
 * [Hive](#hive)
 * [HBase](#hbase)
 * [BigData Common](#bigdata-common)

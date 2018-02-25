@@ -50,6 +50,8 @@ ___
         - [ ] :arrow_right_hook: :one: Coupang Projects
         - [ ] :arrow_right_hook: :two: Morgan Projects: refine(JProfile & Scala) & Data volumn review
         - [ ] :arrow_right_hook: :three: CV
+            - [ ] :arrow_right_hook: :three: 改自我评价部分, 擅长构建知识系统, 擅长积累, 擅长性能优化
+            - [ ] :arrow_right_hook: :three: 大公司简历由我自己去投
     - [ ] :arrow_right_hook: :seven: Big Data related stuffs
         - [ ] :arrow_right_hook: :one: Big Data learning path
         - [ ] :arrow_right_hook: :two: Scala interview questions
@@ -59,8 +61,12 @@ ___
     - [ ] :arrow_right_hook: :ten: Miscellaneous tasks
         - [ ] :arrow_right_hook: :one: linux monitoring tools, such as iostat, sar, top, vmstat, and etc, by sample scripts.
         - [ ] :arrow_right_hook: :two: decorate my github homesite & github cv
-        - [ ] :arrow_right_hook: :three: jupyter notebook installation
+        - [x] :arrow_right_hook: :three: ~~jupyter notebook installation~~
         - [ ] :arrow_right_hook: :four: static class & import static
+        - [ ] :arrow_right_hook: :three: review design pattern
+        - [ ] :arrow_right_hook: :three: review "Scala for the impatients"
+        - [ ] :arrow_right_hook: :three: forge more scala experiences
+
 
 - [ ] :heart_eyes_cat: big data learning path from 2017-10-13
     - [x] :arrow_right_hook: :one: ~~Hadoop basic & ecosystems~~
@@ -71,14 +77,13 @@ ___
         - [x] :arrow_right_hook: :one: ~~Spark Basic~~
         - [x] :arrow_right_hook: :one: ~~Spark SQL~~
         - [x] :arrow_right_hook: :one: ~~Spark Stream~~
-    - [ ] :arrow_right_hook: :one: zookeeper
+    - [x] :arrow_right_hook: :one: ~~zookeeper~~
     - [ ] :arrow_right_hook: :eleven: Lambda
     - [ ] :arrow_right_hook: :one: Kafka 
     - [x] :arrow_right_hook: :one: ~~Sqoop & Flume~~  
     - [x] :arrow_right_hook: :one: ~~MAP/REDUCE(principle only)~~  
     - [ ] :arrow_right_hook: :ten: Storm
     - [x] :arrow_right_hook: :ten: ~~Hive & HBase~~
-    - [ ] :arrow_right_hook: :ten: Pig
     
 
 - [ ] :heart_eyes_cat: Plan as of now

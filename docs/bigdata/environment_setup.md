@@ -13,6 +13,7 @@
 * [Flume](#flume)
 * [Hive](#hive)
 * [HBase](#hbase)
+* [Zookeeper](#zookeeper)
 * [git](#git)
 * [Virtual Box](#virtual-box)
     - [How to clone a virtual machine](#how-to-clone-a-virtual-machine)
@@ -888,6 +889,35 @@ Shut down your HBase instance by running:
 ```shell
 $ stop-hbase.sh
 ```
+
+## Zookeeper
+
+```shell
+$ tar -xzvf zookeeper-x.y.z.tar.gz -C /usr/local
+# add following settings to environment variables
+$ export ZOOKEEPER_HOME=/usr/local/zookeeper-x.y.z
+$ export PATH=$PATH:$ZOOKEEPER_HOME/bin
+```
+
+Before running the ZooKeeper service, we need to set up a configuration file. The configuration file is conventionally called `zoo.cfg` and placed in the $ZOOKEEPER_HOME/conf subdirectory or in the directory defined by the ZOOCFGDIR environment variable, if set). Here’s an example:  
+```properties
+tickTime=2000
+dataDir=/Users/tom/zookeeper
+clientPort=2181
+```
+
+This is a standard Java properties file, and the three properties defined in this example are the minimum required for running ZooKeeper in standalone mode. Briefly, tickTime is the basic time unit in ZooKeeper (specified in milliseconds), dataDir is the local filesystem location where ZooKeeper stores persistent data, and clientPort is the port ZooKeeper listens on for client connections (2181 is a common choice).
+
+With a suitable configuration defined, we are now ready to start a local ZooKeeper server:
+```shell
+$ zkServer.sh start
+```
+To check whether ZooKeeper is running, send the ruok command (“Are you OK?”) to the client port using nc (telnet works, too):
+```shell
+$ echo ruok | nc localhost 2181
+imok
+```
+That’s ZooKeeper saying, “I’m OK.”
 
 ## git 
 https://stackoverflow.com/questions/21820715/how-to-install-latest-version-of-git-on-centos-6-x-7-x  
