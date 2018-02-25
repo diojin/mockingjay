@@ -585,4 +585,4 @@ Marathon is a production-grade container orchestration platform for Mesosphereâ€
 [AWS]:http://searchaws.techtarget.com/definition/Amazon-Web-Services "What is AWS"
 [Kryo_Serializers_Git_1]:https://github.com/magro/kryo-serializers "Kryo_Serializers_Git_1"
 [HTTP Pipelining vs Domain Sharding]:https://www.fir3net.com/Networking/Protocols/http-pipelining-vs-domain-sharding.html "HTTP Pipelining vs Domain Sharding"
-[coupon data backup strategy]:"/resources/img/misc/compound data backup strategy.png" "coupon data backup strategy"
+[coupon data backup strategy]:/resources/img/misc/coupon_data_backup_strategy.png "coupon data backup strategy"
