@@ -242,6 +242,10 @@ __jMeter - Best Practices__
 ### Tungsten Replicator
 [Tungsten Replicator][Tungsten_Replicator_git] is an open source replication engine supporting a variety of different extractor and applier modules. Data can be extracted from MySQL, Oracle and Amazon RDS, and applied to transactional stores, including MySQL, Oracle, and Amazon RDS; `NoSQL stores such as MongoDB`, and datawarehouse stores such as Vertica, `Hadoop`, and `Amazon RDS`.
 
+![img][db_topology_examples_by_tangsten]     
+
+![img][Tungsten_Replicator_processing]  
+
 During replication, Tungsten Replication assigns data a unique global transaction ID, and enables flexible statement and/or row-based replication of data. This enables data to be exchanged between different databases and different database versions. During replication, information can be filtered and modified, and deployment can be between on-premise or cloud-based databases. For performance, Tungsten Replicator includes support for `parallel replication`, and `advanced topologies such as fan-in and multi-master`, and can be used efficiently in cross-site deployments.
 
 `On-premises` software is installed and run on computers on the premises (in the building) of the person or organisation using the software, against cloud software. Premises的意思是生产场所, 营业场所.  
@@ -404,11 +408,11 @@ By default all objects stored in cache are serialized/deserialized using standar
 
 * Runtime node switching  
 Memcached instances used by each cache zone can be change on the fly without redeploying or restarting application. This is available by invoking `changeAddresses` method on cache factory.  
-`Spring AOP is designed that method calls within the same object does not work (when a method calls b method within the same class, b method AOP doesn't work.)`  
 `When Memcached Does not work`  
 * Memcached AOP inherits the characteristics of Spring AOP.
 * Hence, private method is not going to be executed in Memcached AOP.
-* Memcached AOP does not work when calling methods within the same class.
+* Memcached AOP does not work when calling methods within the same class.  
+`Spring AOP is designed that method calls within the same object does not work (when a method calls b method within the same class, b method AOP doesn't work.) ???`  
 * It is recommended to give annotations at class level. Interface annotation sometimes does not work.
 
 Thus, it is important to version the namespace upon change of cached class to avoid conflict.  
@@ -425,11 +429,13 @@ The commercial product, __Membase__, handles this by providing replicated Memcac
 
 Instead, you can use the __Moxi Memcached proxy__. This allows your application servers to connect to what looks like a single Memcached host but Moxi handles sending the queries to the correct Membase (or Memcached) node. It also communicates with Membase to determine the health of a node for failover purposes.
 
-We have recently deployed Moxi to elimiate Memcached as a single point of failure. Our web nodes now connect to one of several local Moxi instances (one for each Memcached bucket) which proxy the connections out to the cluster. If one of the Memcached cluster nodes fails, our application never needs to know because Moxi will silently handle the failover.
+`We have recently deployed Moxi to elimiate Memcached as a single point of failure`. Our web nodes now connect to one of several local Moxi instances (one for each Memcached bucket) which proxy the connections out to the cluster. If one of the Memcached cluster nodes fails, our application never needs to know because Moxi will silently handle the failover.
 
 Alternatively, with `Couchbase 1.8 (which is what Membase has been renamed to)`, you can use their client libraries to connect directly to your Couchbase instances with the failover support built into the libraries.
 
-* Moxi uses consistent hash algorithm to guarantee same key on same servers, whereas LVS doesn't support it.
+![img][memcached_and_moxi_proxy_architecture]  
+
+* `Moxi uses consistent hash algorithm to guarantee same key on same servers, whereas LVS doesn't support it`.
 * Moxi supports cluster nodes change on the fly.(The only changes moxi is set at the time of addition or deletion of memcached servers. If you are a client-side continues to look at only the LVS.)
 
 ### twemproxy (nutcracker)
@@ -443,19 +449,19 @@ You may have a need to customize Kryo serialization library, especially when you
 Most of customer serialization implementation can be found in [Kryo_Serializers_Git_1]  
 
 ### Spymemcached
-`A simple, asynchronous, single-threaded memcached client written in java.`
-[spymemcached_git]  
+`A simple, asynchronous, single-threaded memcached client written in java.`  
+[spymemcached_git]   
 [spymemcached_gc]  
 
 * Efficient storage of objects.  
 General serializable objects are stored in their `serialized form` and optionally compressed if they meet criteria. Certain native objects are stored as tightly as possible (for example, a Date object generally consumes six bytes, and a Long can be anywhere from zero to eight bytes).
 * Resilient to server and network outages.   
-In many cases, a client operation can be replayed against a server if it goes away and comes back. In cases where it can't, it will communicate that as well. An exponential backoff(二进制指数回退) reconnect algorithm is applied when a memcached becomes unavailable, but asynchronous operations will queue up for the server to be applied when it comes back online.  
+In many cases, a client operation can be replayed against a server if it goes away and comes back. In cases where it can't, it will communicate that as well. `An exponential backoff(二进制指数回退) reconnect algorithm` is applied when a memcached becomes unavailable, but `asynchronous operations will queue up` for the server to be applied when it comes back online.  
 * Operations are asynchronous.  
 It is possible to issue a store and continue processing without having to wait for that operation to finish. It is even possible to issue a get, do some further processing, check the result of the get and cancel it if it doesn't return fast enough.
 * There is only one thread for all processing.  
 Regardless of the number of requests, threads using the client, or servers to which the client is connected, only one thread will ever be allocated to a given MemcachedClient.  
-Aggressively optimized. There are many optimizations that combine to provide high throughput.
+Aggressively optimized. There are many optimizations that combine to provide `high throughput`.
 
 ### memaslap
 [memaslap] is a load generation and benchmark tool for memcached servers. It generates configurable workload such as threads, concurrencies, connections, run time, overwrite, miss rate, key size, value size, get/set proportion, expected throughput, and so on. Furthermore, it also tests data verification, expire-time verification, UDP, binary protocol, facebook test, replication test, multi-get and reconnection, etc.
@@ -469,19 +475,19 @@ __Akamai__ Technologies, Inc. is an American `content delivery network (CDN)` an
 Web Application Firewall??
 
 ### Pinpoint
-[Pinpoint] Pinpoint is an __APM (Application Performance Management)__ tool for large-scale distributed systems written in Java. Modelled after Dapper, Pinpoint provides a solution to help analyze the `overall structure of the system and how components within them are interconnected` by tracing transactions across distributed applications.
+[Pinpoint] Pinpoint is an __APM (Application Performance Management)__ tool for `large-scale distributed systems` written in Java. Modelled after Dapper, Pinpoint provides a solution to help analyze the `overall structure of the system and how components within them are interconnected` by tracing transactions across distributed applications.
 
 * `Install agents without changing a single line of code`
 * Minimal impact on performance (approximately 3% increase in resource usage)
 
 
 ### Grafana
-[Grafana] is most commonly used for visualizing time series data for Internet infrastructure and application analytics but many use it in other domains including industrial sensors, home automation, weather, and process control.
+[Grafana] is `most commonly used for visualizing time series data for Internet infrastructure and application analytics` but many use it in other domains including industrial sensors, home automation, weather, and process control.
 
 Supports Graphite, Elasticsearch, Prometheus, InfluxDB, OpenTSDB and KairosDB out of the box. Or use the plug-in functionality to add your own.
 
 ### BSF
-__Bean Scripting Framework (BSF)__ is a set of Java classes which provides scripting language support within Java applications, and access to Java objects and methods from scripting languages. BSF allows one to write JSPs in languages other than Java while providing access to the Java class library. In addition, BSF permits any Java application to be implemented in part (or dynamically extended) by a language that is embedded within it. This is achieved by providing an API that permits calling scripting language engines from within Java, as well as an object registry that exposes Java objects to these scripting language engines.
+__Bean Scripting Framework (BSF)__ is a set of Java classes which provides scripting language support within Java applications, and `access to Java objects and methods from scripting languages`. BSF allows one to write JSPs in languages other than Java while providing access to the Java class library. In addition, BSF permits any Java application to be implemented in part (or dynamically extended) by a language that is embedded within it. This is achieved by providing an API that permits `calling scripting language engines from within Java`, as well as an object registry that exposes Java objects to these scripting language engines.
 
 `BSF 2.x supports several scripting languages currently`:  
 * Javascript (using Rhino ECMAScript, from the Mozilla project)
@@ -506,7 +512,7 @@ Apache BSF 3.x includes an implementation of JSR-223 (javax.script) and runs on 
 ### Linux Virtual Server(LVS)
 The Linux Virtual Server is a highly scalable and highly available server `built on a cluster of real servers`, `with the load balancer running on the Linux operating system`. The architecture of the server cluster is fully transparent to end users, and the users interact as if it were a single high-performance virtual server.
 
-The real servers and the load balancers may be interconnected by either high-speed LAN or by geographically dispersed WAN. The load balancers can dispatch requests to the different servers and make parallel services of the cluster to appear as a virtual service on a single IP address, and request dispatching can use IP load balancing technolgies or application-level load balancing technologies. Scalability of the system is achieved by transparently adding or removing nodes in the cluster. High availability is provided by detecting node or daemon failures and reconfiguring the system appropriately.
+The real servers and the load balancers may be interconnected by either high-speed LAN or by geographically dispersed WAN. The load balancers can dispatch requests to the different servers and make parallel services of the cluster to appear as a virtual service on a single IP address, and request dispatching can use IP load balancing technolgies or application-level load balancing technologies. Scalability of the system is achieved by transparently adding or removing nodes in the cluster. `High availability is provided by detecting node or daemon failures and reconfiguring the system appropriately`(PS: no failover supported).
 
 The Linux Virtual Server Project (LVS) implements __layer 4 switching__ in the Linux Kernel. This `allows TCP and UDP sessions to to be load balanced` between multiple real servers. Thus it provides a way to scale Internet services beyond a single host. HTTP and HTTPS traffic for the World Wide Web is probably the most common use. Though it can also be used for more or less any service, from email to the X Windows System.
 
@@ -529,18 +535,19 @@ Consider the following,
 2. Both requests are processed. php:60ms and txt:20ms.
 3. Even though txt is processed first it is buffered until the php response is sent.
 4. The txt response is sent once the php response is complete.
+(PS: without considering transferring time, it costs 60ms via pipeline but 80ms via keep-alive connection)
 
-Because of the head-of-line blocking issues with HTTP Pipelining, along with many servers and proxies not supporting it due to problems with implementation, Pipelining is typically disabled (by default) within browsers.
+Because of the head-of-line blocking issues with HTTP Pipelining, along with many servers and proxies not supporting it due to problems with implementation, `Pipelining is typically disabled (by default) within browsers`.
 
 `DOMAIN SHARDING`  
 Because of the limited adoption of HTTP pipelining, there was still a need for further optimisation techniques within the HTTP protocol to allow for HTTP requests/responses to be sent and received in parallel.  
 
 `By default browsers open a maximum of 6 connections on a per domain basis`. `Domain Sharding simply means that the websites assets are spread across multiple domains`. In turn maximising the amount of concurrent connections opened by the browser, allowing for a greater number of parallel downloads via HTTP.
 
-However Domain Sharding does come with its own disadvantages. Such as the additional overhead/latency introduced with a) building extra TCP connections and b) performing additional Domain Name lookups.
+However Domain Sharding does come with its own disadvantages. Such as the additional overhead/latency introduced with a) `building extra TCP connections` and b) `performing additional Domain Name lookups`.
 
 SUMMARY  
-In essence both HTTP Pipelining and Domain Sharding allow for HTTP requests to be sent in parallel. But this is where the similarities end. With head-of-line-blocking and the limited adoption of HTTP Pipelining, Domain Sharding is the preferred choice when choosing between these 2 HTTP optimization 'techniques'. 
+In essence both HTTP Pipelining and Domain Sharding allow for HTTP requests to be sent in parallel. But this is where the similarities end. With head-of-line-blocking and the limited adoption of HTTP Pipelining, `Domain Sharding is the preferred choice when choosing between these 2 HTTP optimization 'techniques'`. 
 
 ### Mesosphere (DC/OS)
 #### Marathon
@@ -550,13 +557,11 @@ Marathon is a production-grade container orchestration platform for Mesosphere�
 * `Chakra Max` for database access control
 * `Nimbo storage` for storage solution
 * ETL tool: `IBM InfoSphere DataStage` vs `TeraStream`  
-`IBM InfoSphere DataStage` is an ETL tool and part of the IBM Information Platforms Solutions suite and IBM InfoSphere. It uses a graphical notation to construct data integration solutions and is available in various versions such as the Server Edition, the Enterprise Edition, and the MVS Edition.(not free)  
+`IBM InfoSphere DataStage` is an ETL tool and part of the IBM Information Platforms Solutions suite and IBM InfoSphere. It uses a graphical notation to construct data integration solutions and is available in various versions such as the Server Edition, the Enterprise Edition, and the MVS Edition.(`not free`)  
 `TeraStream`™ is the high-performance data integration solution in conjunction with DB in a variety of server environments to do the core functional ETL routines (Extract, Transform, and Load). It can be efficiently applied to high-volume batch processing, real-time data connectivity and data conversion. It guarantees a differentiated file handling performance from the existing data integration solutions in market. (Brand Name: DataStreams, Place of Origin: South Korea)  
 [TeraStream ETL]  
 * `MaxGauge` for MySQL/Oracle monitoring  
 * `Upsource` for code review
-
-![coupon data backup strategy]  
 
 ---
 [webview_strategy]:http://www.human-element.com/webview-strategy-creating-mobile-apps-part-13/ "Webview Strategy"
@@ -585,4 +590,7 @@ Marathon is a production-grade container orchestration platform for Mesosphere�
 [AWS]:http://searchaws.techtarget.com/definition/Amazon-Web-Services "What is AWS"
 [Kryo_Serializers_Git_1]:https://github.com/magro/kryo-serializers "Kryo_Serializers_Git_1"
 [HTTP Pipelining vs Domain Sharding]:https://www.fir3net.com/Networking/Protocols/http-pipelining-vs-domain-sharding.html "HTTP Pipelining vs Domain Sharding"
-[coupon data backup strategy]:/resources/img/misc/coupon_data_backup_strategy.png "coupon data backup strategy"
+[db_topology_examples_by_tangsten]:/resources/img/java/db_topology_examples_by_tangsten.png "db_topology_examples_by_tangsten"
+[Tungsten_Replicator_processing]:/resources/img/java/Tungsten_Replicator_processing.png "Tungsten_Replicator_processing"
+[memcached_and_moxi_proxy_architecture]:/resources/img/java/coupon_memcached_and_moxi_proxy_architecture.png "memcached_and_moxi_proxy_architecture"
+

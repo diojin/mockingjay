@@ -156,6 +156,8 @@ The [SparkR] project also provides a lightweight frontend to use Spark from with
 
 To dive deeper into tuning Spark, visit the [tuning guide] in the official documentation.
 
+PS: Worker (node) contains Threads and Block manager. 
+
 ### Useful URLs
 The first stop for learning about the behavior and performance of a Spark application is Spark’s built-in web UI. This is available on the machine where the driver is running at port 4040 by default
 

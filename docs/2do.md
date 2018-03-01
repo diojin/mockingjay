@@ -9,6 +9,8 @@ ___
     - [Algorithm learning roadmap](#algorithm-learning-roadmap)
 * [DONE](#done)
 
+## haahhahaha
+
 ### DO-DO
 
 - [ ] :heart_eyes_cat: keep pratising, long run and belly practise, arm massage
@@ -47,11 +49,13 @@ ___
             - [x] :arrow_right_hook: :five: ~~计数排序~~ 
     - [x] :arrow_right_hook: :five: ~~Java concurrency in Action~~
     - [ ] :arrow_right_hook: :six: Coupang & Morgan Project
-        - [ ] :arrow_right_hook: :one: Coupang Projects
+        - [x] :arrow_right_hook: :one: ~~Coupang Projects~~
         - [ ] :arrow_right_hook: :two: Morgan Projects: refine(JProfile & Scala) & Data volumn review
         - [ ] :arrow_right_hook: :three: CV
-            - [ ] :arrow_right_hook: :three: 改自我评价部分, 擅长构建知识系统, 擅长积累, 擅长性能优化
+            - [x] :arrow_right_hook: :three: ~~改自我评价部分, 擅长构建知识系统, 擅长积累, 擅长性能优化, 并发编程?, 韧性~~
             - [ ] :arrow_right_hook: :three: 大公司简历由我自己去投
+            - [ ] :arrow_right_hook: :three: 读 FDS codes, 改进 Hibernate(OrderCalendar and DeliveryStatus are cascaded but used 2 sets of queries, need to be tuned, maybe this is because the fetching strategy is lazy), ExecutorCompletionService, Freemarker, db read in batch, db write as it was, exploit more parallelism within thread, API methods for collection parameter, think about way to express business externally, such as using MVEL language. fundamental issue, BatchTxManager executes WorkFlowParameter respectively in loop, but rather in batch. BATCH!!!
+            - [ ] :arrow_right_hook: :three: 宇观科技公司的项目 
     - [ ] :arrow_right_hook: :seven: Big Data related stuffs
         - [ ] :arrow_right_hook: :one: Big Data learning path
         - [ ] :arrow_right_hook: :two: Scala interview questions
@@ -66,6 +70,7 @@ ___
         - [ ] :arrow_right_hook: :three: review design pattern
         - [ ] :arrow_right_hook: :three: review "Scala for the impatients"
         - [ ] :arrow_right_hook: :three: forge more scala experiences
+        - [ ] :arrow_right_hook: :three: do some research on MVEL language
 
 
 - [ ] :heart_eyes_cat: big data learning path from 2017-10-13
