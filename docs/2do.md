@@ -9,8 +9,6 @@ ___
     - [Algorithm learning roadmap](#algorithm-learning-roadmap)
 * [DONE](#done)
 
-## haahhahaha
-
 ### DO-DO
 
 - [ ] :heart_eyes_cat: keep pratising, long run and belly practise, arm massage
@@ -71,6 +69,7 @@ ___
         - [ ] :arrow_right_hook: :three: review "Scala for the impatients"
         - [ ] :arrow_right_hook: :three: forge more scala experiences
         - [ ] :arrow_right_hook: :three: do some research on MVEL language
+        - [ ] :arrow_right_hook: :three: play with github
 
 
 - [ ] :heart_eyes_cat: big data learning path from 2017-10-13
