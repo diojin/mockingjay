@@ -267,7 +267,7 @@ public TaskExecutor threadPoolTaskExecutor() {
     threadPoolTaskExecutor.setCorePoolSize(ASYNC_CORE_POOL_SIZE);
     threadPoolTaskExecutor.setMaxPoolSize(ASYNC_MAX_POOL_SIZE);
     threadPoolTaskExecutor.setQueueCapacity(ASYNC_QUEUE_CAPACITY);
-    threadPoolTaskExecutor.setThreadNamePrefix("SubscribeOrderWorker");
+    threadPoolTaskExecutor.setThreadNamePrefix("SharpenOrderWorker");
     threadPoolTaskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
     ThreadPoolExecutorStatsJMXRegister.register(threadPoolTaskExecutor);
     return threadPoolTaskExecutor;
@@ -623,7 +623,7 @@ public TaskExecutor threadPoolTaskExecutor() {
     threadPoolTaskExecutor.setCorePoolSize(ASYNC_CORE_POOL_SIZE);
     threadPoolTaskExecutor.setMaxPoolSize(ASYNC_MAX_POOL_SIZE);
     threadPoolTaskExecutor.setQueueCapacity(ASYNC_QUEUE_CAPACITY);
-    threadPoolTaskExecutor.setThreadNamePrefix("SubscribeOrderWorker");
+    threadPoolTaskExecutor.setThreadNamePrefix("SharpenOrderWorker");
     threadPoolTaskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
 
     ThreadPoolExecutorStatsJMXRegister.register(threadPoolTaskExecutor);
@@ -703,11 +703,11 @@ Annotation that binds a method parameter or method return value to a named model
 用来绑定表单即指明了这个方法使用的数据是来自account这个表单的数据，接收数据的对象就是Account。
 
 ```java
-@RequestMapping(value={REQUEST_MAPPING_SUBSCRIPTION_LIST}, method = RequestMethod.GET)
-public ModelAndView customerSubscriptionList(@ModelAttribute CsSubscriptionSearchForm searchForm){}
+@RequestMapping(value={REQUEST_MAPPING_SHARPENING_LIST}, method = RequestMethod.GET)
+public ModelAndView customerSharpeningList(@ModelAttribute CsSharpeningSearchForm searchForm){}
 
 @ResponseBody
-@RequestMapping(value = "/cs/subscribe/addressEdit/selectAddress", method = RequestMethod.POST)
+@RequestMapping(value = "/cs/sharpen/addressEdit/selectAddress", method = RequestMethod.POST)
 public ModelAndView applyNewSelectedAddress(@ModelAttribute AddressSelectedInfoDTO addressSelectedInfoDTO, Model model){}
 ```
 
@@ -729,9 +729,9 @@ public String cashAccumulateList(Model model, CashAccumulateHistoryDetailConditi
 }
 
 @RequestMapping(value = REQUEST_MAPPING_PRICE_HISTORY)
-public String showPriceHistory(@RequestParam Long subscriptionId, @RequestParam String memberId, @RequestParam Long vendorItemId, ModelMap modelMap){
+public String showPriceHistory(@RequestParam Long sharpeningId, @RequestParam String memberId, @RequestParam Long vendorItemId, ModelMap modelMap){
     modelMap.addAttribute("priceHistory", priceHistory);
-    modelMap.addAttribute("subscriptionId", subscriptionId);
+    modelMap.addAttribute("sharpeningId", sharpeningId);
     return VIEW_NAME_PRICE_HISTORY;
 }
 
