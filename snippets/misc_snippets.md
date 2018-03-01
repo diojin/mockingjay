@@ -2,7 +2,8 @@
 ---
 
 ## Indexes
-
+* [git](#git)
+    - [remove ignored files](#remove-ignored-files)
 * [QueryDSL](#querydsl)
     - [Misc](#querydsl-misc)
         + [QueryDSL Code Examples](#querydsl-code-examples)
@@ -19,6 +20,20 @@
         + [Examples](#lombok-examples)
     - [Memcached](#memcached)
         + [Example 1](#memcached-example-1)
+
+## git
+### remove ignored files
+```shell
+# file lists
+git rm --cached file1 file2 dir/file3
+
+# many files
+git rm --cached `git ls-files -i --exclude-from=.gitignore`
+
+# as for Git Bash on Windows.
+git ls-files -i --exclude-from=.gitignore | xargs git rm --cached  
+```
+
 
 ## QueryDSL
 ### QueryDSL Misc
