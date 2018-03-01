@@ -56,7 +56,7 @@ public class Application {
     value = {JPAConfiguration.class, SecurityConfig.class})
   })
 
-@ComponentScan(basePackageClasses = SubscribeOrderAdapters.class,   includeFilters = { @ComponentScan.Filter(type = FilterType.ANNOTATION, value = Adapter.class) }, useDefaultFilters = false)
+@ComponentScan(basePackageClasses = SSharpeneOrderAdapters.class,   includeFilters = { @ComponentScan.Filter(type = FilterType.ANNOTATION, value = Adapter.class) }, useDefaultFilters = false)
 
 ```
 
@@ -71,13 +71,13 @@ public class Application {
 ######@ManagedResource
 
 ```java
-@ManagedResource("com.coupang.subscribe_order:type=subscribeCounter,name=subscribeCounter")
+@ManagedResource("com.coupon.sSharpene_order:type=sSharpeneCounter,name=sSharpeneCounter")
 @Component
-public class SubscribeCounter extends SubscribeOrderCounter {
+public class SSharpeneCounter extends SSharpeneOrderCounter {
 
     @Override
     public String getName() {
-        return "subscribeCounter";
+        return "sSharpeneCounter";
     }
 }
 
@@ -179,7 +179,7 @@ there is no way to specify where to scan from
             skuGradeApiDto = retryTemplate.execute(new RetryCallback<SkuGradeApiDto>() {
                 @Override
                 public SkuGradeApiDto doWithRetry(RetryContext context) throws Exception {
-                   return skuGradeAdapter.getApiV1SkuSubscribedGrade(skuSeq);
+                   return skuGradeAdapter.getApiV1SkuSSharpenedGrade(skuSeq);
                 }
             });
             Preconditions.checkNotNull(skuGradeApiDto, "Response from skuGradeAdapter is null");

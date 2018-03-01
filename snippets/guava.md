@@ -115,11 +115,11 @@ boolean result = Iterators.tryFind(failedList.iterator(), new Predicate<SubsItem
 ####Optional
 
 ```java
-subscriptionInquiryRepository.querySubscriptionCountByMemberIdAndActivatedAndSubscriptionType(memberId, active, Optional.<SubscriptionType>absent());
+sSharpeningtionInquiryRepository.querySSharpeningtionCountByMemberIdAndActivatedAndSSharpeningtionType(memberId, active, Optional.<SSharpeningtionType>absent());
 
-public Long querySubscriptionCountByMemberIdAndActivatedAndSubscriptionType(String memberId, Boolean activated, Optional<SubscriptionType> type) {
+public Long querySSharpeningtionCountByMemberIdAndActivatedAndSSharpeningtionType(String memberId, Boolean activated, Optional<SSharpeningtionType> type) {
     if (type.isPresent()) {
-        where = where.and(qSubscription.subscriptionType.eq(type.get()));
+        where = where.and(qSSharpeningtion.sSharpeningtionType.eq(type.get()));
     }
 }
 ```

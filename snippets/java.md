@@ -131,14 +131,14 @@ __Functional in nature__. An operation on a stream produces a result, but does n
 1. case 1
 
 ```java
-Set<Long> productIds = vendorItem2VendorItemSubscriptionDTOMap.values().stream().map(VendorItemSubscriptionDTO::getProductId).collect(Collectors.toSet());
+Set<Long> productIds = vendorItem2VendorItemSSharpeningtionDTOMap.values().stream().map(VendorItemSSharpeningtionDTO::getProductId).collect(Collectors.toSet());
 
 Map<Long, ProductDto> productId2ProductDto = productList.stream().collect(toMap(ProductDto::getProductId, Function.identity()));
 
-public class VendorItemSubscriptionDTO {
+public class VendorItemSSharpeningtionDTO {
     private Long productId;
 
-    public static Function<VendorItemSubscriptionDTO, Long> TO_PRODUCT_ID = VendorItemSubscriptionDTO::getProductId;
+    public static Function<VendorItemSSharpeningtionDTO, Long> TO_PRODUCT_ID = VendorItemSSharpeningtionDTO::getProductId;
 }
 ```
 

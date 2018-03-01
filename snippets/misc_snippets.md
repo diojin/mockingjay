@@ -107,7 +107,7 @@ due to non license, need to re-config a new virtual device
 [Back To Indexes](#indexes)  
 #### Memcached Example 1
 ```java
-@CacheName(SubscribeOrderMemcachedConfig.CACHE_NAME)
+@CacheName(SSharpeneOrderMemcachedConfig.CACHE_NAME)
 @ReadThroughMultiCache(namespace = "get-product-multi-get-v1", expiration = 1800, option = @ReadThroughMultiCacheOption(generateKeysFromResult = true, skipNullsInResult = true))
 public List<ProductDto> getProductsUseCache(@ParameterValueKeyProvider List<Long> productIds){
     List<ProductDto> productDtos = Lists.newArrayList();
@@ -122,7 +122,7 @@ public List<ProductDto> getProductsUseCache(@ParameterValueKeyProvider List<Long
 ```
 
 ```java
-@CacheName(SubscribeOrderMemcachedConfig.CACHE_NAME)
+@CacheName(SSharpeneOrderMemcachedConfig.CACHE_NAME)
 class DefaultNextBoxDateCacheCore implements NextBoxDateCacheCore {
     @ReadThroughSingleCache(namespace = CacheSettings.NextcouponBox.namespace, expiration = CacheSettings.NextcouponBox.expiration)
     public CachedcouponBox getFromCache(@NotNull @ParameterValueKeyProvider String memberId) {
