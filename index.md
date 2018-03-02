@@ -1,37 +1,63 @@
 ---
 layout: default
 ---
-### [environment setup]
-### [algorithm]
-### [bigdata]
 
-### [one development toolkit collection as a solution]
-### [database]
-### [distributed system]
-### [some frameworks]
-### [java]
-### [miscellaneous documemt]
+## Why called mockingjay
+As you may remember the movie series **"The Hunger Games: Mockingjay"**, although with not high rating, I yet feel it quite interesting and like it very much.  Its plot, its metaphor, always make me feel, sometimes, one has to be irony and skeptical of what is being so assured, and take some actions. 
 
-### [Digest of A Byte of Python]
-### [Digest of Addison Wesley Java Concurrency in Practice]
-### [Digest of Hadoop- The Definitive Guide 4th Edition]
-### [Digest of Learning Spark]
-### [Digest of Scala for the Impatient]
-### [Digest of Understanding the JVM Advanced Features and Best Practises 2nd Edition]
+Some web pages to share, if you'd be interested in it, [The Hunger Games: Mockingjay – Part 2], [another page]
 
-### [simple GMD index entry formatter]
-### [simple tool for git]
+## Sitemap
+The projects contains  4 parts, some documents,  some digestions of books,  some code snippets and some scripts. You can use the [links to below](#documents) to get to them.
 
-### [emoji in GMD]
-### [git markdown grammar examples]
-### [guava snippets]
-### [java snippets]
-### [miscellaneous snippets]
-### [shell snippets]
-### [spring snippets]
-### [sql snippets]
+### documents
+#### [bigdata]
+It contains some generic concerns about big data.
 
-Text can be **bold**, _italic_, or ~~strikethrough~~.
+#### [environment setup]
+It contains the elaborated introductions on how to set up big data environment for hadoop, spark, hive, hbase, zookeeper, sqoop, flume, and etc.  
+
+#### [algorithm]
+There are some fundamental algorithms in sorting,  tree, graph, string, link list, some large volume data processing algorithms, some distributed algorithms and etc, as well as some code snippets or pseudo codes.
+
+#### [one development toolkit collection as a solution]
+There are some development toolkits that are together in a mature web solution.
+
+#### [database]
+It has some documents on various aspect of database, primarily for Oracle, it focuses on performance tuning techniques.
+
+#### [distributed system]
+It covers many theoretical topics and aspects on modern distributed systems.
+
+#### [some frameworks]
+There are for now documents on the famous SSH, spring, struts and Hibernate, especially for Hibernate, there are many performance tuning techniques.
+
+#### [java]
+It contains some common topics on core java.
+
+#### [miscellaneous document]
+There are some posts on design pattern, shell, and network, as well as other uncategorized contents.
+
+
+#### [Digest of A Byte of Python]
+#### [Digest of Addison Wesley Java Concurrency in Practice]
+#### [Digest of Hadoop- The Definitive Guide 4th Edition]
+#### [Digest of Learning Spark]
+#### [Digest of Scala for the Impatient]
+#### [Digest of Understanding the JVM Advanced Features and Best Practises 2nd Edition]
+
+#### [simple GMD index entry formatter]
+#### [simple tool for git]
+
+#### [emoji in GMD]
+#### [git markdown grammar examples]
+#### [guava snippets]
+#### [java snippets]
+#### [miscellaneous snippets]
+#### [shell snippets]
+#### [spring snippets]
+#### [sql snippets]
+
 
 ---
 [environment setup]:https://github.com/diojin/mockingjay/blob/master/docs/bigdata/environment_setup.md "environment setup"
@@ -64,4 +90,5 @@ Text can be **bold**, _italic_, or ~~strikethrough~~.
 [shell snippets]:https://github.com/diojin/mockingjay/blob/master/snippets/shell.md "shell snippets"
 [spring snippets]:https://github.com/diojin/mockingjay/blob/master/snippets/spring.md "spring snippets"
 [sql snippets]:https://github.com/diojin/mockingjay/blob/master/snippets/sql.md "sql snippets"
-
+[The Hunger Games: Mockingjay – Part 2]:http://www.imdb.com/title/tt1951266/?ref_=fn_al_tt_4 "The Hunger Games: Mockingjay – Part 2"
+[another page]:https://en.wikipedia.org/wiki/The_Hunger_Games:_Mockingjay_%E2%80%93_Part_2 "The Hunger Games: Mockingjay – Part 2"
