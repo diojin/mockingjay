@@ -34,6 +34,20 @@ git rm --cached `git ls-files -i --exclude-from=.gitignore`
 git ls-files -i --exclude-from=.gitignore | xargs git rm --cached  
 ```
 
+### resolve conflicts between local and remote repository
+```shell
+# 1、把远程仓库master分支下载到本地并存为tmp分支
+git fetch origin master:tmp 
+
+# 2、查看tmp分支与本地原有分支的不同
+git diff tmp 
+
+# 3、将tmp分支和本地的master分支合并
+git merge tmp 
+
+# 4、最后别忘记删除tmp分支
+git branch -d tmp 
+```
 
 ## QueryDSL
 ### QueryDSL Misc
