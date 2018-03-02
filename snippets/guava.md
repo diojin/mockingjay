@@ -1,5 +1,5 @@
 
-###Index
+### Index
 ---
 
 * [Maps](#maps)
@@ -15,7 +15,7 @@
     - [Optional](#optional)
 
 
-###Maps
+### Maps
 
 1. Convert Collection\<V\> to `Map<K, V>`, decided by `Function<V,K>`
 
@@ -45,7 +45,7 @@ List<String> badGuys =
 
 FluentIterable
 ---
-####1. FluentIterable.anyMatch
+#### 1. FluentIterable.anyMatch
 
 Return true if any element matches the Predicate.
 
@@ -83,23 +83,23 @@ Misc
 ---
 ---
 
-####Longs
+#### Longs
 ```java
 Long value = Longs.tryParse(strMemberId);
 ```
 
-####Predicates
+#### Predicates
 ```java
 Predicates.notNull()
 ```
 
-####Preconditions
+#### Preconditions
 ```java
 Preconditions.checkNotNull(loginId, "loginId can't be null.");
 Preconditions.checkArgument(productPrice.intValue() != 0, "ProductPrice is zero!!!");
 ```
 
-####Iterators
+#### Iterators
 ```java
 boolean result = Iterators.tryFind(failedList.iterator(), new Predicate<SubsItem>() {
    @Override
@@ -112,7 +112,7 @@ boolean result = Iterators.tryFind(failedList.iterator(), new Predicate<SubsItem
 
 ```
 
-####Optional
+#### Optional
 
 ```java
 sSharpeningtionInquiryRepository.querySSharpeningtionCountByMemberIdAndActivatedAndSSharpeningtionType(memberId, active, Optional.<SSharpeningtionType>absent());
