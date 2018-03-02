@@ -38,13 +38,28 @@ It contains some common topics on core java.
 #### [miscellaneous document]
 There are some posts on design pattern, shell, and network, as well as other uncategorized contents.
 
+### book digestions
+There are some of books I've read and recent made notes for,  I quoted some valuable contents for later references, and there are also my comments and few mistakes I found, as well as my corrections. 
+
+<b>Notice: None of any content of these books quoted here are to be published, I would delete them right away if they violated the authors' copyright.</b>
+
+#### [Digest of Hadoop- The Definitive Guide 4th Edition]
+It is a very good book to get a big picture and quite much detail of Hadoop core components and its ecosystem. It has chapters about performance tuning and high availability, very valuable.
+
+#### [Digest of Learning Spark]
+It has proper level of detail information to Spark, as well as performance tuning techniques. 
+
+#### [Digest of Scala for the Impatient]
+It is good and efficient book to learn all language detail about Scala, yet not very lengthy. However,  still need some book to know how to write high performance Scala.
 
 #### [Digest of A Byte of Python]
+This is a very concise and efficent book to start with Python.
+
 #### [Digest of Addison Wesley Java Concurrency in Practice]
-#### [Digest of Hadoop- The Definitive Guide 4th Edition]
-#### [Digest of Learning Spark]
-#### [Digest of Scala for the Impatient]
+Excellent book about concurrency concerns and facilities in Java, many of concerns raised here are generic to other languages.
+
 #### [Digest of Understanding the JVM Advanced Features and Best Practises 2nd Edition]
+It is a good and concise book about JVM and Java compiler, for one to get a big picture of what happens in Java under the hood.
 
 #### [simple GMD index entry formatter]
 #### [simple tool for git]
@@ -75,7 +90,7 @@ There are some posts on design pattern, shell, and network, as well as other unc
 [distributed system]:https://github.com/diojin/mockingjay/blob/master/docs/distributed.md "distributed system"
 [some frameworks]:https://github.com/diojin/mockingjay/blob/master/docs/frameworks.md "some frameworks"
 [java]:https://github.com/diojin/mockingjay/blob/master/docs/java.md "java"
-[miscellaneous documemt]:https://github.com/diojin/mockingjay/blob/master/docs/misc.md "miscellaneous documemt"
+[miscellaneous document]:https://github.com/diojin/mockingjay/blob/master/docs/misc.md "miscellaneous document"
 [notes]:https://github.com/diojin/mockingjay/blob/master/docs/notes.md "notes"
 [2do]:https://github.com/diojin/mockingjay/blob/master/private/2do.md "2do"
 [Digest of programmer's tiny bible]:https://github.com/diojin/mockingjay/blob/master/private/Digest%20of%20programmer%27s%20tiny%20bible.md "Digest of programmer's tiny bible"
