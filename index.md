@@ -61,18 +61,37 @@ Excellent book about concurrency concerns and facilities in Java, many of concer
 #### [Digest of Understanding the JVM Advanced Features and Best Practises 2nd Edition]
 It is a good and concise book about JVM and Java compiler, for one to get a big picture of what happens in Java under the hood.
 
-#### [simple GMD index entry formatter]
-#### [simple tool for git]
+### code snippets
+Codes snippets here are mainly for reuse purpose, the urls themselves are quite self descriptive.
 
-#### [emoji in GMD]
-#### [git markdown grammar examples]
-#### [guava snippets]
 #### [java snippets]
-#### [miscellaneous snippets]
-#### [shell snippets]
+
 #### [spring snippets]
+
 #### [sql snippets]
 
+#### [guava snippets]
+Guava is a very good utility libarary for java. 
+
+#### [shell snippets]
+
+#### [emoji in GMD]
+It contains all emoji supported by github flavored markdown.  
+
+#### [github markdown grammar examples]
+It contains grammar examples for github flavored markdown
+
+#### [miscellaneous snippets]
+There are some uncategorized code snippets.
+
+
+### Scripts
+
+#### [simple GMD index entry formatter]
+A script to generate a index in markdown language from a String.
+
+#### [simple tool for git]
+A script tool helps to fasten routine git operations. 
 
 ---
 [environment setup]:https://github.com/diojin/mockingjay/blob/master/docs/bigdata/environment_setup.md "environment setup"
@@ -98,7 +117,7 @@ It is a good and concise book about JVM and Java compiler, for one to get a big 
 [simple tool for git]:https://github.com/diojin/mockingjay/blob/master/scripts/gt "simple tool for git"
 [emoji]:https://github.com/diojin/mockingjay/blob/master/snippets/emoji.md "emoji"
 [emoji in GMD]:https://github.com/diojin/mockingjay/blob/master/snippets/emoji_ori.md "emoji in GMD"
-[git markdown grammar examples]:https://github.com/diojin/mockingjay/blob/master/snippets/git-markdown-example.md "git markdown grammar examples"
+[github markdown grammar examples]:https://github.com/diojin/mockingjay/blob/master/snippets/git-markdown-example.md "git markdown grammar examples"
 [guava snippets]:https://github.com/diojin/mockingjay/blob/master/snippets/guava.md "guava snippets"
 [java snippets]:https://github.com/diojin/mockingjay/blob/master/snippets/java.md "java snippets"
 [miscellaneous snippets]:https://github.com/diojin/mockingjay/blob/master/snippets/misc_snippets.md "miscellaneous snippets"
