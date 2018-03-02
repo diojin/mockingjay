@@ -3,12 +3,12 @@ layout: default
 ---
 
 ## Why called mockingjay
-As you may remember the movie series **"The Hunger Games: Mockingjay"**, although with not high rating, I yet feel it quite interesting and like it very much.  Its plot, its metaphor, always make me feel, sometimes, one has to be irony and skeptical of what is being so assured, and take some actions. 
+As you may remember the movie series **"The Hunger Games: Mockingjay"**, although with not high rating, I feel it quite interesting and like it very much.  Its plot, its metaphor, always make me feel, sometimes, one has to be irony and skeptical of what is being so assured, and take some actions. 
 
-Some web pages to share, if you'd be interested in it, [The Hunger Games: Mockingjay – Part 2], [another page]
+Some web pages to share, if you'd be interested in it, [The Hunger Games: Mockingjay – Part 2] or [another page]
 
 ## Sitemap
-The projects contains  4 parts, some documents,  some digestions of books,  some code snippets and some scripts. You can use the [links to below](#documents) to get to them.
+The project contains 4 parts, which are some documents,  some digestions of books,  some code snippets and some scripts. You can use the [links to below](#documents) to get to them.
 
 ### documents
 #### [bigdata]
