@@ -7018,7 +7018,7 @@ ZooKeeper also has the following characteristics:
 1. ZooKeeper is simple  
 ZooKeeper is, at its core, a `stripped-down filesystem` that exposes a few simple operations and `some extra abstractions`, such as ordering and notifications.   
 2. ZooKeeper is expressive  
-The ZooKeeper primitives are a rich set of building blocks that can be used to build a large class of coordination data structures and protocols. Examples include distributed queues, distributed locks, and leader election among a group of peers.  
+The ZooKeeper primitives are a rich set of building blocks that can be used to build a large class of `coordination data structures and protocols`. Examples include distributed queues, distributed locks, and leader election among a group of peers.  
 3. ZooKeeper is highly available   
 4. ZooKeeper facilitates loosely coupled interactions  
 ZooKeeper interactions support participants that do not need to know about one another. For example, ZooKeeper can be used as a rendezvous mechanism so that processes that otherwise don’t know of each other’s existence (or network details) can discover and interact with one another. `Coordinating parties may not even be contemporaneous`, since one process may leave a message in ZooKeeper that is read by another after the first has shut down.   
@@ -7218,9 +7218,9 @@ zk.delete(path, -1);
 
 ### The ZooKeeper Service
 #### Zookeeper Data Model
-ZooKeeper maintains a hierarchical tree of nodes called znodes. A znode stores data and has an associated ACL. ZooKeeper is designed for coordination (which typically uses small datafiles), not high-volume data storage, so there is `a limit of 1 MB` on the amount of data that may be stored in any znode. 
+ZooKeeper maintains a hierarchical tree of nodes called znodes. `A znode stores data and has an associated ACL`. ZooKeeper is designed for coordination (which typically uses small datafiles), not high-volume data storage, so there is `a limit of 1 MB` on the amount of data that may be stored in any znode. 
 
-Data access(read/write) is atomic.  
+`Data access(read/write) is atomic`.  
 
 ZooKeeper does not support an append operation.
 
@@ -7273,7 +7273,7 @@ Both APIs offer the same functionality, so the one you use is `largely a matter 
 `The asynchronous API allows you to pipeline requests, which in some scenarios can offer better throughput`.(PS: a bit like CompletionService) Imagine that you want to read a large batch of znodes and process them independently. Using the synchronous API, each read would block until it returned, whereas with the asynchronous API, you can fire off all the asynchronous reads very quickly and process the responses in a separate thread as they come back.
 
 * Watch triggers  
-The read operations exists, getChildren, and getData may have watches set on them, and the watches are triggered by write operations: create, delete, and setData. ACL operations do not participate in watches.  
+The read operations exists, getChildren, and getData may have watches set on them, and the watches are triggered by write operations: create, delete, and setData. `ACL operations do not participate in watches`.  
 
 ![hadoop_zookeeper_watch_triggers_img_1]   
 
@@ -7288,7 +7288,7 @@ The client is authenticated using Kerberos.
 3. ip  
 The client is authenticated by its IP address.
 
-In addition, ZooKeeper has a pluggable authentication mechanism, which makes it possible to integrate third-party authentication systems if needed.  
+In addition, ZooKeeper has a pluggable authentication mechanism, which makes it possible `to integrate third-party authentication systems` if needed.  
 
 #### Zookeeper Implementation
 The ZooKeeper service can run in two modes.   
@@ -7318,7 +7318,7 @@ All machines in the ensemble `write updates to disk before updating their in-mem
 #### Zookeeper Consistency
 The terms “leader” and “follower” for the machines in an ensemble are apt because they make the point that `a follower may lag the leader by a number of updates`. This is a consequence of the fact that `only a majority and not all members of the ensemble need to have persisted a change before it is committed`.
 
-`Every update` made to the znode tree is given `a globally unique identifier`, called a zxid (which stands for `“ZooKeeper transaction ID”`). Updates are ordered, so if zxid z1 is less than z2, then z1 happened before z2, according to ZooKeeper (which is the single authority on ordering in the distributed system).
+`Every update` made to the znode tree is given `a globally unique identifier`, called a zxid (which stands for `“ZooKeeper transaction ID”`). `Updates are ordered`, so if zxid z1 is less than z2, then z1 happened before z2, according to ZooKeeper (which is the single authority on ordering in the distributed system).
 
 ![hadoop_zookeeper_consistency_img_1]  
 **Figure 21-2. Reads are satisfied by followers, whereas writes are committed by the leader**  
@@ -7328,7 +7328,7 @@ The terms “leader” and “follower” for the machines in an ensemble are ap
 Updates `from any particular client` are applied in the order that they are sent. This means that if a client updates the znode z to the value a, and in a later operation, it updates z to the value b, then no client will ever see z with value a after it has seen it with value b (if no other updates are made to z).  
 2. Atomicity  
 3. Single system image  
-A client will see the same view of the system, regardless of the server it connects to. This means that if a client connects to a new server during the same session, it will not see an older state of the system than the one it saw with the previous server. When a server fails and a client tries to connect to another in the ensemble, `a server that is behind the one that failed will not accept connections from the client until it has caught up with the failed server`.  
+A client will see the same view of the system, regardless of the server it connects to. This means that if a client connects to a new server `during the same session`, it will not see an older state of the system than the one it saw with the previous server. When a server fails and a client tries to connect to another in the ensemble, `a server that is behind the one that failed will not accept connections from the client until it has caught up with the failed server`.  
 4. Durability  
 Once an update has succeeded, it will persist and will not be undone. This means updates will survive server failures.  
 5. Timeliness  
@@ -7345,7 +7345,7 @@ Once a connection has been made with a ZooKeeper server, the server creates a ne
 
 Sessions are kept alive by the client `sending ping requests` (also known as **heartbeats**) whenever the session is idle for longer than a certain period. (by the ZooKeeper client library).
 
-Failover to another ZooKeeper server is handled automatically by the ZooKeeper client, and crucially, sessions (and associated ephemeral znodes) are still valid after another server takes over from the failed one.
+Failover to another ZooKeeper server is handled automatically by the `ZooKeeper client`, and crucially, sessions (and associated ephemeral znodes) are still valid after another server takes over from the failed one.
 
 Also, if the application tries to perform an operation while the client is reconnecting to another server, the operation will fail. This underlines the importance of handling connection loss exceptions in real-world ZooKeeper applications.
 
@@ -7355,12 +7355,12 @@ the fundamental period of time in ZooKeeper and is used by servers in the ensemb
 The session timeout, for example, may not be less than 2 ticks or more than 20. If you attempt to set a session timeout outside this range, it will be modified to fall within the range.  
 A common tick time setting is 2 seconds (2,000 milliseconds). This translates to an allowable session timeout of between 4 and 40 seconds.  
 2.  session timeout  
-Every session is given a unique identity and password by the server, and if these are passed to ZooKeeper while a connection is being made, it is possible to `recover a session` (as long as it hasn’t expired).  
+`Every session is given a unique identity` and password by the server, and if these are passed to ZooKeeper while a connection is being made, it is possible to `recover a session` (as long as it hasn’t expired).  
 `As a general rule, the larger the ZooKeeper ensemble, the larger the session timeout should be`. Connection timeouts, read timeouts, and ping periods are all defined internally as a function of the number of servers in the ensemble, so as the ensemble grows, these periods decrease. Consider increasing the timeout if you experience frequent connection loss.
 
 ##### ZooKeeper States
 
-![[hadoop_zookeeper_client_state_img_1]]   
+![hadoop_zookeeper_client_state_img_1]   
 
 ```java
 // ZooKeeper object
@@ -7384,7 +7384,7 @@ A **KeeperException** is thrown if the ZooKeeper server signals an error or if t
 1. State exceptions  
 A state exception occurs when the operation fails because it cannot be applied to the znode tree.
 2. Recoverable exceptions  
-Recoverable exceptions are those from which the application can recover within the same ZooKeeper session. A recoverable exception is manifested by KeeperException.ConnectionLossException, which means that the connection to ZooKeeper has been lost. ZooKeeper will try to reconnect, and in most cases the reconnection will succeed and ensure that the session is intact.   
+Recoverable exceptions are those from which the application can `recover within the same ZooKeeper session`. A recoverable exception is manifested by KeeperException.ConnectionLossException, which means that the connection to ZooKeeper has been lost. ZooKeeper will try to reconnect, and in most cases the reconnection will succeed and ensure that the session is intact.   
 The program needs a way of detecting whether its update was applied by encoding information in the znode’s pathname or its data.  
 3. Unrecoverable exceptions   
 In some cases, the ZooKeeper session becomes invalid — perhaps because of a timeout or because the session was closed (both of these scenarios get a KeeperException.SessionExpiredException), or perhaps because authentication failed (KeeperException.AuthFailedException). In any case, all ephemeral nodes associated with the session will be lost, so the application needs to rebuild its state before reconnecting to ZooKeeper.  
@@ -7394,10 +7394,10 @@ Distributed locks can be used for leader election in a large distributed system,
 
 To implement a distributed lock using ZooKeeper, we use sequential znodes to impose an order on the processes vying for the lock. The idea is simple:   
 first, designate a lock znode, typically describing the entity being locked on (say, /leader);   
-then, clients that want to acquire the lock create sequential ephemeral znodes as children of the lock znode. At any point in time, the client with the lowest sequence number holds the lock.  
+then, clients that want to acquire the lock create `sequential ephemeral znodes` as children of the lock znode. At any point in time, the client with the lowest sequence number holds the lock.  
 For example, if two clients create the znodes at /leader/lock-1 and /leader/lock-2 around the same time, then the client that created /leader/lock-1 holds the lock, since its znode has the lowest sequence number. The lock may be released simply by deleting the znode /leader/lock-1; alternatively, if the client process dies, it will be deleted by virtue of being an ephemeral znode. The client that created /leader/lock-2 will then hold the lock because it has the next lowest sequence number. It ensures it will be notified that it has the lock by creating a watch that fires when znodes go away.  
 
-The ZooKeeper service is the arbiter of order because it assigns the sequence numbers. 
+The `ZooKeeper service` is the arbiter of order because it assigns the sequence numbers. 
 
 **The pseudocode for lock acquisition is as follows**:  
 1. Create an ephemeral sequential znode named `lock-` under the lock znode, and remember its actual pathname (the return value of the create operation).
@@ -7534,5 +7534,5 @@ For more in-depth information about ZooKeeper, see [ZooKeeper] by Flavio Junquei
 [Apache Curator project]:http://curator.apache.org/ "Welcome to Apache Curator"
 [ZooKeeper website]:http://zookeeper.apache.org/ "Apache ZooKeeper"
 [BookKeeper]:http://zookeeper.apache.org/bookkeeper/ "BookKeeper"
-[ZooKeeper Administrator's Guide]:http://zookeeper.apache.org/doc/current/zookeeperAdmin.html "ZooKeeper Administrator's Guide"
+[ZooKeeper Administrator’s Guide]:http://zookeeper.apache.org/doc/current/zookeeperAdmin.html "ZooKeeper Administrator's Guide"
 [ZooKeeper]:http://shop.oreilly.com/product/0636920028901.do "ZooKeeper Distributed Process Coordination"
