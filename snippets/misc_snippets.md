@@ -4,6 +4,7 @@
 ## Indexes
 * [git](#git)
     - [remove ignored files](#remove-ignored-files)
+    - [resolve conflicts between local and remote repository](#resolve-conflicts-between-local-and-remote-repository)
 * [QueryDSL](#querydsl)
     - [Misc](#querydsl-misc)
         + [QueryDSL Code Examples](#querydsl-code-examples)
