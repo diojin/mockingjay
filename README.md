@@ -89,8 +89,6 @@ A script to generate a index in markdown language from a String.
 #### [simple tool for git]
 A script tool helps to fasten routine git operations. 
 
-
-
 ---
 [environment setup]:https://github.com/diojin/mockingjay/blob/master/docs/bigdata/environment_setup.md "environment setup"
 [algorithm]:https://github.com/diojin/mockingjay/blob/master/docs/algorithm.md "algorithm"
