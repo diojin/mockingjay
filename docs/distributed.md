@@ -47,6 +47,14 @@
 
 ## Terms
 
+```html
+宝贝的邮件
+Hello Everyone, 
+My name is Wu Hong, you can call me Nari, I am very happy and exciting to join our company, it is my honor to work with you, Coupang is one of the biggest internet E-Commercial company in Korea, and the environment here is very good, people here are very open minded and lively, willing to help and share, it is my favorite working place. 
+Before I joined our company, I worked at a Chinese textile import and export trade company for almost 8 years, majorly on order management and corresponding lawsuit settlement. I am willingly to contribute what I've got to our big family.
+I like travelling, movies and playing badminton, I am good at running, my korean is not bad, please feel free to ask me if you need any help on korean, my skypy is arctic920@hotmail.com, hope we can be friends :)
+```
+
 **Personally identifiable information (PII)** is any data that could potentially identify a specific individual. Any information that can be used to distinguish one person from another and can be used for de-anonymizing anonymous data can be considered PII.   
 
 The abbreviation **viz.** (or viz without a full stop), short for the Latin videlicet, is used as a synonym for "namely", "that is to say", "to wit", or "as follows".  
